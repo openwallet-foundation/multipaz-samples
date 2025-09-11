@@ -1,0 +1,7 @@
+TEAM_ID=
+
+PRODUCT_NAME=Multipaz Getting Started Sample
+PRODUCT_BUNDLE_IDENTIFIER=org.multipaz.getstarted.MultipazGettingStartedSample$(TEAM_ID)
+
+CURRENT_PROJECT_VERSION=1
+MARKETING_VERSION=1.0
