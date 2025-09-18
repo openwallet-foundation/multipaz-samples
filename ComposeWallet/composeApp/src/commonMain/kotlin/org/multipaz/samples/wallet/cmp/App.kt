@@ -3,15 +3,16 @@ package org.multipaz.samples.wallet.cmp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
@@ -27,6 +29,8 @@ import coil3.compose.LocalPlatformContext
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -36,13 +40,13 @@ import mpzcmpwallet.composeapp.generated.resources.Res
 import mpzcmpwallet.composeapp.generated.resources.compose_multiplatform
 import org.jetbrains.compose.resources.painterResource
 import org.multipaz.asn1.ASN1Integer
-import org.multipaz.cbor.Simple
+import org.multipaz.compose.PassphraseEntryField
 import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
-import org.multipaz.compose.presentment.Presentment
 import org.multipaz.compose.prompt.PromptDialogs
+import org.multipaz.compose.provisioning.Provisioning
 import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.Crypto
@@ -50,37 +54,38 @@ import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
+import org.multipaz.document.AbstractDocumentMetadata
+import org.multipaz.document.DocumentMetadata
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
-import org.multipaz.mdoc.engagement.EngagementGenerator
-import org.multipaz.mdoc.role.MdocRole
-import org.multipaz.mdoc.transport.MdocTransportFactory
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.mdoc.transport.advertise
-import org.multipaz.mdoc.transport.waitForConnection
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.models.digitalcredentials.DigitalCredentials
-import org.multipaz.models.presentment.MdocPresentmentMechanism
 import org.multipaz.models.presentment.PresentmentModel
 import org.multipaz.models.presentment.PresentmentSource
 import org.multipaz.models.presentment.SimplePresentmentSource
+import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.provisioning.AuthorizationChallenge
+import org.multipaz.provisioning.AuthorizationException
+import org.multipaz.provisioning.AuthorizationResponse
+import org.multipaz.provisioning.Display
 import org.multipaz.securearea.CreateKeySettings
+import org.multipaz.securearea.PassphraseConstraints
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
 import org.multipaz.storage.ephemeral.EphemeralStorage
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
-import org.multipaz.trustmanagement.TrustPoint
 import org.multipaz.util.Platform
 import org.multipaz.util.UUID
 import org.multipaz.util.fromHex
-import org.multipaz.util.toBase64Url
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 /**
@@ -97,6 +102,8 @@ class App() {
     lateinit var readerTrustManager: TrustManagerLocal
     lateinit var presentmentModel: PresentmentModel
     lateinit var presentmentSource: PresentmentSource
+    lateinit var provisioningModel: ProvisioningModel
+    val provisioningSupport = ProvisioningSupport()
 
     private val initLock = Mutex()
     private var initialized = false
@@ -117,7 +124,11 @@ class App() {
                 addDocumentType(DrivingLicense.getDocumentType())
             }
             documentStore = buildDocumentStore(storage = storage, secureAreaRepository = secureAreaRepository) {}
-            if (documentStore.listDocuments().isEmpty()) {
+            val documents = documentStore.listDocuments()
+            println(documents)
+            if (documents.isEmpty()) {
+
+                /*
                 val now = Clock.System.now()
                 val signedAt = now
                 val validFrom = now
@@ -161,7 +172,10 @@ class App() {
                         validFrom = validFrom,
                         validUntil = validUntil,
                     )
+
+                 */
             }
+
             presentmentModel = PresentmentModel().apply { setPromptModel(promptModel) }
             readerTrustManager = TrustManagerLocal(
                 storage = EphemeralStorage()
@@ -201,6 +215,15 @@ class App() {
                     documentTypeRepository = documentTypeRepository
                 )
             }
+            provisioningModel = ProvisioningModel(
+                documentStore = documentStore,
+                secureArea = secureArea,
+                httpClient = HttpClient(platformHttpClientEngineFactory()) {
+                    followRedirects = false
+                },
+                promptModel = promptModel,
+                documentMetadataInitializer = App::initializeDocumentMetadata
+            )
             initialized = true
         }
     }
@@ -232,6 +255,7 @@ class App() {
             val bleEnabledState = rememberBluetoothEnabledState()
 
             PromptDialogs(promptModel)
+            val provisioningState = provisioningModel.state.collectAsState().value
 
             if (!blePermissionState.isGranted) {
                 Column(
@@ -253,6 +277,9 @@ class App() {
                         Text("Enable BLE")
                     }
                 }
+            } else if (provisioningState != ProvisioningModel.Idle &&
+                    provisioningState != ProvisioningModel.CredentialsIssued) {
+                ProvisioningScreen()
             } else {
                 MdocProximityQrPresentment(
                     appName = appName,
@@ -267,6 +294,30 @@ class App() {
                     showQrCode = { uri -> ShowQrCode(uri) }
                 )
             }
+        }
+    }
+
+    @Composable
+    private fun ProvisioningScreen() {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.weight(1.0f))
+            Provisioning(
+                provisioningModel = provisioningModel,
+                waitForRedirectLinkInvocation = {state ->
+                    provisioningSupport.waitForAppLinkInvocation(state)
+                }
+            )
+            Spacer(modifier = Modifier.weight(1.0f))
+            Button(onClick = {
+                provisioningModel.cancel()
+            }) {
+                Text("Cancel Provisioning")
+            }
+            Spacer(modifier = Modifier.weight(1.0f))
         }
     }
 
@@ -325,8 +376,36 @@ class App() {
         }
     }
 
+    /**
+     * Handle a link (either a app link, universal link, or custom URL schema link).
+     */
+    fun handleUrl(url: String) {
+        if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME)
+            || url.startsWith(HAIP_URL_SCHEME)) {
+            val queryIndex = url.indexOf('?')
+            if (queryIndex >= 0) {
+                try {
+                    provisioningModel.launchOpenID4VCIProvisioning(
+                        offerUri = url,
+                        clientPreferences = ProvisioningSupport.OPENID4VCI_CLIENT_PREFERENCES,
+                        backend = provisioningSupport
+                    )
+                } catch (_: IllegalStateException) {
+                    // provisioning is already active
+                }
+            }
+        } else if (url.startsWith(ProvisioningSupport.APP_LINK_BASE_URL)) {
+            CoroutineScope(Dispatchers.Default).launch {
+                provisioningSupport.processAppLinkInvocation(url)
+            }
+        }
+    }
+
     companion object {
         val promptModel = Platform.promptModel
+
+        private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
+        private const val HAIP_URL_SCHEME = "haip://"
 
         private var app: App? = null
         fun getInstance(): App {
@@ -334,6 +413,22 @@ class App() {
                 app = App()
             }
             return app!!
+        }
+
+
+        private suspend fun initializeDocumentMetadata(
+            metadata: AbstractDocumentMetadata,
+            credentialDisplay: Display,
+            issuerDisplay: Display
+        ) {
+            (metadata as DocumentMetadata).setMetadata(
+                displayName = credentialDisplay.text,  // TODO: customize after provisioning?
+                typeDisplayName = credentialDisplay.text,
+                cardArt = credentialDisplay.logo
+                    ?: ByteString(Res.readBytes("drawable/card_generic.png")),
+                issuerLogo = issuerDisplay.logo,
+                other = null
+            )
         }
     }
 }

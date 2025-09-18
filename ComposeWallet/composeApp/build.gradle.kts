@@ -34,6 +34,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
+            implementation(libs.ktor.client.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -51,6 +52,10 @@ kotlin {
             implementation(libs.multipaz.models)
             implementation(libs.multipaz.compose)
             implementation(libs.coil.compose)
+            implementation(libs.ktor.client.core)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
