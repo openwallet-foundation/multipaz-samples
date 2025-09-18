@@ -26,6 +26,8 @@ import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 import multipazgettingstartedsample.composeapp.generated.resources.Res
 import multipazgettingstartedsample.composeapp.generated.resources.compose_multiplatform
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.getDrawableResourceBytes
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.multipaz.asn1.ASN1Integer
@@ -53,6 +55,7 @@ import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.transport.advertise
 import org.multipaz.mdoc.transport.waitForConnection
 import org.multipaz.mdoc.util.MdocUtil
+import org.multipaz.models.digitalcredentials.DigitalCredentials
 import org.multipaz.models.presentment.MdocPresentmentMechanism
 import org.multipaz.models.presentment.PresentmentModel
 import org.multipaz.models.presentment.PresentmentSource
@@ -65,6 +68,7 @@ import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.UUID
+import org.multipaz.util.fromHex
 import org.multipaz.util.toBase64Url
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -285,6 +289,21 @@ class App {
                 e.printStackTrace()
             }
 
+            // This is for https://verifier.multipaz.org website.
+            try {
+                readerTrustManager.addX509Cert(
+                    certificate = X509Cert(
+                        "30820269308201efa0030201020210b7352f14308a2d40564006785270b0e7300a06082a8648ce3d0403033037310b300906035504060c0255533128302606035504030c1f76657269666965722e6d756c746970617a2e6f726720526561646572204341301e170d3235303631393232313633325a170d3330303631393232313633325a3037310b300906035504060c0255533128302606035504030c1f76657269666965722e6d756c746970617a2e6f7267205265616465722043413076301006072a8648ce3d020106052b81040022036200046baa02cc2f2b7c77f054e9907fcdd6c87110144f07acb2be371b2e7c90eb48580c5e3851bcfb777c88e533244069ff78636e54c7db5783edbc133cc1ff11bbabc3ff150f67392264c38710255743fee7cde7df6e55d7e9d5445d1bde559dcba8a381bf3081bc300e0603551d0f0101ff04040302010630120603551d130101ff040830060101ff02010030560603551d1f044f304d304ba049a047864568747470733a2f2f6769746875622e636f6d2f6f70656e77616c6c65742d666f756e646174696f6e2d6c6162732f6964656e746974792d63726564656e7469616c2f63726c301d0603551d0e04160414b18439852f4a6eeabfea62adbc51d081f7488729301f0603551d23041830168014b18439852f4a6eeabfea62adbc51d081f7488729300a06082a8648ce3d040303036800306502302a1f3bb0afdc31bcee73d3c5bf289245e76bd91a0fd1fb852b45fc75d3a98ba84430e6a91cbfc6b3f401c91382a43a64023100db22d2243644bb5188f2e0a102c0c167024fb6fe4a1d48ead55a6893af52367fb3cdbd66369aa689ecbeb5c84f063666".fromHex()
+                    ),
+                    metadata = TrustMetadata(
+                        displayName = "Multipaz Verifier",
+                        privacyPolicyUrl = "https://verifier.multipaz.org"
+                    )
+                )
+            } catch (e: TrustPointAlreadyExistsException) {
+                e.printStackTrace()
+            }
+
             presentmentModel = PresentmentModel().apply { setPromptModel(promptModel) }
             presentmentSource = SimplePresentmentSource(
                 documentStore = documentStore,
@@ -293,6 +312,13 @@ class App {
                 preferSignatureToKeyAgreement = true,
                 domainMdocSignature = "mdoc",
             )
+
+            if (DigitalCredentials.Default.available) {
+                DigitalCredentials.Default.startExportingCredentials(
+                    documentStore = documentStore,
+                    documentTypeRepository = documentTypeRepository
+                )
+            }
 
             isInitialized = true
         }
