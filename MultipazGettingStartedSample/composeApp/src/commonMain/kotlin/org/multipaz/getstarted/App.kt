@@ -53,6 +53,7 @@ import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.transport.advertise
 import org.multipaz.mdoc.transport.waitForConnection
 import org.multipaz.mdoc.util.MdocUtil
+import org.multipaz.models.digitalcredentials.DigitalCredentials
 import org.multipaz.models.presentment.MdocPresentmentMechanism
 import org.multipaz.models.presentment.PresentmentModel
 import org.multipaz.models.presentment.PresentmentSource
@@ -65,6 +66,7 @@ import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.UUID
+import org.multipaz.util.fromHex
 import org.multipaz.util.toBase64Url
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -118,31 +120,11 @@ class App {
                     typeDisplayName = "Utopia Driving License",
                 )
 
-                val iacaCert = X509Cert.fromPem(
-                    """
-                        -----BEGIN CERTIFICATE-----
-                        MIICYzCCAemgAwIBAgIQ36kOae8cfvOqQ+mO4YhnpDAKBggqhkjOPQQDAzAuMQswCQYDVQQGDAJV
-                        UzEfMB0GA1UEAwwWT1dGIE11bHRpcGF6IFRFU1QgSUFDQTAeFw0yNTA3MjQxMTE3MTlaFw0zMDA3
-                        MjQxMTE3MTlaMC4xCzAJBgNVBAYMAlVTMR8wHQYDVQQDDBZPV0YgTXVsdGlwYXogVEVTVCBJQUNB
-                        MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEQQJf9BH+fJytVI4K4nQvHJAfzapvuT6jo+19fo+o9+zV
-                        PFnOYtsbPXB5sPeuMMv5ZkQGmn9yWCgpbZHAS2pJ/eJXAcLp9uH8BGo6pYhkPomx9cwgMX0YUXoB
-                        4wiO6w9eo4HLMIHIMA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEAMC0GA1UdEgQm
-                        MCSGImh0dHBzOi8vaXNzdWVyLmV4YW1wbGUuY29tL3dlYnNpdGUwMwYDVR0fBCwwKjAooCagJIYi
-                        aHR0cHM6Ly9pc3N1ZXIuZXhhbXBsZS5jb20vY3JsLmNybDAdBgNVHQ4EFgQUPbetw5QkxGKjazN0
-                        qI9YfaexD+0wHwYDVR0jBBgwFoAUPbetw5QkxGKjazN0qI9YfaexD+0wCgYIKoZIzj0EAwMDaAAw
-                        ZQIxAKizj2YexKf1+CTBCOV4ehyiUU5MSi9iPScW32+halSCVUtbmW63fpG+37obLGivegIwb38g
-                        xhIRxDdIk1CBVsqANCFUvdBuSoORRV5928xo/B9he5ZFyb8b6UauJS70AMD8
-                        -----END CERTIFICATE-----
-                    """.trimIndent()
-                )
+                val iacaCert =
+                    X509Cert.fromPem(Res.readBytes("files/iaca_certificate.pem").decodeToString())
 
                 val iacaKey = EcPrivateKey.fromPem(
-                    """
-                        -----BEGIN PRIVATE KEY-----
-                        MFcCAQAwEAYHKoZIzj0CAQYFK4EEACIEQDA+AgEBBDBEPQnb6xr3p0XKGucrf3iVI/sDF2fc55vs
-                        T31kxam8x8ocKu4ETouTZM+DZKu0cD+gBwYFK4EEACI=
-                        -----END PRIVATE KEY-----
-                    """.trimIndent(),
+                    Res.readBytes("files/iaca_private_key.pem").decodeToString(),
                     iacaCert.ecPublicKey
                 )
 
@@ -197,21 +179,8 @@ class App {
             try {
                 readerTrustManager.addX509Cert(
                     certificate = X509Cert.fromPem(
-                        """
-                                -----BEGIN CERTIFICATE-----
-                                MIICUTCCAdegAwIBAgIQppKZHI1iPN290JKEA79OpzAKBggqhkjOPQQDAzArMSkwJwYDVQQDDCBP
-                                V0YgTXVsdGlwYXogVGVzdEFwcCBSZWFkZXIgUm9vdDAeFw0yNDEyMDEwMDAwMDBaFw0zNDEyMDEw
-                                MDAwMDBaMCsxKTAnBgNVBAMMIE9XRiBNdWx0aXBheiBUZXN0QXBwIFJlYWRlciBSb290MHYwEAYH
-                                KoZIzj0CAQYFK4EEACIDYgAE+QDye70m2O0llPXMjVjxVZz3m5k6agT+wih+L79b7jyqUl99sbeU
-                                npxaLD+cmB3HK3twkA7fmVJSobBc+9CDhkh3mx6n+YoH5RulaSWThWBfMyRjsfVODkosHLCDnbPV
-                                o4G/MIG8MA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEAMFYGA1UdHwRPME0wS6BJ
-                                oEeGRWh0dHBzOi8vZ2l0aHViLmNvbS9vcGVud2FsbGV0LWZvdW5kYXRpb24tbGFicy9pZGVudGl0
-                                eS1jcmVkZW50aWFsL2NybDAdBgNVHQ4EFgQUq2Ub4FbCkFPx3X9s5Ie+aN5gyfUwHwYDVR0jBBgw
-                                FoAUq2Ub4FbCkFPx3X9s5Ie+aN5gyfUwCgYIKoZIzj0EAwMDaAAwZQIxANN9WUvI1xtZQmAKS4/D
-                                ZVwofqLNRZL/co94Owi1XH5LgyiBpS3E8xSxE9SDNlVVhgIwKtXNBEBHNA7FKeAxKAzu4+MUf4gz
-                                8jvyFaE0EUVlS2F5tARYQkU6udFePucVdloi
-                                -----END CERTIFICATE-----
-                            """.trimIndent().trim()
+                        Res.readBytes("files/reader_root_cert_multipaz_testapp.pem")
+                            .decodeToString()
                     ),
                     metadata = TrustMetadata(
                         displayName = "OWF Multipaz TestApp",
@@ -228,21 +197,8 @@ class App {
             try {
                 readerTrustManager.addX509Cert(
                     certificate = X509Cert.fromPem(
-                        """
-                                -----BEGIN CERTIFICATE-----
-                                MIICYTCCAeegAwIBAgIQOSV5JyesOLKHeDc+0qmtuTAKBggqhkjOPQQDAzAzMQswCQYDVQQGDAJV
-                                UzEkMCIGA1UEAwwbTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBMB4XDTI1MDcwNTEyMjAyMVoX
-                                DTMwMDcwNTEyMjAyMVowMzELMAkGA1UEBgwCVVMxJDAiBgNVBAMMG011bHRpcGF6IElkZW50aXR5
-                                IFJlYWRlciBDQTB2MBAGByqGSM49AgEGBSuBBAAiA2IABD4UX5jabDLuRojEp9rsZkAEbP8Icuj3
-                                qN4wBUYq6UiOkoULMOLUb+78Ygonm+sJRwqyDJ9mxYTjlqliW8PpDfulQZejZo2QGqpB9JPInkrC
-                                Bol5T+0TUs0ghkE5ZQBsVKOBvzCBvDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIB
-                                ADBWBgNVHR8ETzBNMEugSaBHhkVodHRwczovL2dpdGh1Yi5jb20vb3BlbndhbGxldC1mb3VuZGF0
-                                aW9uLWxhYnMvaWRlbnRpdHktY3JlZGVudGlhbC9jcmwwHQYDVR0OBBYEFM+kr4eQcxKWLk16F2Rq
-                                zBxFcZshMB8GA1UdIwQYMBaAFM+kr4eQcxKWLk16F2RqzBxFcZshMAoGCCqGSM49BAMDA2gAMGUC
-                                MQCQ+4+BS8yH20KVfSK1TSC/RfRM4M9XNBZ+0n9ePg9ftXUFt5e4lBddK9mL8WznJuoCMFuk8ey4
-                                lKnb4nubv5iPIzwuC7C0utqj7Fs+qdmcWNrSYSiks2OEnjJiap1cPOPk2g==
-                                -----END CERTIFICATE-----
-                           """.trimIndent().trim()
+                        Res.readBytes("files/reader_root_cert_multipaz_identity_reader.pem")
+                            .decodeToString()
                     ),
                     metadata = TrustMetadata(
                         displayName = "Multipaz Identity Reader",
@@ -259,26 +215,28 @@ class App {
             try {
                 readerTrustManager.addX509Cert(
                     certificate = X509Cert.fromPem(
-                        """
-                                -----BEGIN CERTIFICATE-----
-                                MIICiTCCAg+gAwIBAgIQQd/7PXEzsmI+U14J2cO1bjAKBggqhkjOPQQDAzBHMQswCQYDVQQGDAJV
-                                UzE4MDYGA1UEAwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNl
-                                cykwHhcNMjUwNzE5MjMwODE0WhcNMzAwNzE5MjMwODE0WjBHMQswCQYDVQQGDAJVUzE4MDYGA1UE
-                                AwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNlcykwdjAQBgcq
-                                hkjOPQIBBgUrgQQAIgNiAATqihOe05W3nIdyVf7yE4mHJiz7tsofcmiNTonwYsPKBbJwRTHa7AME
-                                +ToAfNhPMaEZ83lBUTBggsTUNShVp1L5xzPS+jK0tGJkR2ny9+UygPGtUZxEOulGK5I8ZId+35Gj
-                                gb8wgbwwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQAwVgYDVR0fBE8wTTBLoEmg
-                                R4ZFaHR0cHM6Ly9naXRodWIuY29tL29wZW53YWxsZXQtZm91bmRhdGlvbi1sYWJzL2lkZW50aXR5
-                                LWNyZWRlbnRpYWwvY3JsMB0GA1UdDgQWBBSbz9r9IFmXjiGGnH3Siq90geurxTAfBgNVHSMEGDAW
-                                gBSbz9r9IFmXjiGGnH3Siq90geurxTAKBggqhkjOPQQDAwNoADBlAjEAomqjfJe2k162S5Way3sE
-                                BTcj7+DPvaLJcsloEsj/HaThIsKWqQlQKxgNu1rE/XryAjB/Gq6UErgWKlspp+KpzuAAWaKk+bMj
-                                cM4aKOKOU3itmB+9jXTQ290Dc8MnWVwQBs4=
-                                -----END CERTIFICATE-----
-                           """.trimIndent().trim()
+                        Res.readBytes("files/reader_root_cert_multipaz_identity_reader_untrusted.pem")
+                            .decodeToString()
                     ),
                     metadata = TrustMetadata(
                         displayName = "Multipaz Identity Reader (Untrusted Devices)",
                         privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
+                    )
+                )
+            } catch (e: TrustPointAlreadyExistsException) {
+                e.printStackTrace()
+            }
+
+            // This is for https://verifier.multipaz.org website.
+            try {
+                readerTrustManager.addX509Cert(
+                    certificate = X509Cert(
+                        Res.readBytes("files/reader_root_cert_multipaz_web_verifier.pem")
+                            .decodeToString().fromHex()
+                    ),
+                    metadata = TrustMetadata(
+                        displayName = "Multipaz Verifier",
+                        privacyPolicyUrl = "https://verifier.multipaz.org"
                     )
                 )
             } catch (e: TrustPointAlreadyExistsException) {
@@ -293,6 +251,13 @@ class App {
                 preferSignatureToKeyAgreement = true,
                 domainMdocSignature = "mdoc",
             )
+
+            if (DigitalCredentials.Default.available) {
+                DigitalCredentials.Default.startExportingCredentials(
+                    documentStore = documentStore,
+                    documentTypeRepository = documentTypeRepository
+                )
+            }
 
             isInitialized = true
         }

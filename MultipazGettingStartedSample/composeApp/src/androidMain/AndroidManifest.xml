@@ -53,6 +53,20 @@
         </activity>
 
         <activity
+            android:name=".CredmanActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:theme="@android:style/Theme.Translucent">
+            <intent-filter>
+                <action android:name="androidx.credentials.registry.provider.action.GET_CREDENTIAL" />
+                <action android:name="androidx.identitycredentials.action.GET_CREDENTIALS" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".NfcActivity"
             android:exported="true"
             android:launchMode="singleInstance"
