@@ -34,6 +34,8 @@ kotlin {
             implementation(libs.androidx.activity.compose)
 
             implementation(libs.androidx.fragment)
+
+            implementation(libs.ktor.client.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -49,6 +51,14 @@ kotlin {
             implementation(libs.multipaz.models)
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
+
+            implementation(libs.coil.compose)
+            implementation(libs.ktor.client.core)
+            // CIO for JVM/Android; Darwin engine for iOS in iosMain
+            implementation(libs.ktor.client.cio)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
