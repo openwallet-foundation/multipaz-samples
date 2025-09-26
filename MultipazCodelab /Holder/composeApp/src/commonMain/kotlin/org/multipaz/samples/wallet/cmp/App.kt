@@ -76,7 +76,7 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.PhotoID
+import org.multipaz.documenttype.knowntypes.LoyaltyID
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.mdoc.mso.MobileSecurityObjectParser
@@ -156,7 +156,7 @@ class App() {
             secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
             documentTypeRepository = DocumentTypeRepository().apply {
                 addDocumentType(DrivingLicense.getDocumentType())
-                addDocumentType(PhotoID.getDocumentType())
+                addDocumentType(LoyaltyID.getDocumentType())
             }
             documentStore = buildDocumentStore(
                 storage = storage,
