@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,6 +48,7 @@ import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.document.AbstractDocumentMetadata
+import org.multipaz.document.Document
 import org.multipaz.document.DocumentMetadata
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
@@ -56,7 +58,6 @@ import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.models.digitalcredentials.DigitalCredentials
-import org.multipaz.models.presentment.MdocPresentmentMechanism
 import org.multipaz.models.presentment.PresentmentModel
 import org.multipaz.models.presentment.PresentmentSource
 import org.multipaz.models.presentment.SimplePresentmentSource
@@ -71,7 +72,6 @@ import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.UUID
 import org.multipaz.util.fromHex
-import org.multipaz.util.toBase64Url
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
@@ -336,12 +336,10 @@ class App {
             }
 
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                // todo: add button to list docs
                 // todo: add button for deletion
 
                 if (isProvisioning)
@@ -372,6 +370,7 @@ class App {
                     }
                 } else {
                     MdocProximityQrPresentment(
+                        modifier = Modifier.weight(1f),
                         appName = appName,
                         appIconPainter = painterResource(appIcon),
                         presentmentModel = presentmentModel,
@@ -383,6 +382,28 @@ class App {
                         showQrButton = { onQrButtonClicked -> ShowQrButton(onQrButtonClicked) },
                         showQrCode = { uri -> ShowQrCode(uri) }
                     )
+
+                    var documents by remember { mutableStateOf<List<Document>>(emptyList()) }
+                    LaunchedEffect(isInitialized.value) {
+                        if (isInitialized.value) {
+                            documents = listDocuments()
+                        }
+                    }
+
+                    if (documents.isNotEmpty()) {
+                        Text(
+                            modifier = Modifier.padding(4.dp),
+                            text = "${documents.size} Documents present:"
+                        )
+                        for (document in documents) {
+                            Text(
+                                text = document.metadata.displayName ?: document.identifier,
+                                modifier = Modifier.padding(4.dp)
+                            )
+                        }
+                    } else {
+                        Text(text = "No documents found.")
+                    }
                 }
             }
         }
@@ -490,5 +511,17 @@ class App {
                 provisioningSupport.processAppLinkInvocation(url)
             }
         }
+    }
+
+    suspend fun listDocuments(): MutableList<Document> {
+        val documents = mutableStateListOf<Document>()
+        for (documentId in documentStore.listDocuments()) {
+            documentStore.lookupDocument(documentId)?.let { document ->
+                if (!documents.contains(document)) {
+                    documents.add(document)
+                }
+            }
+        }
+        return documents
     }
 }
