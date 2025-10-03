@@ -104,7 +104,8 @@
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
             android:theme="@android:style/Theme.Translucent"
-            android:launchMode="singleInstance">
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true">
             <intent-filter>
                 <action android:name="androidx.credentials.registry.provider.action.GET_CREDENTIAL" />
                 <action android:name="androidx.identitycredentials.action.GET_CREDENTIALS" />
