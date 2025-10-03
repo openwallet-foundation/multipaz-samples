@@ -233,11 +233,12 @@ class App {
             }
 
             // This is for https://verifier.multipaz.org website.
+            // Certificate source: https://verifier.multipaz.org/verifier/readerRootCert
             try {
                 readerTrustManager.addX509Cert(
-                    certificate = X509Cert(
+                    certificate = X509Cert.fromPem(
                         Res.readBytes("files/reader_root_cert_multipaz_web_verifier.pem")
-                            .decodeToString().fromHex()
+                            .decodeToString()
                     ),
                     metadata = TrustMetadata(
                         displayName = "Multipaz Verifier",
