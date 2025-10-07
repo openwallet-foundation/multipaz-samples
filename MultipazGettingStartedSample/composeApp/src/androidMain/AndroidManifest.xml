@@ -34,6 +34,7 @@
 
     <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -44,11 +45,69 @@
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:enableOnBackInvokedCallback="true"
+            android:exported="true"
+            android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep Link Configuration -->
+
+            <!-- 1. HTTPS App Links (default) - Requires .well-known/assetlinks.json -->
+            <!-- Examples: https://apps.multipaz.org/landing/ -->
+            <!-- Must match ApplicationSupportLocal.APP_LINK_SERVER -->
+            <!-- Requires setting up .well-known/assetlinks.json in the server with app fingerprint -->
+            <!-- We are using #2 (Custom URI Scheme) for now in this app. But in a production env,
+                 you should use HTTPS links which is more secure -->
+
+            <!--            <intent-filter android:autoVerify="true">-->
+            <!--                <action android:name="android.intent.action.VIEW" />-->
+
+            <!--                <category android:name="android.intent.category.DEFAULT" />-->
+            <!--                <category android:name="android.intent.category.BROWSABLE" />-->
+
+            <!--                &lt;!&ndash;-->
+            <!--                Do not include other schemes, only https. If domain is changed here, it-->
+            <!--                also MUST be changed in ApplicationSupportLocal class.-->
+            <!--                 &ndash;&gt;-->
+            <!--                <data-->
+            <!--                    android:host="getstarted.multipaz.org"-->
+            <!--                    android:pathPattern="/landing/.*"-->
+            <!--                    android:scheme="https" />-->
+            <!--            </intent-filter>-->
+
+            <!-- 2. Custom URI Scheme - App-specific URLs -->
+            <!-- Examples: get-started-app://landing -->
+            <!-- Must match ApplicationSupportLocal.APP_LINK_SERVER -->
+            <!-- This is an alternative to HTTPS App Links (above) which require .well-known/assetlinks.json -->
+
+            <!-- We are using this for now in this app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="get-started-app" />
+                <data android:host="landing" />
+            </intent-filter>
+
+            <!-- 3. OpenID4VCI Credential Offers -->
+            <!-- Examples: openid-credential-offer://, haip:// -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!--  OpenId Credential Offer scheme (OID4VCI) -->
+                <data android:scheme="openid-credential-offer" />
+                <!--  High Assurance Interoperability Profile -->
+                <data android:scheme="haip" />
+                <!-- Accept all hosts for any of the defined schemes above -->
+                <data android:host="*" />
             </intent-filter>
         </activity>
 
