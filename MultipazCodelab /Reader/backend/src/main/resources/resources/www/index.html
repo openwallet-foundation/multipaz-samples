@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>OWF Multipaz Reader Backend</title>
+    <link rel="icon" type="image/x-icon" href="https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/fingerprint/default/24px.svg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+</head>
+<body>
+<div class="col-lg-8 mx-auto p-4 py-md-5">
+    <header class="d-flex align-items-center pb-3 mb-4 border-bottom">
+        <a href="/" class="d-flex align-items-center text-body-emphasis text-decoration-none">
+            <span class="fs-4">Multipaz Identity Reader Backend</span>
+        </a>
+    </header>
+    <main>
+        <p>
+            The Multipaz Identity Reader application uses this backend for certification of
+            hardware-backed single-use keys used for reader authentication according to
+            ISO/IEC 18013-5:2021. These keys are signed by the following root certificate:
+            <a href="readerRootCert">Reader Root Certificate</a>
+        </p>
+        <p>
+            In case the Multipaz Identity Reader application is running on a device where
+            it wasn't possibly to establish a high-level of trust (for example if
+            <a href="https://source.android.com/docs/security/features/verifiedboot">Verified Boot</a>
+            is disabled) or if the application wasn't signed with the key used to sign APKs
+            distributed on <a href="https://apps.multipaz.org">https://apps.multipaz.org</a>
+            (for example if you built it yourself from <a href="https://github.com/davidz25/MpzIdentityReader">source</a>),
+            the following root certificate is used instead:
+            <a href="readerRootCertUntrustedDevices">Reader Root Certificate for Untrusted Devices</a>
+        </p>
+    </main>
+    <footer class="pt-5 my-5 text-body-secondary border-top">
+        This reader backend is part of the <a href="https://github.com/openwallet-foundation/multipaz">Multipaz</a> project
+        and is considered experimental software. Use at your own risk.
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+
+</body>
+</html>
