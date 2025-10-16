@@ -38,7 +38,7 @@ fun TosScreen(settingsModel: SettingsModel) {
             AppBar(
                 title = buildAnnotatedString {
                     withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("PhotoID Identity Reader")
+                        append("Loyalty Identity Reader")
                     }
                 },
                 settingsModel = settingsModel,
