@@ -55,7 +55,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.multipaz.cbor.DataItem
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.identityreader.BuildConfig
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodNfc
 import org.multipaz.mdoc.nfc.scanNfcMdocReader
 import org.multipaz.mdoc.transport.MdocTransport
 import org.multipaz.mdoc.transport.MdocTransportFactory
@@ -343,22 +345,60 @@ private fun StartScreenWithPermissions(
     LaunchedEffect(Unit) {
         if (nfcTagScanningSupportedWithoutDialog) {
             coroutineScope.launch {
-                scanNfcMdocReader(
-                    message = null,
-                    options = mdocTransportOptionsForNfcEngagement,
-                    transportFactory = MdocTransportFactory.Default,
-                    // TODO: maybe do UI
-                    selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
-                    negotiatedHandoverConnectionMethods = listOf(
+                try {
+                    val negotiatedHandoverConnectionMethods = mutableListOf<MdocConnectionMethod>()
+                    val bleUuid = UUID.randomUUID()
+
+                    // Add BLE Central Client Mode
+                    negotiatedHandoverConnectionMethods.add(
                         MdocConnectionMethodBle(
                             supportsPeripheralServerMode = false,
                             supportsCentralClientMode = true,
                             peripheralServerModeUuid = null,
-                            centralClientModeUuid = UUID.randomUUID(),
+                            centralClientModeUuid = bleUuid,
                         )
-                    ),
-//                    onHandover = onNfcHandover
-                )
+                    )
+
+                    // Add BLE Peripheral Server Mode
+                    negotiatedHandoverConnectionMethods.add(
+                        MdocConnectionMethodBle(
+                            supportsPeripheralServerMode = true,
+                            supportsCentralClientMode = false,
+                            peripheralServerModeUuid = bleUuid,
+                            centralClientModeUuid = null,
+                        )
+                    )
+
+                    // Add NFC Data Transfer support
+                    negotiatedHandoverConnectionMethods.add(
+                        MdocConnectionMethodNfc(
+                            commandDataFieldMaxLength = 0xffff,
+                            responseDataFieldMaxLength = 0x10000
+                        )
+                    )
+
+                    // In multipaz 0.94.0, scanNfcMdocReader returns a result instead of using a callback
+                    val result = scanNfcMdocReader(
+                        message = null,
+                        options = mdocTransportOptionsForNfcEngagement,
+                        transportFactory = MdocTransportFactory.Default,
+                        selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
+                        negotiatedHandoverConnectionMethods = negotiatedHandoverConnectionMethods
+                    )
+
+                    // Handle the result if not null (user didn't cancel)
+                    result?.let {
+                        onNfcHandover(
+                            it.transport,
+                            it.encodedDeviceEngagement,
+                            it.handover,
+                            null  // updateMessage not available in background scanning
+                        )
+                    }
+                } catch (e: Throwable) {
+                    Logger.e(TAG, "NFC engagement failed", e)
+                    showToast("NFC engagement failed: ${e.message}")
+                }
             }
         }
     }
@@ -442,22 +482,60 @@ private fun StartScreenWithPermissions(
             OutlinedButton(
                 onClick = {
                     coroutineScope.launch {
-                        scanNfcMdocReader(
-                            message = "Hold to Wallet",
-                            options = MdocTransportOptions(bleUseL2CAP = true),
-                            transportFactory = MdocTransportFactory.Default,
-                            // TODO: maybe do UI
-                            selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
-                            negotiatedHandoverConnectionMethods = listOf(
+                        try {
+                            val negotiatedHandoverConnectionMethods = mutableListOf<MdocConnectionMethod>()
+                            val bleUuid = UUID.randomUUID()
+
+                            // Add BLE Central Client Mode
+                            negotiatedHandoverConnectionMethods.add(
                                 MdocConnectionMethodBle(
                                     supportsPeripheralServerMode = false,
                                     supportsCentralClientMode = true,
                                     peripheralServerModeUuid = null,
-                                    centralClientModeUuid = UUID.randomUUID(),
+                                    centralClientModeUuid = bleUuid,
                                 )
-                            ),
-//                            onHandover = onNfcHandover
-                        )
+                            )
+
+                            // Add BLE Peripheral Server Mode
+                            negotiatedHandoverConnectionMethods.add(
+                                MdocConnectionMethodBle(
+                                    supportsPeripheralServerMode = true,
+                                    supportsCentralClientMode = false,
+                                    peripheralServerModeUuid = bleUuid,
+                                    centralClientModeUuid = null,
+                                )
+                            )
+
+                            // Add NFC Data Transfer support
+                            negotiatedHandoverConnectionMethods.add(
+                                MdocConnectionMethodNfc(
+                                    commandDataFieldMaxLength = 0xffff,
+                                    responseDataFieldMaxLength = 0x10000
+                                )
+                            )
+
+                            // In multipaz 0.94.0, scanNfcMdocReader returns a result instead of using a callback
+                            val result = scanNfcMdocReader(
+                                message = "Hold to Wallet",
+                                options = MdocTransportOptions(bleUseL2CAP = true),
+                                transportFactory = MdocTransportFactory.Default,
+                                selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
+                                negotiatedHandoverConnectionMethods = negotiatedHandoverConnectionMethods
+                            )
+
+                            // Handle the result if not null (user didn't cancel)
+                            result?.let {
+                                onNfcHandover(
+                                    it.transport,
+                                    it.encodedDeviceEngagement,
+                                    it.handover,
+                                    null  // updateMessage not available when using return value pattern
+                                )
+                            }
+                        } catch (e: Throwable) {
+                            Logger.e(TAG, "NFC engagement failed", e)
+                            showToast("NFC engagement failed: ${e.message}")
+                        }
                     }
                 }
             ) {

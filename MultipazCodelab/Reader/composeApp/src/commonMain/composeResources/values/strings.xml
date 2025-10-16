@@ -1,7 +1,7 @@
 <resources>
     <string name="back_button_content_description">Back</string>
 
-    <string name="start_screen_title">PhotoID Identity Reader</string>
+    <string name="start_screen_title">Loyalty Identity Reader</string>
     <string name="scan_qr_title">Scan QR code</string>
     <string name="developer_settings_screen_title">Developer Settings</string>
     <string name="reader_identity_title">Reader identity</string>
