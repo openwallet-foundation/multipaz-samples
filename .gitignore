@@ -4,3 +4,29 @@
 
 # macOS
 .DS_Store
+
+# Build artifacts
+build/
+.gradle/
+*.apk
+*.aab
+*.dex
+*.class
+
+# Kotlin/Android
+.kotlin/
+kotlin-classes/
+kspCaches/
+kotlinTransformedMetadataLibraries/
+
+# Local configuration files
+local.properties
+
+# Xcode
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+DerivedData/
+
+# Logs
+*.log

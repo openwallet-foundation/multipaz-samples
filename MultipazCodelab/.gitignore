@@ -1,0 +1,36 @@
+# Build artifacts
+build/
+.gradle/
+*.apk
+*.aab
+*.dex
+*.class
+
+# Kotlin/Android specific
+.kotlin/
+kotlin-classes/
+kspCaches/
+kotlinTransformedMetadataLibraries/
+
+# Local configuration files
+local.properties
+
+# Xcode
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+DerivedData/
+project.xcworkspace/xcuserdata/
+
+# IDE
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Reports
+reports/
