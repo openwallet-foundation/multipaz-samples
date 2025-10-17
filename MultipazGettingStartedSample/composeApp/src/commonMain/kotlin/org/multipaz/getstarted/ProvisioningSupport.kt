@@ -14,6 +14,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import multipazgettingstartedsample.composeapp.generated.resources.Res
 import org.multipaz.asn1.OID
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.Crypto
@@ -48,59 +49,56 @@ class ProvisioningSupport : OpenID4VCIBackend {
 //        const val APP_LINK_SERVER = "https://getstarted.multipaz.org"
 //        const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/landing/"
 
-        private val localClientAssertionJwk = Json.parseToJsonElement(
-            """
-            {
-                "kty": "EC",
-                "alg": "ES256",
-                "key_ops": [
-                    "sign"
-                ],
-                "kid": "895b72b9-0808-4fcc-bb19-960d14a9e28f",
-                "crv": "P-256",
-                "x": "nSmAFnZx-SqgTEyqqOSmZyLESdbiSUIYlRlLLoWy5uc",
-                "y": "FN1qcif7nyVX1MHN_YSbo7o7RgG2kPJUjg27YX6AKsQ",
-                "d": "TdQhxDqbAUpzMJN5XXQqLea7-6LvQu2GFKzj5QmFDCw"
-            }            
-        """.trimIndent()
-        ).jsonObject
-
-        private val localClientAssertionPrivateKey = EcPrivateKey.fromJwk(localClientAssertionJwk)
-        private val localClientAssertionKeyId =
-            localClientAssertionJwk["kid"]!!.jsonPrimitive.content
-
-        private val attestationCertificate = X509Cert.fromPem(
-            """
-                -----BEGIN CERTIFICATE-----
-                MIIBxTCCAUugAwIBAgIJAOQTL9qcQopZMAoGCCqGSM49BAMDMDgxNjA0BgNVBAMT
-                LXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAe
-                Fw0yNDA5MjMyMjUxMzFaFw0zNDA5MjMyMjUxMzFaMDgxNjA0BgNVBAMTLXVybjp1
-                dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjB2MBAGByqG
-                SM49AgEGBSuBBAAiA2IABN4D7fpNMAv4EtxyschbITpZ6iNH90rGapa6YEO/uhKn
-                C6VpPt5RUrJyhbvwAs0edCPthRfIZwfwl5GSEOS0mKGCXzWdRv4GGX/Y0m7EYypo
-                x+tzfnRTmoVX3v6OxQiapKMhMB8wHQYDVR0OBBYEFPqAK5EjiQbxFAeWt//DCaWt
-                C57aMAoGCCqGSM49BAMDA2gAMGUCMEO01fJKCy+iOTpaVp9LfO7jiXcXksn2BA22
-                reiR9ahDRdGNCrH1E3Q2umQAssSQbQIxAIz1FTHbZPcEbA5uE5lCZlRG/DQxlZhk
-                /rZrkPyXFhqEgfMnQ45IJ6f8Utlg+4Wiiw==
-                -----END CERTIFICATE-----
-            """.trimIndent()
+        private data class LocalClientAssertion(
+            val jwk: kotlinx.serialization.json.JsonObject,
+            val privateKey: EcPrivateKey,
+            val kid: String
         )
 
-        private val attestationPrivateKey = EcPrivateKey.fromPem(
-            """
-            -----BEGIN PRIVATE KEY-----
-            ME4CAQAwEAYHKoZIzj0CAQYFK4EEACIENzA1AgEBBDBn7jeRC9u9de3kOkrt9lLT
-            Pvd1hflNq1FCgs7D+qbbwz1BQa4XXU0SjsV+R1GjnAY=
-            -----END PRIVATE KEY-----
-            """.trimIndent(),
-            attestationCertificate.ecPublicKey
+        private val localClientAssertionMutex = Mutex()
+        private var localClientAssertionCache: LocalClientAssertion? = null
+
+        private suspend fun getLocalClientAssertion(): LocalClientAssertion {
+            localClientAssertionCache?.let { return it }
+            return localClientAssertionMutex.withLock {
+                localClientAssertionCache?.let { return it }
+                val jwk = Json.parseToJsonElement(
+                    Res.readBytes("files/provisioning_local_assertion_jwk.json").decodeToString()
+                ).jsonObject
+                val privateKey = EcPrivateKey.fromJwk(jwk)
+                val kid = jwk["kid"]!!.jsonPrimitive.content
+                val v = LocalClientAssertion(jwk, privateKey, kid)
+                localClientAssertionCache = v
+                v
+            }
+        }
+
+        private data class AttestationData(
+            val cert: X509Cert,
+            val privateKey: EcPrivateKey,
+            val attestationId: String
         )
+
+        private val attestationMutex = Mutex()
+        private var attestationCache: AttestationData? = null
+
+        private suspend fun getAttestationData(): AttestationData {
+            attestationCache?.let { return it }
+            return attestationMutex.withLock {
+                attestationCache?.let { return it }
+                val certPem = Res.readBytes("files/provisioning_attestation_certificate.pem").decodeToString()
+                val cert = X509Cert.fromPem(certPem)
+                val keyPem = Res.readBytes("files/provisioning_attestation_private_key.pem").decodeToString()
+                val privateKey = EcPrivateKey.fromPem(keyPem, cert.ecPublicKey)
+                val attestationId = cert.subject.components[OID.COMMON_NAME.oid]?.value
+                    ?: throw IllegalStateException("No common name (CN) in certificate's subject")
+                val v = AttestationData(cert, privateKey, attestationId)
+                attestationCache = v
+                v
+            }
+        }
 
         const val CLIENT_ID = "urn:uuid:418745b8-78a3-4810-88df-7898aff3ffb4"
-
-        private val attestationId =
-            attestationCertificate.subject.components[OID.COMMON_NAME.oid]?.value
-                ?: throw IllegalStateException("No common name (CN) in certificate's subject")
 
         val OPENID4VCI_CLIENT_PREFERENCES = OpenID4VCIClientPreferences(
             clientId = CLIENT_ID,
@@ -130,12 +128,13 @@ class ProvisioningSupport : OpenID4VCIBackend {
 
     @OptIn(ExperimentalTime::class)
     override suspend fun createJwtClientAssertion(tokenUrl: String): String {
+        val local = getLocalClientAssertion()
         val alg =
-            localClientAssertionPrivateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
+            local.privateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
         val head = buildJsonObject {
             put("typ", "JWT")
             put("alg", alg)
-            put("kid", localClientAssertionKeyId)
+            put("kid", local.kid)
         }.toString().encodeToByteArray().toBase64Url()
 
         // TODO: figure out what should be passed as `aud`.
@@ -161,8 +160,8 @@ class ProvisioningSupport : OpenID4VCIBackend {
 
         val message = "$head.$payload"
         val sig = Crypto.sign(
-            key = localClientAssertionPrivateKey,
-            signatureAlgorithm = localClientAssertionPrivateKey.curve.defaultSigningAlgorithm,
+            key = local.privateKey,
+            signatureAlgorithm = local.privateKey.curve.defaultSigningAlgorithm,
             message = message.encodeToByteArray()
         )
         val signature = sig.toCoseEncoded().toBase64Url()
@@ -175,12 +174,13 @@ class ProvisioningSupport : OpenID4VCIBackend {
         // Implements this draft:
         // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-04
 
-        val signatureAlgorithm = attestationPrivateKey.curve.defaultSigningAlgorithmFullySpecified
+        val att = getAttestationData()
+        val signatureAlgorithm = att.privateKey.curve.defaultSigningAlgorithmFullySpecified
         val head = buildJsonObject {
             put("typ", "oauth-client-attestation+jwt")
             put("alg", signatureAlgorithm.joseAlgorithmIdentifier)
             put("x5c", buildJsonArray {
-                add(attestationCertificate.encodedCertificate.encodeBase64())
+                add(att.cert.encodedCertificate.encodeBase64())
             })
         }.toString().encodeToByteArray().toBase64Url()
 
@@ -191,7 +191,7 @@ class ProvisioningSupport : OpenID4VCIBackend {
         // the key becomes invalid at that point in time.
         val expiration = now + 5.minutes
         val payload = buildJsonObject {
-            put("iss", attestationId)
+            put("iss", att.attestationId)
             put("sub", CLIENT_ID)
             put("exp", expiration.epochSeconds)
             put("cnf", buildJsonObject {
@@ -208,7 +208,7 @@ class ProvisioningSupport : OpenID4VCIBackend {
 
         val message = "$head.$payload"
         val sig = Crypto.sign(
-            key = attestationPrivateKey,
+            key = att.privateKey,
             signatureAlgorithm = signatureAlgorithm,
             message = message.encodeToByteArray()
         )
@@ -224,12 +224,13 @@ class ProvisioningSupport : OpenID4VCIBackend {
     ): String {
         val keyList = keyAttestations.map { it.publicKey }
 
-        val alg = attestationPrivateKey.curve.defaultSigningAlgorithm.joseAlgorithmIdentifier
+        val att = getAttestationData()
+        val alg = att.privateKey.curve.defaultSigningAlgorithm.joseAlgorithmIdentifier
         val head = buildJsonObject {
             put("typ", "keyattestation+jwt")
             put("alg", alg)
             put("x5c", buildJsonArray {
-                add(attestationCertificate.encodedCertificate.encodeBase64())
+                add(att.cert.encodedCertificate.encodeBase64())
             })
         }.toString().encodeToByteArray().toBase64Url()
 
@@ -237,7 +238,7 @@ class ProvisioningSupport : OpenID4VCIBackend {
         val notBefore = now - 1.seconds
         val expiration = now + 5.minutes
         val payload = buildJsonObject {
-            put("iss", attestationId)
+            put("iss", att.attestationId)
             put("attested_keys", JsonArray(keyList.map { it.toJwk() }))
             put("nonce", challenge)
             put("nbf", notBefore.epochSeconds)
@@ -247,8 +248,8 @@ class ProvisioningSupport : OpenID4VCIBackend {
 
         val message = "$head.$payload"
         val sig = Crypto.sign(
-            key = attestationPrivateKey,
-            signatureAlgorithm = attestationPrivateKey.curve.defaultSigningAlgorithm,
+            key = att.privateKey,
+            signatureAlgorithm = att.privateKey.curve.defaultSigningAlgorithm,
             message = message.encodeToByteArray()
         )
         val signature = sig.toCoseEncoded().toBase64Url()
