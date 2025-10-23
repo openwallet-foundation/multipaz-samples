@@ -49,6 +49,8 @@ kotlin {
             implementation(libs.multipaz.models)
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
+
+            implementation(libs.coil.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

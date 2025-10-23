@@ -14,7 +14,8 @@ composeMultiplatform = "1.8.2"
 junit = "4.13.2"
 kotlin = "2.2.0"
 
-multipaz = "0.93.0" # latest version of Multipaz to use
+coil = "3.3.0"
+multipaz = "0.94.0" # latest version of Multipaz to use
 
 androidx-fragment = "1.8.6"
 
@@ -37,7 +38,7 @@ multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
 
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "androidx-fragment" }
-
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

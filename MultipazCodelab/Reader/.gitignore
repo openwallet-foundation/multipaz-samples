@@ -1,0 +1,18 @@
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Gradle
+.gradle/
+build/
+local.properties
+
+# Kotlin
+.kotlin/
+
+# Build outputs
+*.class
+*.jar
+*.war
+*.ear
