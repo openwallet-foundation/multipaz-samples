@@ -91,12 +91,7 @@ class ProvisioningSupport: OpenID4VCIBackend {
             attestationCertificate.subject.components[OID.COMMON_NAME.oid]?.value
                 ?: throw IllegalStateException("No common name (CN) in certificate's subject")
 
-        val OPENID4VCI_CLIENT_PREFERENCES = OpenID4VCIClientPreferences(
-            clientId = CLIENT_ID,
-            redirectUrl = APP_LINK_BASE_URL,
-            locales = listOf("en-US"),
-            signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512)
-        )
+        //TODO: implement OpenID4VCI_CLIENT_PREFERENCES
     }
 
     private val lock = Mutex()
@@ -122,15 +117,8 @@ class ProvisioningSupport: OpenID4VCIBackend {
     @OptIn(ExperimentalTime::class)
     override suspend fun createJwtClientAssertion(tokenUrl: String): String {
         val alg = localClientAssertionPrivateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
-        val head = buildJsonObject {
-            put("typ", "JWT")
-            put("alg", alg)
-            put("kid", localClientAssertionKeyId)
-        }.toString().encodeToByteArray().toBase64Url()
+        //TODO: implement head
 
-        // TODO: figure out what should be passed as `aud`.
-        //  per 'https://datatracker.ietf.org/doc/html/rfc7523#page-5' tokenUrl is appropriate,
-        //  but Openid validation suite does not seem to take that.
         val aud = if (tokenUrl.endsWith("/token")) {
             // A hack to get authorization url from token url; would not work in general case.
             tokenUrl.substring(0, tokenUrl.length - 5)

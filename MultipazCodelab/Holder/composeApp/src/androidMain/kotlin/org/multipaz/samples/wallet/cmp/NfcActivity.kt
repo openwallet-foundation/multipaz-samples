@@ -8,7 +8,7 @@ import org.multipaz.compose.mdoc.MdocNfcPresentmentActivity
 class NfcActivity : MdocNfcPresentmentActivity() {
     override suspend fun getSettings(): Settings {
         val app = App.getInstance()
-        app.init()
+        //TODO: init app instance
         return Settings(
             appName = app.appName,
             appIcon = app.appIcon,

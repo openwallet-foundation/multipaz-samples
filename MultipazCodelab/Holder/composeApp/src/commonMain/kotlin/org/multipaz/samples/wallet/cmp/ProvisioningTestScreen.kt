@@ -78,24 +78,7 @@ fun ProvisioningTestScreen(
                 text = "For details: adb logcat -s ProvisioningModel"
             )
         } else {
-            val text = when (provisioningState) {
-                ProvisioningModel.Idle -> "Initializing..."
-                ProvisioningModel.Initial -> "Starting provisioning..."
-                ProvisioningModel.Connected -> "Connected to the back-end"
-                ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
-                ProvisioningModel.Authorized -> "Authorized"
-                ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
-                ProvisioningModel.CredentialsIssued -> "Credentials issued"
-                is ProvisioningModel.Error -> throw IllegalStateException()
-                is ProvisioningModel.Authorizing -> throw IllegalStateException()
-            }
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(8.dp),
-                style = MaterialTheme.typography.titleLarge,
-                text = text
-            )
+            //TODO: update text depends on provisioningState
         }
     }
 }
@@ -111,13 +94,9 @@ private fun Authorize(
     when (val challenge = challenges.first()) {
         is AuthorizationChallenge.OAuth -> {
             Logger.i(EvidenceRequestWebView, "Authorize: Rendering EvidenceRequestWebView for OAuth challenge")
-            EvidenceRequestWebView(
-                evidenceRequest = challenge,
-                provisioningModel = provisioningModel,
-                provisioningSupport = provisioningSupport
-            )
+            //TODO: init  EvidenceRequestWebView
         }
-        is AuthorizationChallenge.SecretText -> TODO()
+        is AuthorizationChallenge.SecretText -> {}
     }
 }
 
@@ -144,9 +123,7 @@ fun EvidenceRequestWebView(
         Logger.i(EvidenceRequestWebView,"EvidenceRequestWebView: Waiting for app link invocation with state: ${stableEvidenceRequest.state}")
         val invokedUrl = provisioningSupport.waitForAppLinkInvocation(stableEvidenceRequest.state)
         Logger.i(EvidenceRequestWebView,"EvidenceRequestWebView LaunchedEffect invokedUrl: $invokedUrl")
-        provisioningModel.provideAuthorizationResponse(
-            AuthorizationResponse.OAuth(stableEvidenceRequest.id, invokedUrl)
-        )
+        //TODO: add provideAuthorizationResponse
     }
     val uriHandler = LocalUriHandler.current
     LaunchedEffect(stableEvidenceRequest.url) {

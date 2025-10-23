@@ -130,10 +130,8 @@ class App() {
 
     private val credentialOffers = Channel<String>()
 
-    // Remove the Openid4vciModelEnroll dependency
     val provisioningSupport = ProvisioningSupport()
 
-    // Remove the enrollmentProvisioningModel variable - we'll use the single provisioningModel
 
     var display = false
     private val initLock = Mutex()
@@ -149,30 +147,21 @@ class App() {
             if (initialized) {
                 return
             }
-            storage = Platform.nonBackedUpStorage
-            secureArea = Platform.getSecureArea()
-//            storage = Platform.storage
-//            secureArea = SoftwareSecureArea.create(Platform.storage)
-            secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+
+            //TODO: initialize secureArea
+
+            //TODO: initialize storage
+
+            //TODO: initialize secureAreaRepository
+
+
             documentTypeRepository = DocumentTypeRepository().apply {
                 addDocumentType(DrivingLicense.getDocumentType())
                 addDocumentType(LoyaltyID.getDocumentType())
             }
-            documentStore = buildDocumentStore(
-                storage = storage,
-                secureAreaRepository = secureAreaRepository
-            ) {}
+            //TODO: initialize documentStore
 
-            // Initialize the single, persistent ProvisioningModel directly
-            provisioningModel = ProvisioningModel(
-                documentStore = documentStore,
-                secureArea = Platform.getSecureArea(),
-                httpClient = io.ktor.client.HttpClient() {
-                    followRedirects = false
-                },
-                promptModel = Platform.promptModel,
-                documentMetadataInitializer = ::initializeDocumentMetadata
-            )
+            //TODO: add provisioningModel
 
             Logger.i(TAG, "init provisioningModel is $provisioningModel")
 
@@ -186,39 +175,7 @@ class App() {
             val tm = TrustManagerLocal(storage = storage, identifier = "reader")
             try {
                 tm.apply {
-                    addX509Cert(
-                        certificate = X509Cert.fromPem(
-                            Res.readBytes("files/test_app_reader_root_certificate.pem")
-                                .decodeToString().trimIndent().trim()
-                        ),
-                        metadata = TrustMetadata(
-                            displayName = "OWF Multipaz Test App Reader",
-                            displayIcon = null,
-                            privacyPolicyUrl = "https://apps.multipaz.org"
-                        )
-                    )
-                    addX509Cert(
-                        certificate = X509Cert.fromPem(
-                            Res.readBytes("files/reader_root_certificate.pem").decodeToString()
-                                .trimIndent().trim(),
-                        ),
-                        metadata = TrustMetadata(
-                            displayName = "Multipaz Identity Reader (Trusted Devices)",
-                            displayIcon = null,
-                            privacyPolicyUrl = "https://apps.multipaz.org"
-                        )
-                    )
-                    addX509Cert(
-                        certificate = X509Cert.fromPem(
-                            Res.readBytes("files/reader_root_certificate_for_untrust_device.pem")
-                                .decodeToString().trimIndent().trim(),
-                        ),
-                        metadata = TrustMetadata(
-                            displayName = "Multipaz Identity Reader (UnTrusted Devices)",
-                            displayIcon = null,
-                            privacyPolicyUrl = "https://apps.multipaz.org"
-                        )
-                    )
+                    //TODO: Add X509Cert
                 }
             } catch (e: TrustPointAlreadyExistsException) {
                 e.printStack()
@@ -530,31 +487,7 @@ class App() {
         ) {
             // Only show the button if we have usable credentials
             if (hasCredentials.value == true) {
-                Button(onClick = {
-                    val connectionMethods = listOf(
-                        MdocConnectionMethodBle(
-                            supportsPeripheralServerMode = false,
-                            supportsCentralClientMode = true,
-                            peripheralServerModeUuid = null,
-                            centralClientModeUuid = UUID.randomUUID(),
-                        )
-                    )
-                    onQrButtonClicked(
-                        MdocProximityQrSettings(
-                            availableConnectionMethods = connectionMethods,
-                            createTransportOptions = MdocTransportOptions(bleUseL2CAP = true)
-                        )
-                    )
-                }) {
-                    Text("Present mDL via QR")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "The mDL is also available\n" +
-                            "via NFC engagement and W3C DC API\n" +
-                            "(Android-only right now)",
-                    textAlign = TextAlign.Center
-                )
+                // TODO: show qr button when credentials are available
             } else if (hasCredentials.value == false) {
                 // Show a message when no credentials are available
                 Text(
@@ -587,12 +520,7 @@ class App() {
             val qrCodeBitmap = remember { generateQrCode(uri) }
             Spacer(modifier = Modifier.height(330.dp))
             Text(text = "Present QR code to mdoc reader")
-            Image(
-                modifier = Modifier.fillMaxWidth(),
-                bitmap = qrCodeBitmap,
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth
-            )
+            //TODO: show QR code
             Button(
                 onClick = {
                     presentmentModel.reset()
@@ -651,7 +579,7 @@ class App() {
             CoroutineScope(Dispatchers.Default).launch {
                 try {
                     Logger.i(TAG, "handleUrl: About to process app link invocation")
-                    provisioningSupport.processAppLinkInvocation(url)
+                    //TODO:    call processAppLinkInvocation(url)
                     Logger.i(TAG, "handleUrl: App link invocation processed successfully")
                 } catch (e: Exception) {
                     Logger.e(TAG, "Error processing app link: ${e.message}", e)
