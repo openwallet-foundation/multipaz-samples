@@ -76,12 +76,13 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.PhotoID
+import org.multipaz.documenttype.knowntypes.LoyaltyID
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.mdoc.mso.MobileSecurityObjectParser
 import org.multipaz.mdoc.mso.StaticAuthDataParser
 import org.multipaz.mdoc.transport.MdocTransportOptions
+import org.multipaz.models.digitalcredentials.DigitalCredentials
 import org.multipaz.models.presentment.PresentmentModel
 import org.multipaz.models.presentment.PresentmentSource
 import org.multipaz.models.presentment.SimplePresentmentSource
@@ -129,10 +130,8 @@ class App() {
 
     private val credentialOffers = Channel<String>()
 
-    // Remove the Openid4vciModelEnroll dependency
     val provisioningSupport = ProvisioningSupport()
 
-    // Remove the enrollmentProvisioningModel variable - we'll use the single provisioningModel
 
     var display = false
     private val initLock = Mutex()
@@ -148,23 +147,21 @@ class App() {
             if (initialized) {
                 return
             }
-            //TODO : initialize storage
-
 
             //TODO: initialize secureArea
 
+            //TODO: initialize storage
 
             //TODO: initialize secureAreaRepository
 
 
             documentTypeRepository = DocumentTypeRepository().apply {
                 addDocumentType(DrivingLicense.getDocumentType())
-                addDocumentType(PhotoID.getDocumentType())
+                addDocumentType(LoyaltyID.getDocumentType())
             }
             //TODO: initialize documentStore
 
-
-            // TODO: add provisioningModel
+            //TODO: add provisioningModel
 
             Logger.i(TAG, "init provisioningModel is $provisioningModel")
 
@@ -178,8 +175,7 @@ class App() {
             val tm = TrustManagerLocal(storage = storage, identifier = "reader")
             try {
                 tm.apply {
-                   //TODO: ADD X509Cert
-
+                    //TODO: Add X509Cert
                 }
             } catch (e: TrustPointAlreadyExistsException) {
                 e.printStack()
@@ -198,6 +194,15 @@ class App() {
                 domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
                 domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
             )
+
+            if (DigitalCredentials.Default.available) {
+                //The credentials will still exist in your document store and can be used for other presentation mechanisms like proximity sharing (NFC/BLE), but they won't be accessible through the standardized digital credentials infrastructure that Android provides.
+                DigitalCredentials.Default.startExportingCredentials(
+                    documentStore = documentStore,
+                    documentTypeRepository = documentTypeRepository
+                )
+                Logger.i(TAG, "DigitalCredentials.Default.startExportingCredentials")
+            }
             initialized = true
         }
     }
@@ -268,8 +273,11 @@ class App() {
                     val credentialOffer = credentialOffers.receive()
                     Logger.i(TAG, "LaunchedEffect: Received credential offer: $credentialOffer")
                     Logger.i(TAG, "LaunchedEffect: Launching OpenID4VCI provisioning...")
-                    //TODO, implement launchOpenID4VCIProvisioning
-
+                    stableProvisioningModel.launchOpenID4VCIProvisioning(
+                        offerUri = credentialOffer,
+                        clientPreferences = ProvisioningSupport.OPENID4VCI_CLIENT_PREFERENCES,
+                        backend = stableProvisioningSupport
+                    )
                     Logger.i(
                         TAG,
                         "LaunchedEffect: Provisioning launched, navigating to provisioning"
@@ -462,6 +470,7 @@ class App() {
     @Composable
     private fun ShowQrButton(onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit) {
         val hasCredentials = remember { mutableStateOf<Boolean?>(null) }
+        val coroutineScope = rememberCoroutineScope { promptModel }
         val uriHandler = LocalUriHandler.current
         
         // Check for usable credentials when the composable is first created
@@ -479,7 +488,6 @@ class App() {
             // Only show the button if we have usable credentials
             if (hasCredentials.value == true) {
                 // TODO: show qr button when credentials are available
-
             } else if (hasCredentials.value == false) {
                 // Show a message when no credentials are available
                 Text(
@@ -513,7 +521,6 @@ class App() {
             Spacer(modifier = Modifier.height(330.dp))
             Text(text = "Present QR code to mdoc reader")
             //TODO: show QR code
-
             Button(
                 onClick = {
                     presentmentModel.reset()
@@ -573,7 +580,6 @@ class App() {
                 try {
                     Logger.i(TAG, "handleUrl: About to process app link invocation")
                     //TODO:    call processAppLinkInvocation(url)
-
                     Logger.i(TAG, "handleUrl: App link invocation processed successfully")
                 } catch (e: Exception) {
                     Logger.e(TAG, "Error processing app link: ${e.message}", e)

@@ -33,8 +33,11 @@ fun ProvisioningTestScreen(
     provisioningSupport: ProvisioningSupport,
     onNavigateToMain: () -> Unit
 ) {
-    val provisioningState = provisioningModel.state.collectAsState(ProvisioningModel.Idle).value
+    Logger.i(EvidenceRequestWebView, "ProvisioningTestScreen rendered with state: ${provisioningModel.state.value}")
 
+    val provisioningState = provisioningModel.state.collectAsState(ProvisioningModel.Idle).value
+    Logger.i(EvidenceRequestWebView, "ProvisioningTestScreen: collected state is: $provisioningState")
+    
     Column {
         Spacer(modifier = Modifier.height(100.dp))
         
@@ -76,7 +79,6 @@ fun ProvisioningTestScreen(
             )
         } else {
             //TODO: update text depends on provisioningState
-
         }
     }
 }

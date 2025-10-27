@@ -30,7 +30,7 @@ kotlin {
     }
     // Create unified iOS source set hierarchy so 'iosMain' exists
     applyDefaultHierarchyTemplate()
-    
+
     sourceSets {
 
         androidMain.dependencies {
@@ -114,16 +114,16 @@ tasks.register<Copy>("prepareCocoaPodsFramework") {
     dependsOn(
         "linkDebugFrameworkIosArm64"
     )
-    
+
     val frameworkDir = layout.buildDirectory.dir("cocoapods/framework")
     val sourceFrameworkDir = layout.buildDirectory.dir("bin/iosArm64/debugFramework")
-    
+
     // Copy the framework directory itself, preserving the directory structure
     from(sourceFrameworkDir) {
         include("ComposeApp.framework/**")
     }
     into(frameworkDir)
-    
+
     doLast {
         println("✓ Framework copied to ${frameworkDir.get().asFile.absolutePath}/ComposeApp.framework")
     }

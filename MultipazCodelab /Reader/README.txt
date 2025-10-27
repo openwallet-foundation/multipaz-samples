@@ -1,1 +1,0 @@
-This is a sample of the Utopia Sample Reader app, which reads credentials from the Utopia Wholesale app.

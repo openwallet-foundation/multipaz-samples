@@ -92,7 +92,6 @@ class ProvisioningSupport: OpenID4VCIBackend {
                 ?: throw IllegalStateException("No common name (CN) in certificate's subject")
 
         //TODO: implement OpenID4VCI_CLIENT_PREFERENCES
-
     }
 
     private val lock = Mutex()
@@ -118,7 +117,6 @@ class ProvisioningSupport: OpenID4VCIBackend {
     @OptIn(ExperimentalTime::class)
     override suspend fun createJwtClientAssertion(tokenUrl: String): String {
         val alg = localClientAssertionPrivateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
-        val head =""
         //TODO: implement head
 
         val aud = if (tokenUrl.endsWith("/token")) {
