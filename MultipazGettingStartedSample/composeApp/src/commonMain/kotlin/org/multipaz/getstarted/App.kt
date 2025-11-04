@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -329,6 +330,7 @@ class App {
             val coroutineScope = rememberCoroutineScope { promptModel }
 
             var isProvisioning by remember { mutableStateOf(false) }
+            val provisioningState = provisioningModel.state.collectAsState().value
             val uriHandler = LocalUriHandler.current
 
             val stableProvisioningModel = remember(provisioningModel) { provisioningModel }
@@ -353,13 +355,26 @@ class App {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                if (isProvisioning)
+                if (isProvisioning) {
                     ProvisioningTestScreen(
                         stableProvisioningModel,
                         stableProvisioningSupport,
                     )
-                // Bluetooth Permission
-                else if (!blePermissionState.isGranted) {
+                    Button(onClick = {
+                        provisioningModel.cancel();
+                        isProvisioning = false
+                    }) {
+                        Text(
+                            if (provisioningState is ProvisioningModel.CredentialsIssued)
+                                "Go Back"
+                            else if (provisioningState is ProvisioningModel.Error)
+                                "An Error Occurred\nTry Again"
+                            else
+                                "Cancel"
+                        )
+                    }
+                    // Bluetooth Permission
+                } else if (!blePermissionState.isGranted) {
                     Button(
                         onClick = {
                             coroutineScope.launch {
