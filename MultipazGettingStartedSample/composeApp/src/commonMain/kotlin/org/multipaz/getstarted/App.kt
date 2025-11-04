@@ -3,10 +3,15 @@ package org.multipaz.getstarted
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -348,7 +352,6 @@ class App {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // todo: add button for deletion
 
                 if (isProvisioning)
                     ProvisioningTestScreen(
@@ -409,10 +412,11 @@ class App {
                         )
                     }
 
-                    var documents by remember { mutableStateOf<List<Document>>(emptyList()) }
-                    LaunchedEffect(isInitialized.value) {
+                    var documents = remember { mutableStateListOf<Document>() }
+
+                    LaunchedEffect(isInitialized.value, documents) {
                         if (isInitialized.value) {
-                            documents = listDocuments()
+                            documents.addAll(listDocuments())
                         }
                     }
 
@@ -422,10 +426,26 @@ class App {
                             text = "${documents.size} Documents present:"
                         )
                         for (document in documents) {
-                            Text(
-                                text = document.metadata.displayName ?: document.identifier,
-                                modifier = Modifier.padding(4.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = document.metadata.displayName ?: document.identifier,
+                                    modifier = Modifier.padding(4.dp)
+                                )
+                                IconButton(
+                                    content = @Composable {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            documentStore.deleteDocument(document.identifier)
+                                            documents.remove(document)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     } else {
                         Text(text = "No documents found.")
