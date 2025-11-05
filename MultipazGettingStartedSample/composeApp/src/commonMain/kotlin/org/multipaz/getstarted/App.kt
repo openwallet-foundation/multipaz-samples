@@ -3,14 +3,20 @@ package org.multipaz.getstarted
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -22,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -325,6 +330,7 @@ class App {
             val coroutineScope = rememberCoroutineScope { promptModel }
 
             var isProvisioning by remember { mutableStateOf(false) }
+            val provisioningState = provisioningModel.state.collectAsState().value
             val uriHandler = LocalUriHandler.current
 
             val stableProvisioningModel = remember(provisioningModel) { provisioningModel }
@@ -348,15 +354,27 @@ class App {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // todo: add button for deletion
 
-                if (isProvisioning)
+                if (isProvisioning) {
                     ProvisioningTestScreen(
                         stableProvisioningModel,
                         stableProvisioningSupport,
                     )
-                // Bluetooth Permission
-                else if (!blePermissionState.isGranted) {
+                    Button(onClick = {
+                        provisioningModel.cancel();
+                        isProvisioning = false
+                    }) {
+                        Text(
+                            if (provisioningState is ProvisioningModel.CredentialsIssued)
+                                "Go Back"
+                            else if (provisioningState is ProvisioningModel.Error)
+                                "An Error Occurred\nTry Again"
+                            else
+                                "Cancel"
+                        )
+                    }
+                    // Bluetooth Permission
+                } else if (!blePermissionState.isGranted) {
                     Button(
                         onClick = {
                             coroutineScope.launch {
@@ -409,10 +427,11 @@ class App {
                         )
                     }
 
-                    var documents by remember { mutableStateOf<List<Document>>(emptyList()) }
-                    LaunchedEffect(isInitialized.value) {
+                    var documents = remember { mutableStateListOf<Document>() }
+
+                    LaunchedEffect(isInitialized.value, documents) {
                         if (isInitialized.value) {
-                            documents = listDocuments()
+                            documents.addAll(listDocuments())
                         }
                     }
 
@@ -422,10 +441,26 @@ class App {
                             text = "${documents.size} Documents present:"
                         )
                         for (document in documents) {
-                            Text(
-                                text = document.metadata.displayName ?: document.identifier,
-                                modifier = Modifier.padding(4.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = document.metadata.displayName ?: document.identifier,
+                                    modifier = Modifier.padding(4.dp)
+                                )
+                                IconButton(
+                                    content = @Composable {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            documentStore.deleteDocument(document.identifier)
+                                            documents.remove(document)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     } else {
                         Text(text = "No documents found.")
