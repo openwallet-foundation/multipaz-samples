@@ -20,15 +20,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.bytestring.ByteString
+import multipazphotoididentityreader.composeapp.generated.resources.Res
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.LoyaltyID
+import org.multipaz.facematch.FaceMatchLiteRtModel
 import org.multipaz.identityreader.BuildConfig
+import org.multipaz.identityreader.ShowResultsScreen
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.trustmanagement.TrustEntryVical
@@ -70,6 +74,7 @@ class App(
     private lateinit var compositeTrustManager: TrustManager
     private lateinit var settingsModel: SettingsModel
     private lateinit var readerBackendClient: ReaderBackendClient
+    private lateinit var faceMatchLiteRtModel: FaceMatchLiteRtModel
 
     private fun getMdocTransportOptionsForNfcEngagement() =
         MdocTransportOptions(bleUseL2CAP = settingsModel.bleL2capEnabled.value)
@@ -131,6 +136,10 @@ class App(
                 secureArea = Platform.getSecureArea(),
                 numKeys = 10,
             )
+
+        val modelData = ByteString(Res.readBytes("files/facenet_512.tflite"))
+        faceMatchLiteRtModel =
+            FaceMatchLiteRtModel(modelData, imageSquareSize = 160, embeddingsArraySize = 512)
 
             initialized = true
         }
@@ -353,6 +362,7 @@ class App(
                         documentTypeRepository = documentTypeRepository,
                         issuerTrustManager = compositeTrustManager,
                         onBackPressed = { urlLaunchData?.finish() ?: navController.navigateUp() },
+                        faceMatchLiteRtModel = faceMatchLiteRtModel,
                         onShowDetailedResults = if (settingsModel.devMode.value) {
                             { navController.navigate(ShowDetailedResultsDestination.route) }
                         } else {
