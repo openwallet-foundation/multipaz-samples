@@ -1,6 +1,4 @@
-package org.multipaz.samples.wallet.cmp
-
-
+package org.multipaz.samples.wallet.cmp.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,29 +21,36 @@ import org.multipaz.util.Logger
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import org.koin.compose.koinInject
 import org.multipaz.provisioning.AuthorizationChallenge
 import org.multipaz.provisioning.AuthorizationResponse
+import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 
 @Composable
 fun ProvisioningTestScreen(
-    app: App,
-    provisioningModel: ProvisioningModel,
-    provisioningSupport: ProvisioningSupport,
+    provisioningModel: ProvisioningModel = koinInject(),
+    provisioningSupport: ProvisioningSupport = koinInject(),
     onNavigateToMain: () -> Unit
 ) {
-    Logger.i(EvidenceRequestWebView, "ProvisioningTestScreen rendered with state: ${provisioningModel.state.value}")
+    Logger.i(
+        EvidenceRequestWebView,
+        "ProvisioningTestScreen rendered with state: ${provisioningModel.state.value}"
+    )
 
     val provisioningState = provisioningModel.state.collectAsState(ProvisioningModel.Idle).value
-    Logger.i(EvidenceRequestWebView, "ProvisioningTestScreen: collected state is: $provisioningState")
-    
+    Logger.i(
+        EvidenceRequestWebView,
+        "ProvisioningTestScreen: collected state is: $provisioningState"
+    )
+
     Column {
         Spacer(modifier = Modifier.height(100.dp))
-        
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
-           
+
             Text(
                 modifier = Modifier
                     .padding(16.dp)
@@ -55,54 +60,61 @@ fun ProvisioningTestScreen(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        
-        if (provisioningState is ProvisioningModel.Authorizing) {
-            Logger.i(EvidenceRequestWebView, "ProvisioningTestScreen: Rendering Authorize with challenges: ${provisioningState.authorizationChallenges}")
-            Authorize(
-                app,
-                provisioningModel,
-                provisioningState.authorizationChallenges,
-                provisioningSupport
-            )
-        } else if (provisioningState is ProvisioningModel.Error) {
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(8.dp),
-                style = MaterialTheme.typography.titleLarge,
-                text = "Error: ${provisioningState.err.message}"
-            )
-            Text(
-                modifier = Modifier.padding(4.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                text = "For details: adb logcat -s ProvisioningModel"
-            )
-        } else {
-            val text = when (provisioningState) {
-                ProvisioningModel.Idle -> "Initializing..."
-                ProvisioningModel.Initial -> "Starting provisioning..."
-                ProvisioningModel.Connected -> "Connected to the back-end"
-                ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
-                ProvisioningModel.Authorized -> "Authorized"
-                ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
-                ProvisioningModel.CredentialsIssued -> "Credentials issued"
-                is ProvisioningModel.Error -> throw IllegalStateException()
-                is ProvisioningModel.Authorizing -> throw IllegalStateException()
+
+        when (provisioningState) {
+            is ProvisioningModel.Authorizing -> {
+                Logger.i(
+                    EvidenceRequestWebView,
+                    "ProvisioningTestScreen: Rendering Authorize with challenges: ${provisioningState.authorizationChallenges}"
+                )
+                Authorize(
+                    provisioningModel,
+                    provisioningState.authorizationChallenges,
+                    provisioningSupport
+                )
             }
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(8.dp),
-                style = MaterialTheme.typography.titleLarge,
-                text = text
-            )
+
+            is ProvisioningModel.Error -> {
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    text = "Error: ${provisioningState.err.message}"
+                )
+                Text(
+                    modifier = Modifier.padding(4.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    text = "For details: adb logcat -s ProvisioningModel"
+                )
+            }
+
+            else -> {
+                val text = when (provisioningState) {
+                    ProvisioningModel.Idle -> "Initializing..."
+                    ProvisioningModel.Initial -> "Starting provisioning..."
+                    ProvisioningModel.Connected -> "Connected to the back-end"
+                    ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
+                    ProvisioningModel.Authorized -> "Authorized"
+                    ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
+                    ProvisioningModel.CredentialsIssued -> "Credentials issued"
+                    is ProvisioningModel.Error -> throw IllegalStateException()
+                    is ProvisioningModel.Authorizing -> throw IllegalStateException()
+                }
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    text = text
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun Authorize(
-    app: App,
     provisioningModel: ProvisioningModel,
     challenges: List<AuthorizationChallenge>,
     provisioningSupport: ProvisioningSupport
@@ -110,18 +122,23 @@ private fun Authorize(
     Logger.i(EvidenceRequestWebView, "Authorize function called with ${challenges.size} challenges")
     when (val challenge = challenges.first()) {
         is AuthorizationChallenge.OAuth -> {
-            Logger.i(EvidenceRequestWebView, "Authorize: Rendering EvidenceRequestWebView for OAuth challenge")
+            Logger.i(
+                EvidenceRequestWebView,
+                "Authorize: Rendering EvidenceRequestWebView for OAuth challenge"
+            )
             EvidenceRequestWebView(
                 evidenceRequest = challenge,
                 provisioningModel = provisioningModel,
                 provisioningSupport = provisioningSupport
             )
         }
+
         is AuthorizationChallenge.SecretText -> TODO()
     }
 }
 
-val EvidenceRequestWebView="PRO:EvidenceRequestWebView"
+const val EvidenceRequestWebView = "PRO:EvidenceRequestWebView"
+
 @Composable
 fun EvidenceRequestWebView(
     evidenceRequest: AuthorizationChallenge.OAuth,
@@ -130,20 +147,32 @@ fun EvidenceRequestWebView(
 ) {
     // Add this logging to see when the component is created/re-created
     Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView Composable created/re-created")
-    Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView: evidenceRequest.url = ${evidenceRequest.url}")
-    Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView: evidenceRequest.state = ${evidenceRequest.state}")
-    
+    Logger.i(
+        EvidenceRequestWebView,
+        "EvidenceRequestWebView: evidenceRequest.url = ${evidenceRequest.url}"
+    )
+    Logger.i(
+        EvidenceRequestWebView,
+        "EvidenceRequestWebView: evidenceRequest.state = ${evidenceRequest.state}"
+    )
+
     // Stabilize the evidenceRequest to prevent unnecessary re-compositions
     val stableEvidenceRequest = remember(evidenceRequest.url, evidenceRequest.state) {
         evidenceRequest
     }
-    
+
     // NB: these scopes will be cancelled when navigating outside of this screen.
     LaunchedEffect(stableEvidenceRequest.url) {
-        Logger.i(EvidenceRequestWebView,"EvidenceRequestWebView LaunchedEffect START")
-        Logger.i(EvidenceRequestWebView,"EvidenceRequestWebView: Waiting for app link invocation with state: ${stableEvidenceRequest.state}")
+        Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView LaunchedEffect START")
+        Logger.i(
+            EvidenceRequestWebView,
+            "EvidenceRequestWebView: Waiting for app link invocation with state: ${stableEvidenceRequest.state}"
+        )
         val invokedUrl = provisioningSupport.waitForAppLinkInvocation(stableEvidenceRequest.state)
-        Logger.i(EvidenceRequestWebView,"EvidenceRequestWebView LaunchedEffect invokedUrl: $invokedUrl")
+        Logger.i(
+            EvidenceRequestWebView,
+            "EvidenceRequestWebView LaunchedEffect invokedUrl: $invokedUrl"
+        )
         provisioningModel.provideAuthorizationResponse(
             AuthorizationResponse.OAuth(stableEvidenceRequest.id, invokedUrl)
         )
@@ -151,7 +180,10 @@ fun EvidenceRequestWebView(
     val uriHandler = LocalUriHandler.current
     LaunchedEffect(stableEvidenceRequest.url) {
         // Launch the browser
-        Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView: About to open browser with URL: ${stableEvidenceRequest.url}")
+        Logger.i(
+            EvidenceRequestWebView,
+            "EvidenceRequestWebView: About to open browser with URL: ${stableEvidenceRequest.url}"
+        )
         uriHandler.openUri(stableEvidenceRequest.url)
         Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView: Browser opened successfully")
         // Poll as a fallback
