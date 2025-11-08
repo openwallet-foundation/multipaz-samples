@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.multipaz.models)
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
+            implementation(libs.multipaz.vision)
 
             implementation(libs.coil.compose)
             implementation(libs.ktor.client.core)
