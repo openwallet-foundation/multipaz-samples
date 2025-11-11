@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
@@ -46,8 +47,15 @@ import multipazgettingstartedsample.composeapp.generated.resources.compose_multi
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.multipaz.asn1.ASN1Integer
+import org.multipaz.compose.camera.Camera
+import org.multipaz.compose.camera.CameraCaptureResolution
+import org.multipaz.compose.camera.CameraFrame
+import org.multipaz.compose.camera.CameraSelection
+import org.multipaz.compose.cropRotateScaleImage
+import org.multipaz.compose.decodeImage
 import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
+import org.multipaz.compose.permissions.rememberCameraPermissionState
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
@@ -66,6 +74,12 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
+import org.multipaz.facedetection.DetectedFace
+import org.multipaz.facedetection.FaceLandmarkType
+import org.multipaz.facedetection.detectFaces
+import org.multipaz.facematch.FaceEmbedding
+import org.multipaz.facematch.FaceMatchLiteRtModel
+import org.multipaz.facematch.getFaceEmbeddings
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.util.MdocUtil
@@ -78,11 +92,17 @@ import org.multipaz.provisioning.Display
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
+import org.multipaz.selfiecheck.SelfieCheck
+import org.multipaz.selfiecheck.SelfieCheckViewModel
 import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.UUID
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
@@ -109,6 +129,8 @@ class App {
 
     val appName = "Multipaz Getting Started Sample"
     val appIcon = Res.drawable.compose_multiplatform
+
+    lateinit var faceMatchLiteRtModel: FaceMatchLiteRtModel
 
     var isInitialized = false
 
@@ -272,6 +294,10 @@ class App {
                 domainMdocSignature = "mdoc",
             )
 
+            val modelData = ByteString(*Res.readBytes("files/facenet_512.tflite"))
+            faceMatchLiteRtModel =
+                FaceMatchLiteRtModel(modelData, imageSquareSize = 160, embeddingsArraySize = 512)
+
             if (DigitalCredentials.Default.available) {
                 DigitalCredentials.Default.startExportingCredentials(
                     documentStore = documentStore,
@@ -296,6 +322,9 @@ class App {
     @Composable
     @Preview
     fun Content() {
+
+        val identityIssuer = "Multipaz Getting Started Sample"
+        val selfieCheckViewModel: SelfieCheckViewModel = remember { SelfieCheckViewModel(identityIssuer) }
 
         // to track initialization
         val isInitialized = remember { mutableStateOf(false) }
@@ -349,6 +378,13 @@ class App {
                 }
             }
 
+            val cameraPermissionState = rememberCameraPermissionState()
+
+            var showCamera by remember { mutableStateOf(false) }
+            val faceCaptured = remember { mutableStateOf<FaceEmbedding?>(null) }
+            var showFaceMatching by remember { mutableStateOf(false) }
+            var similarity by remember { mutableStateOf(0f) }
+
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.Center,
@@ -385,14 +421,9 @@ class App {
                         Text("Request BLE permissions")
                     }
                 } else if (!bleEnabledState.isEnabled) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Button(onClick = { coroutineScope.launch { bleEnabledState.enable() } }) {
-                            Text("Enable Bluetooth")
-                        }
+                    Button(
+                        onClick = { coroutineScope.launch { bleEnabledState.enable() } }) {
+                        Text("Enable Bluetooth")
                     }
                 } else {
                     MdocProximityQrPresentment(
@@ -464,6 +495,99 @@ class App {
                         }
                     } else {
                         Text(text = "No documents found.")
+                    }
+                }
+
+                if (!cameraPermissionState.isGranted)
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                cameraPermissionState.launchPermissionRequest()
+                            }
+                        }) {
+                        Text("Grant Camera Permission for Selfie Check")
+                    }
+                else if (faceCaptured.value == null) {
+                    if (!showCamera)
+                        Button(
+                            onClick = { showCamera = true }) {
+                            Text("Selfie Check")
+                        }
+                    else {
+                        SelfieCheck(
+                            modifier = Modifier.fillMaxWidth(),
+                            onVerificationComplete = {
+                                showCamera = false
+                                if (selfieCheckViewModel.capturedFaceImage != null)
+                                    faceCaptured.value =
+                                        getFaceEmbeddings(
+                                            image = decodeImage(selfieCheckViewModel.capturedFaceImage!!.toByteArray()),
+                                            model = faceMatchLiteRtModel
+                                        )
+
+                                selfieCheckViewModel.resetForNewCheck()
+                            },
+                            viewModel = selfieCheckViewModel,
+                            identityIssuer = identityIssuer
+                        )
+                        Button(
+                            onClick = {
+                                showCamera = false
+                                selfieCheckViewModel.resetForNewCheck()
+                            }) {
+                            Text("Close")
+                        }
+                    }
+                } else {
+                    if (!showFaceMatching)
+                        Button(
+                            onClick = {
+                                showFaceMatching = true
+                            }) {
+                            Text("Face Matching")
+                        }
+                    else {
+                        Text("Similarity: ${(similarity * 100).roundToInt()}%")
+
+                        Camera(
+                            modifier = Modifier
+                                .fillMaxSize(0.5f)
+                                .padding(64.dp),
+                            cameraSelection = CameraSelection.DEFAULT_FRONT_CAMERA,
+                            captureResolution = CameraCaptureResolution.MEDIUM,
+                            showCameraPreview = true,
+                        ) { incomingVideoFrame: CameraFrame ->
+
+                            val faces = detectFaces(incomingVideoFrame)
+
+                            if (faces.isNullOrEmpty()) {
+                                similarity = 0f;
+                            } else if (faceCaptured.value != null) {
+                                val faceImage =
+                                    extractFaceBitmap(
+                                        incomingVideoFrame,
+                                        faces[0], // assuming only one face exists for simplicity
+                                        faceMatchLiteRtModel.imageSquareSize
+                                    )
+
+                                val faceInsetsForDetectedFace =
+                                    getFaceEmbeddings(faceImage, faceMatchLiteRtModel)
+
+                                if (faceInsetsForDetectedFace != null) {
+                                    similarity = faceCaptured.value!!.calculateSimilarity(
+                                        faceInsetsForDetectedFace
+                                    )
+                                }
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                showFaceMatching = false
+                                faceCaptured.value = null
+                            }) {
+                            Text("Close")
+                        }
                     }
                 }
             }
@@ -584,5 +708,55 @@ class App {
             }
         }
         return documents
+    }
+
+    /** Cut out the face square, rotate it to level eyes line, scale to the smaller size for face matching tasks. */
+    private fun extractFaceBitmap(
+        frameData: CameraFrame,
+        face: DetectedFace,
+        targetSize: Int
+    ): ImageBitmap {
+        val leftEye = face.landmarks.find { it.type == FaceLandmarkType.LEFT_EYE }
+        val rightEye = face.landmarks.find { it.type == FaceLandmarkType.RIGHT_EYE }
+        val mouthPosition = face.landmarks.find { it.type == FaceLandmarkType.MOUTH_BOTTOM }
+
+        if (leftEye == null || rightEye == null || mouthPosition == null) {
+            return frameData.cameraImage.toImageBitmap()
+        }
+
+        // Heuristic multiplier to fit the face normalized to the eyes pupilar distance.
+        val faceCropFactor = 4f
+
+        // Heuristic multiplier to offset vertically so the face is better centered within the rectangular crop.
+        val faceVerticalOffsetFactor = 0.25f
+
+        var faceCenterX = (leftEye.position.x + rightEye.position.x) / 2
+        var faceCenterY = (leftEye.position.y + rightEye.position.y) / 2
+        val eyeOffsetX = leftEye.position.x - rightEye.position.x
+        val eyeOffsetY = leftEye.position.y - rightEye.position.y
+        val eyeDistance = sqrt(eyeOffsetX * eyeOffsetX + eyeOffsetY * eyeOffsetY)
+        val faceWidth = eyeDistance * faceCropFactor
+        val faceVerticalOffset = eyeDistance * faceVerticalOffsetFactor
+        if (frameData.isLandscape) {
+            /** Required for iOS capable of upside-down face detection. */
+            faceCenterY += faceVerticalOffset * (if (leftEye.position.y < mouthPosition.position.y) 1 else -1)
+        } else {
+            /** Required for iOS capable of upside-down face detection. */
+            faceCenterX -= faceVerticalOffset * (if (leftEye.position.x < mouthPosition.position.x) -1 else 1)
+        }
+        val eyesAngleRad = atan2(eyeOffsetY, eyeOffsetX)
+        val eyesAngleDeg = eyesAngleRad * 180.0 / PI // Convert radians to degrees
+        val totalRotationDegrees = 180 - eyesAngleDeg
+
+        // Call platform dependent bitmap transformation.
+        return cropRotateScaleImage(
+            frameData = frameData, // Platform-specific image data.
+            cx = faceCenterX.toDouble(), // Point between eyes
+            cy = faceCenterY.toDouble(), // Point between eyes
+            angleDegrees = totalRotationDegrees, //includes the camera rotation and eyes rotation.
+            outputWidthPx = faceWidth.toInt(), // Expected face width for cropping *before* final scaling.
+            outputHeightPx = faceWidth.toInt(),// Expected face height for cropping *before* final scaling.
+            targetWidthPx = targetSize, // Final square image size (for database saving and face matching tasks).
+        )
     }
 }
