@@ -18,7 +18,7 @@ kotlinx-io = "0.8.0"
 kotlinx-datetime = "0.7.1"
 kotlinx-serialization = "1.9.0"
 coil = "3.3.0"
-multipaz = "0.94.0-pre.15.f80f5dac"
+multipaz = "0.95.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -43,7 +43,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
-multipaz-models = { group = "org.multipaz", name = "multipaz-models", version.ref = "multipaz" }
+multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
 multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.ref = "multipaz" }
 
 [plugins]

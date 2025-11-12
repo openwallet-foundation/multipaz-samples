@@ -10,7 +10,7 @@ compose-multiplatform = "1.8.2"
 kotlin = "2.2.0"
 kotlinx-io = "0.8.0"
 kotlinx-datetime = "0.7.1"
-multipaz = "0.93.0"
+multipaz = "0.95.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -20,7 +20,6 @@ androidx-fragment = { group = "androidx.fragment", name = "fragment", version.re
 kotlinx-io-bytestring = { group = "org.jetbrains.kotlinx", name = "kotlinx-io-bytestring", version.ref = "kotlinx-io"}
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime"}
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
-multipaz-models = { group = "org.multipaz", name = "multipaz-models", version.ref = "multipaz" }
 multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.ref = "multipaz" }
 
 [plugins]
