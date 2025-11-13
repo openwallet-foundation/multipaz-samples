@@ -2,7 +2,6 @@ package org.multipaz.samples.wallet.cmp
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,33 +17,30 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 import utopiasample.composeapp.generated.resources.Res
-import utopiasample.composeapp.generated.resources.vegetable_oil
 import utopiasample.composeapp.generated.resources.cereal
-import utopiasample.composeapp.generated.resources.paper_towels
-import utopiasample.composeapp.generated.resources.whole_bean_coffee
+import utopiasample.composeapp.generated.resources.free_range_ggs
+import utopiasample.composeapp.generated.resources.fresh_milk
 import utopiasample.composeapp.generated.resources.laundry_detergent
 import utopiasample.composeapp.generated.resources.mixed_nuts
 import utopiasample.composeapp.generated.resources.organic_bananas
-import utopiasample.composeapp.generated.resources.whole_grain_bread
-import utopiasample.composeapp.generated.resources.fresh_milk
-import utopiasample.composeapp.generated.resources.free_range_ggs
 import utopiasample.composeapp.generated.resources.organic_spinach
+import utopiasample.composeapp.generated.resources.paper_towels
+import utopiasample.composeapp.generated.resources.vegetable_oil
+import utopiasample.composeapp.generated.resources.whole_bean_coffee
+import utopiasample.composeapp.generated.resources.whole_grain_bread
 
 // Data class for the product items
 data class Product(

@@ -28,8 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,7 +44,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
-import io.ktor.utils.io.printStack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -54,15 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.bytestring.ByteString
-import kotlinx.io.bytestring.encodeToByteString
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.painterResource
-import org.multipaz.cbor.Cbor
 import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
@@ -78,9 +67,6 @@ import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.LoyaltyID
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
-import org.multipaz.mdoc.credential.MdocCredential
-import org.multipaz.mdoc.mso.MobileSecurityObjectParser
-import org.multipaz.mdoc.mso.StaticAuthDataParser
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.models.digitalcredentials.DigitalCredentials
 import org.multipaz.models.presentment.PresentmentModel
@@ -88,8 +74,6 @@ import org.multipaz.models.presentment.PresentmentSource
 import org.multipaz.models.presentment.SimplePresentmentSource
 import org.multipaz.models.provisioning.ProvisioningModel
 import org.multipaz.provisioning.Display
-import org.multipaz.sdjwt.SdJwt
-import org.multipaz.sdjwt.credential.KeylessSdJwtVcCredential
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
@@ -100,13 +84,9 @@ import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import org.multipaz.util.UUID
-import org.multipaz.util.fromBase64Url
-import org.multipaz.util.toBase64Url
 import utopiasample.composeapp.generated.resources.Res
 import utopiasample.composeapp.generated.resources.profile
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-import org.multipaz.securearea.CreateKeySettings as SA_CreateKeySettings
 
 
 /**
@@ -115,9 +95,6 @@ import org.multipaz.securearea.CreateKeySettings as SA_CreateKeySettings
  * Use [App.Companion.getInstance] to get an instance.
  */
 class App() {
-    val TAG = "APP"
-    private val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
-    private val HAIP_URL_SCHEME = "haip://"
     lateinit var storage: Storage
     lateinit var documentTypeRepository: DocumentTypeRepository
     lateinit var secureAreaRepository: SecureAreaRepository
@@ -133,9 +110,6 @@ class App() {
     // Remove the Openid4vciModelEnroll dependency
     val provisioningSupport = ProvisioningSupport()
 
-    // Remove the enrollmentProvisioningModel variable - we'll use the single provisioningModel
-
-    var display = false
     private val initLock = Mutex()
     private var initialized = false
 
@@ -167,7 +141,7 @@ class App() {
             provisioningModel = ProvisioningModel(
                 documentStore = documentStore,
                 secureArea = Platform.getSecureArea(),
-                httpClient = io.ktor.client.HttpClient() {
+                httpClient = io.ktor.client.HttpClient {
                     followRedirects = false
                 },
                 promptModel = Platform.promptModel,
@@ -221,7 +195,8 @@ class App() {
                     )
                 }
             } catch (e: TrustPointAlreadyExistsException) {
-                e.printStack()
+                Logger.e(TAG, "Trust point already exists", e)
+                e.printStackTrace()
             }
 
             readerTrustManager = tm
@@ -268,7 +243,7 @@ class App() {
 
     @Composable
     fun Content() {
-        var isInitialized = remember { mutableStateOf<Boolean>(false) }
+        val isInitialized = remember { mutableStateOf(false) }
         if (!isInitialized.value) {
             CoroutineScope(Dispatchers.Main).launch {
                 init()
@@ -300,7 +275,6 @@ class App() {
                 composable("provisioning") {
                     Logger.i(TAG, "NavHost: Rendering 'provisioning' route")
                     ProvisioningTestScreen(
-                        this@App,
                         stableProvisioningModel,
                         stableProvisioningSupport,
                         onNavigateToMain = { navController.navigate("main") }
@@ -337,7 +311,6 @@ class App() {
     private fun MainApp() {
         val selectedTab = remember { mutableStateOf(1) }
         val tabs = listOf("Explore", "Account")
-        val deviceEngagement = remember { mutableStateOf<ByteString?>(null) }
 
         Scaffold(
             bottomBar = {
@@ -365,8 +338,7 @@ class App() {
             when (selectedTab.value) {
                 0 -> ExploreScreen(modifier = Modifier.padding(paddingValues))
                 1 -> AccountScreen(
-                    modifier = Modifier.padding(paddingValues),
-                    deviceEngagement = deviceEngagement
+                    modifier = Modifier.padding(paddingValues)
                 )
             }
         }
@@ -374,19 +346,18 @@ class App() {
 
     @Composable
     private fun AccountScreen(
-        modifier: Modifier = Modifier,
-        deviceEngagement: MutableState<ByteString?>
+        modifier: Modifier = Modifier
     ) {
         val hasCredentials = remember { mutableStateOf<Boolean?>(null) }
         val coroutineScope = rememberCoroutineScope { promptModel }
-        
+
         // Check for usable credentials when the composable is first created
         LaunchedEffect(Unit) {
             val hasCred = hasAnyUsableCredential()
             hasCredentials.value = hasCred
             Logger.i(TAG, "AccountScreen: hasAnyUsableCredential: $hasCred")
         }
-        
+
         Column(
             modifier = modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -394,7 +365,7 @@ class App() {
             PromptDialogs(promptModel)
             Spacer(modifier = Modifier.height(30.dp))
             MembershipCard()
-            
+
             // Credential status indicator below the card
             Spacer(modifier = Modifier.height(16.dp))
             CredentialStatusIndicator(hasCredentials.value)
@@ -428,13 +399,12 @@ class App() {
                     Text("Enable BLE")
                 }
             }
-        }else {
+        } else {
             val context = LocalPlatformContext.current
             val imageLoader = remember {
                 ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
             }
 
-            val state = presentmentModel.state.collectAsState()
             val noCredentialDialog = remember { mutableStateOf(false) }
             MdocProximityQrPresentment(
                 appName = appName,
@@ -485,6 +455,7 @@ class App() {
                         fontSize = 14.sp
                     )
                 }
+
                 false -> {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -499,6 +470,7 @@ class App() {
                         fontSize = 14.sp
                     )
                 }
+
                 null -> {
                     Text(
                         text = "Checking credential status...",
@@ -513,66 +485,69 @@ class App() {
     @Composable
     private fun ShowQrButton(onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit) {
         val hasCredentials = remember { mutableStateOf<Boolean?>(null) }
-        val coroutineScope = rememberCoroutineScope { promptModel }
         val uriHandler = LocalUriHandler.current
-        
+
         // Check for usable credentials when the composable is first created
         LaunchedEffect(Unit) {
             val hasCred = hasAnyUsableCredential()
             hasCredentials.value = hasCred
             Logger.i(TAG, "showQrButton: hasAnyUsableCredential: $hasCred")
         }
-        
+
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Only show the button if we have usable credentials
-            if (hasCredentials.value == true) {
-                Button(onClick = {
-                    val connectionMethods = listOf(
-                        MdocConnectionMethodBle(
-                            supportsPeripheralServerMode = false,
-                            supportsCentralClientMode = true,
-                            peripheralServerModeUuid = null,
-                            centralClientModeUuid = UUID.randomUUID(),
+            when (hasCredentials.value) {
+                true -> {
+                    Button(onClick = {
+                        val connectionMethods = listOf(
+                            MdocConnectionMethodBle(
+                                supportsPeripheralServerMode = false,
+                                supportsCentralClientMode = true,
+                                peripheralServerModeUuid = null,
+                                centralClientModeUuid = UUID.randomUUID(),
+                            )
                         )
-                    )
-                    onQrButtonClicked(
-                        MdocProximityQrSettings(
-                            availableConnectionMethods = connectionMethods,
-                            createTransportOptions = MdocTransportOptions(bleUseL2CAP = true)
+                        onQrButtonClicked(
+                            MdocProximityQrSettings(
+                                availableConnectionMethods = connectionMethods,
+                                createTransportOptions = MdocTransportOptions(bleUseL2CAP = true)
+                            )
                         )
-                    )
-                }) {
-                    Text("Present mDL via QR")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "The mDL is also available\n" +
-                            "via NFC engagement and W3C DC API\n" +
-                            "(Android-only right now)",
-                    textAlign = TextAlign.Center
-                )
-            } else if (hasCredentials.value == false) {
-                // Show a message when no credentials are available
-                Text(
-                    text = "No usable credentials available.\nPlease add a credential first.",
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        Logger.i(TAG, "Opening issuer website: https://issuer.multipaz.org")
-                        uriHandler.openUri("https://issuer.multipaz.org")
+                    }) {
+                        Text("Present mDL via QR")
                     }
-                ) {
-                    Text("Get Credentials from Issuer")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "The mDL is also available\n" +
+                                "via NFC engagement and W3C DC API\n" +
+                                "(Android-only right now)",
+                        textAlign = TextAlign.Center
+                    )
                 }
-            } else {
-                // Show loading state while checking credentials
-                Text("Checking credentials...")
+                false -> {
+                    // Show a message when no credentials are available
+                    Text(
+                        text = "No usable credentials available.\nPlease add a credential first.",
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            Logger.i(TAG, "Opening issuer website: https://issuer.multipaz.org")
+                            uriHandler.openUri("https://issuer.multipaz.org")
+                        }
+                    ) {
+                        Text("Get Credentials from Issuer")
+                    }
+                }
+                else -> {
+                    // Show loading state while checking credentials
+                    Text("Checking credentials...")
+                }
             }
         }
     }
@@ -661,113 +636,10 @@ class App() {
         }
     }
 
-    /**
-     * Store issued credentials returned by OpenID4VCI enrollment into the existing document.
-     * Accepts raw credential bytes as returned by client.obtainCredentials().
-     */
-    @OptIn(ExperimentalTime::class)
-    suspend fun storeIssuedCredentialsRaw(credentialBytesList: List<ByteArray>) {
-        if (documentStore.listDocuments().isEmpty()) {
-            Logger.w(appName, "No document available to store credentials")
-            return
-        }
-
-        // If the first document already has any credentials, skip storing to avoid duplicates
-        val documentId = documentStore.listDocuments().first()
-        val document = documentStore.lookupDocument(documentId) ?: return
-        if (document.getCredentials().isNotEmpty()) {
-            Logger.i(appName, "Document $documentId already has credentials; skipping store")
-            return
-        }
-        val domain = "openid4vci"
-
-        // Build a normalized response-like Json for logging consistency
-        val responseJson = buildJsonObject {
-            put("credentials", buildJsonArray {
-                credentialBytesList.forEach { rawBytes ->
-                    val asString = try {
-                        val text = rawBytes.decodeToString()
-                        val dotCount = text.count { it == '.' }
-                        val printable = text.all { ch ->
-                            val c = ch.code
-                            (c in 32..126) || ch == '\n' || ch == '\r' || ch == '\t'
-                        }
-                        if (printable && dotCount >= 2) text else rawBytes.toBase64Url()
-                    } catch (_: Throwable) {
-                        rawBytes.toBase64Url()
-                    }
-                    add(buildJsonObject { put("credential", JsonPrimitive(asString)) })
-                }
-            })
-        }
-        Logger.i(appName, "Issuer response: $responseJson")
-
-        val jsonArray = (responseJson["credentials"] as JsonArray)
-        Logger.i(appName, "Normalized credentials array size: ${jsonArray.size}")
-        jsonArray.forEachIndexed { index, element ->
-            Logger.i(appName, "credentials[$index]: $element")
-        }
-        var storedCount = 0
-        jsonArray.forEach { item ->
-            val credentialString = item.jsonObject["credential"]!!.jsonPrimitive.content
-            // Try SD-JWT first
-            val stored = runCatching {
-                val sdJwt = SdJwt(credentialString)
-                val vct = "unknown"
-                val cred = KeylessSdJwtVcCredential.create(
-                    document = document,
-                    asReplacementForIdentifier = null,
-                    domain = domain,
-                    vct = vct
-                )
-                cred.certify(
-                    issuerProvidedAuthenticationData = credentialString.encodeToByteArray(),
-                    validFrom = sdJwt.validFrom ?: sdJwt.issuedAt ?: Clock.System.now(),
-                    validUntil = sdJwt.validUntil ?: kotlin.time.Instant.DISTANT_FUTURE
-                )
-                true
-            }.getOrElse {
-                false
-            }
-            if (stored) {
-                storedCount += 1
-                return@forEach
-            }
-
-            // Try mdoc (IssuerSigned base64url)
-            runCatching {
-                val credentialBytes = credentialString.fromBase64Url()
-                val staticAuth = StaticAuthDataParser(credentialBytes).parse()
-                val issuerAuthCoseSign1 = Cbor.decode(staticAuth.issuerAuth).asCoseSign1
-                val encodedMsoBytes = Cbor.decode(issuerAuthCoseSign1.payload!!)
-                val encodedMso = Cbor.encode(encodedMsoBytes.asTaggedEncodedCbor)
-                val mso = MobileSecurityObjectParser(encodedMso).parse()
-
-                val mdocCred = MdocCredential.create(
-                    document = document,
-                    asReplacementForIdentifier = null,
-                    domain = domain,
-                    secureArea = secureArea,
-                    docType = mso.docType,
-                    createKeySettings = SA_CreateKeySettings(
-                        nonce = "Enroll".encodeToByteString()
-                    )
-                )
-                mdocCred.certify(
-                    issuerProvidedAuthenticationData = credentialBytes,
-                    validFrom = mso.validFrom,
-                    validUntil = mso.validUntil
-                )
-                storedCount += 1
-            }.onFailure { e ->
-                Logger.w(appName, "Skipping unknown credential format: ${e.message}")
-            }
-        }
-        Logger.i(appName, "Stored $storedCount credential(s) into document $documentId")
-    }
-
-
     companion object {
+        private const val TAG = "APP"
+        private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
+        private const val HAIP_URL_SCHEME = "haip://"
         val promptModel = Platform.promptModel
 
         private var app: App? = null

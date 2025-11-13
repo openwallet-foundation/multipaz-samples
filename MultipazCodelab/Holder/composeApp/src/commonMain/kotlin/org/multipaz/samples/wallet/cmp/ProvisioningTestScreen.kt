@@ -28,7 +28,6 @@ import org.multipaz.provisioning.AuthorizationResponse
 
 @Composable
 fun ProvisioningTestScreen(
-    app: App,
     provisioningModel: ProvisioningModel,
     provisioningSupport: ProvisioningSupport,
     onNavigateToMain: () -> Unit
@@ -55,54 +54,58 @@ fun ProvisioningTestScreen(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        
-        if (provisioningState is ProvisioningModel.Authorizing) {
-            Logger.i(EvidenceRequestWebView, "ProvisioningTestScreen: Rendering Authorize with challenges: ${provisioningState.authorizationChallenges}")
-            Authorize(
-                app,
-                provisioningModel,
-                provisioningState.authorizationChallenges,
-                provisioningSupport
-            )
-        } else if (provisioningState is ProvisioningModel.Error) {
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(8.dp),
-                style = MaterialTheme.typography.titleLarge,
-                text = "Error: ${provisioningState.err.message}"
-            )
-            Text(
-                modifier = Modifier.padding(4.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                text = "For details: adb logcat -s ProvisioningModel"
-            )
-        } else {
-            val text = when (provisioningState) {
-                ProvisioningModel.Idle -> "Initializing..."
-                ProvisioningModel.Initial -> "Starting provisioning..."
-                ProvisioningModel.Connected -> "Connected to the back-end"
-                ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
-                ProvisioningModel.Authorized -> "Authorized"
-                ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
-                ProvisioningModel.CredentialsIssued -> "Credentials issued"
-                is ProvisioningModel.Error -> throw IllegalStateException()
-                is ProvisioningModel.Authorizing -> throw IllegalStateException()
+
+        when (provisioningState) {
+            is ProvisioningModel.Authorizing -> {
+                Logger.i(EvidenceRequestWebView, "ProvisioningTestScreen: Rendering Authorize with challenges: ${provisioningState.authorizationChallenges}")
+                Authorize(
+                    provisioningModel,
+                    provisioningState.authorizationChallenges,
+                    provisioningSupport
+                )
             }
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(8.dp),
-                style = MaterialTheme.typography.titleLarge,
-                text = text
-            )
+
+            is ProvisioningModel.Error -> {
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    text = "Error: ${provisioningState.err.message}"
+                )
+                Text(
+                    modifier = Modifier.padding(4.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    text = "For details: adb logcat -s ProvisioningModel"
+                )
+            }
+
+            else -> {
+                val text = when (provisioningState) {
+                    ProvisioningModel.Idle -> "Initializing..."
+                    ProvisioningModel.Initial -> "Starting provisioning..."
+                    ProvisioningModel.Connected -> "Connected to the back-end"
+                    ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
+                    ProvisioningModel.Authorized -> "Authorized"
+                    ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
+                    ProvisioningModel.CredentialsIssued -> "Credentials issued"
+                    is ProvisioningModel.Error -> throw IllegalStateException()
+                    is ProvisioningModel.Authorizing -> throw IllegalStateException()
+                }
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    text = text
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun Authorize(
-    app: App,
     provisioningModel: ProvisioningModel,
     challenges: List<AuthorizationChallenge>,
     provisioningSupport: ProvisioningSupport

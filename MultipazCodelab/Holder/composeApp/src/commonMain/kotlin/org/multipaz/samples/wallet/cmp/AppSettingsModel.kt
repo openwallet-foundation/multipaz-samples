@@ -25,6 +25,11 @@ class AppSettingsModel private constructor(
     private lateinit var settingsTable: StorageTable
 
     companion object Companion {
+
+
+        // Default to our open CSA, where "open" means it'll work with even unlocked bootloaders
+        // and any application signing key.
+        private const val CSA_URL_DEFAULT: String = "https://csa.multipaz.org/open"
         private val tableSpec = StorageTableSpec(
             name = "TestAppSettings",
             supportPartitions = false,
@@ -51,16 +56,12 @@ class AppSettingsModel private constructor(
     private data class BoundItem<T>(
         val variable: MutableStateFlow<T>,
         val defaultValue: T
-    ) {
-        fun resetValue() {
-            variable.value = defaultValue
-        }
-    }
+    )
 
     private val boundItems = mutableListOf<BoundItem<*>>()
 
     @OptIn(ExperimentalTime::class)
-    private suspend inline fun<reified T> bind(
+    private suspend inline fun <reified T> bind(
         variable: MutableStateFlow<T>,
         key: String,
         defaultValue: T
@@ -68,12 +69,29 @@ class AppSettingsModel private constructor(
         val value = settingsTable.get(key)?.let {
             val dataItem = Cbor.decode(it.toByteArray())
             when (T::class) {
-                Boolean::class -> { dataItem.asBoolean as T }
-                String::class -> { dataItem.asTstr as T }
-                List::class -> { dataItem.asArray.map { item -> (item as Tstr).value } as T }
-                Set::class -> { dataItem.asArray.map { item -> (item as Tstr).value }.toSet() as T }
-                EcCurve::class -> { EcCurve.entries.find { it.name == dataItem.asTstr } as T }
-                else -> { throw IllegalStateException("Type not supported") }
+                Boolean::class -> {
+                    dataItem.asBoolean as T
+                }
+
+                String::class -> {
+                    dataItem.asTstr as T
+                }
+
+                List::class -> {
+                    dataItem.asArray.map { item -> (item as Tstr).value } as T
+                }
+
+                Set::class -> {
+                    dataItem.asArray.map { item -> (item as Tstr).value }.toSet() as T
+                }
+
+                EcCurve::class -> {
+                    EcCurve.entries.find { curve -> curve.name == dataItem.asTstr } as T
+                }
+
+                else -> {
+                    throw IllegalStateException("Type not supported")
+                }
             }
         } ?: defaultValue
         variable.value = value
@@ -121,23 +139,30 @@ class AppSettingsModel private constructor(
         boundItems.add(BoundItem(variable, defaultValue))
     }
 
-    fun resetSettings() {
-        boundItems.forEach { it.resetValue() }
-    }
 
     // TODO: use something like KSP to avoid having to repeat settings name three times..
     //
 
     private suspend fun init() {
-        bind(presentmentBleCentralClientModeEnabled, "presentmentBleCentralClientModeEnabled", false)
-        bind(presentmentBlePeripheralServerModeEnabled, "presentmentBlePeripheralServerModeEnabled", true)
+        bind(
+            presentmentBleCentralClientModeEnabled,
+            "presentmentBleCentralClientModeEnabled",
+            false
+        )
+        bind(
+            presentmentBlePeripheralServerModeEnabled,
+            "presentmentBlePeripheralServerModeEnabled",
+            true
+        )
         bind(presentmentNfcDataTransferEnabled, "presentmentNfcDataTransferEnabled", false)
         bind(presentmentSessionEncryptionCurve, "presentmentSessionEncryptionCurve", EcCurve.P256)
         bind(presentmentBleL2CapEnabled, "presentmentBleL2CapEnabled", false)
         bind(presentmentBleL2CapInEngagementEnabled, "presentmentBleL2CapInEngagementEnabled", true)
         bind(presentmentUseNegotiatedHandover, "presentmentUseNegotiatedHandover", true)
         bind(presentmentAllowMultipleRequests, "presentmentAllowMultipleRequests", false)
-        bind(presentmentNegotiatedHandoverPreferredOrder, "presentmentNegotiatedHandoverPreferredOrder",
+        bind(
+            presentmentNegotiatedHandoverPreferredOrder,
+            "presentmentNegotiatedHandoverPreferredOrder",
             listOf(
                 "ble:central_client_mode:",
                 "ble:peripheral_server_mode:",
@@ -146,7 +171,11 @@ class AppSettingsModel private constructor(
         )
         bind(presentmentShowConsentPrompt, "presentmentShowConsentPrompt", true)
         bind(presentmentRequireAuthentication, "presentmentRequireAuthentication", true)
-        bind(presentmentPreferSignatureToKeyAgreement, "presentmentPreferSignatureToKeyAgreement", false)
+        bind(
+            presentmentPreferSignatureToKeyAgreement,
+            "presentmentPreferSignatureToKeyAgreement",
+            false
+        )
 
         bind(readerBleCentralClientModeEnabled, "readerBleCentralClientModeEnabled", true)
         bind(readerBlePeripheralServerModeEnabled, "readerBlePeripheralServerModeEnabled", true)
@@ -162,34 +191,30 @@ class AppSettingsModel private constructor(
         bind(cryptoPreferBouncyCastle, "cryptoForceBouncyCastle", false)
     }
 
-    val presentmentBleCentralClientModeEnabled = MutableStateFlow<Boolean>(false)
-    val presentmentBlePeripheralServerModeEnabled = MutableStateFlow<Boolean>(false)
-    val presentmentNfcDataTransferEnabled = MutableStateFlow<Boolean>(false)
-    val presentmentSessionEncryptionCurve = MutableStateFlow<EcCurve>(EcCurve.P256)
-    val presentmentBleL2CapEnabled = MutableStateFlow<Boolean>(false)
-    val presentmentBleL2CapInEngagementEnabled = MutableStateFlow<Boolean>(false)
-    val presentmentUseNegotiatedHandover = MutableStateFlow<Boolean>(false)
-    val presentmentAllowMultipleRequests = MutableStateFlow<Boolean>(false)
+    val presentmentBleCentralClientModeEnabled = MutableStateFlow(false)
+    val presentmentBlePeripheralServerModeEnabled = MutableStateFlow(false)
+    val presentmentNfcDataTransferEnabled = MutableStateFlow(false)
+    val presentmentSessionEncryptionCurve = MutableStateFlow(EcCurve.P256)
+    val presentmentBleL2CapEnabled = MutableStateFlow(false)
+    val presentmentBleL2CapInEngagementEnabled = MutableStateFlow(false)
+    val presentmentUseNegotiatedHandover = MutableStateFlow(false)
+    val presentmentAllowMultipleRequests = MutableStateFlow(false)
     val presentmentNegotiatedHandoverPreferredOrder = MutableStateFlow<List<String>>(listOf())
-    val presentmentShowConsentPrompt = MutableStateFlow<Boolean>(false)
-    val presentmentRequireAuthentication = MutableStateFlow<Boolean>(false)
-    val presentmentPreferSignatureToKeyAgreement = MutableStateFlow<Boolean>(false)
+    val presentmentShowConsentPrompt = MutableStateFlow(false)
+    val presentmentRequireAuthentication = MutableStateFlow(false)
+    val presentmentPreferSignatureToKeyAgreement = MutableStateFlow(false)
 
-    val readerBleCentralClientModeEnabled = MutableStateFlow<Boolean>(false)
-    val readerBlePeripheralServerModeEnabled = MutableStateFlow<Boolean>(false)
-    val readerNfcDataTransferEnabled = MutableStateFlow<Boolean>(false)
-    val readerBleL2CapEnabled = MutableStateFlow<Boolean>(false)
-    val readerBleL2CapInEngagementEnabled = MutableStateFlow<Boolean>(false)
-    val readerAutomaticallySelectTransport = MutableStateFlow<Boolean>(false)
-    val readerAllowMultipleRequests = MutableStateFlow<Boolean>(false)
+    val readerBleCentralClientModeEnabled = MutableStateFlow(false)
+    val readerBlePeripheralServerModeEnabled = MutableStateFlow(false)
+    val readerNfcDataTransferEnabled = MutableStateFlow(false)
+    val readerBleL2CapEnabled = MutableStateFlow(false)
+    val readerBleL2CapInEngagementEnabled = MutableStateFlow(false)
+    val readerAutomaticallySelectTransport = MutableStateFlow(false)
+    val readerAllowMultipleRequests = MutableStateFlow(false)
 
-    val cloudSecureAreaUrl = MutableStateFlow<String>(CSA_URL_DEFAULT)
-    val dcApiProtocols = MutableStateFlow<Set<String>>(DigitalCredentials.Default.supportedProtocols)
+    val cloudSecureAreaUrl = MutableStateFlow(CSA_URL_DEFAULT)
+    val dcApiProtocols = MutableStateFlow(DigitalCredentials.Default.supportedProtocols)
 
-    val cryptoPreferBouncyCastle = MutableStateFlow<Boolean>(false)
+    val cryptoPreferBouncyCastle = MutableStateFlow(false)
 }
 
-// Default to our open CSA, where "open" means it'll work with even unlocked bootloaders
-// and any application signing key.
-//
-private val CSA_URL_DEFAULT: String = "https://csa.multipaz.org/open"

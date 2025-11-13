@@ -4,7 +4,6 @@ package org.multipaz.samples.wallet.cmp
 
 import io.ktor.http.Url
 import io.ktor.util.encodeBase64
-import io.ktor.util.logging.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.runBlocking
@@ -43,8 +42,8 @@ import kotlin.time.ExperimentalTime
  * easily impersonated and therefore can never be trusted by a real-life provisioning server.
  */
 class ProvisioningSupport: OpenID4VCIBackend {
-    val TAG ="PRO:ProvisioningSupport"
     companion object Companion {
+        private const val TAG ="PRO:ProvisioningSupport"
         const val APP_LINK_SERVER = "wholesale-test-app"
         const val APP_LINK_BASE_URL = "${APP_LINK_SERVER}://landing/"
 
