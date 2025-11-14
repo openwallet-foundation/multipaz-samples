@@ -1,4 +1,4 @@
-package org.multipaz.samples.wallet.cmp
+package org.multipaz.samples.wallet.cmp.util
 
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Tstr

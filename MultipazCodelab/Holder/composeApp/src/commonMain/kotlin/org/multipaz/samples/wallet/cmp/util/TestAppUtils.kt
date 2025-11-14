@@ -1,9 +1,7 @@
-package org.multipaz.samples.wallet.cmp
-
+package org.multipaz.samples.wallet.cmp.util
 
 object TestAppUtils {
     private const val TAG = "TestAppUtils"
-
     // This domain is for MdocCredential using mdoc ECDSA/EdDSA authentication and requiring user authentication.
     const val CREDENTIAL_DOMAIN_MDOC_USER_AUTH = "mdoc_user_auth"
 
@@ -24,7 +22,4 @@ object TestAppUtils {
 
     // This domain is for KeylessSdJwtVcCredential
     const val CREDENTIAL_DOMAIN_SDJWT_KEYLESS = "sdjwt_keyless"
-
-
-
 }
