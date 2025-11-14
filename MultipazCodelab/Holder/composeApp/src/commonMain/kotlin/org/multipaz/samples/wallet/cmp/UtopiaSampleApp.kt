@@ -25,7 +25,6 @@ fun UtopiaSampleApp(
     provisioningSupport: ProvisioningSupport = koinInject()
 ) {
     MaterialTheme {
-
         val stableProvisioningModel = remember(provisioningModel) { provisioningModel }
         val stableProvisioningSupport = remember(provisioningSupport) { provisioningSupport }
         val navController = rememberNavController()

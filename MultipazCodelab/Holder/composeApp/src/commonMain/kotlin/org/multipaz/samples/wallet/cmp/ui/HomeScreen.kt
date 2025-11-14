@@ -2,6 +2,7 @@ package org.multipaz.samples.wallet.cmp.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,13 +44,15 @@ fun HomeScreen(
         Logger.i(TAG, "AccountScreen: hasAnyUsableCredential: $hasCred")
     }
 
-
     Scaffold(
-        modifier = Modifier.navigationBarsPadding(),
+        modifier = Modifier.fillMaxSize(),
         bottomBar = {
             TabRow(
                 selectedTabIndex = selectedTabRow,
-                modifier = Modifier.background(Color.White)
+                divider = {},
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .background(Color.White)
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
