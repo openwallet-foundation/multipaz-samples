@@ -78,6 +78,7 @@ fun AccountScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
         CredentialStatusIndicator(hasCredentials)
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (!blePermissionState.isGranted) {
             Button(
@@ -196,7 +197,6 @@ private fun ShowQrButton(
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when (hasCredentials) {
