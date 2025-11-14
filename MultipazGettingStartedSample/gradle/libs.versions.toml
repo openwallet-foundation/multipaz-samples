@@ -17,7 +17,7 @@ kotlin = "2.2.0"
 coil = "3.3.0"
 ktor = "2.3.13"
 
-multipaz = "0.94.0" # latest version of Multipaz to use
+multipaz = "0.95.0" # latest version of Multipaz to use
 
 androidx-fragment = "1.8.6"
 
@@ -35,7 +35,6 @@ androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:life
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
-multipaz-models = { group = "org.multipaz", name = "multipaz-models", version.ref = "multipaz" }
 multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.ref = "multipaz" }
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
 multipaz-vision = { group = "org.multipaz", name = "multipaz-vision", version.ref = "multipaz" }
