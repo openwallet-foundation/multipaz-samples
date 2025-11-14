@@ -56,7 +56,7 @@ class MainActivity : FragmentActivity() {
      */
     fun handleUrl(url: String) {
         Logger.i(TAG, "handleUrl called with: $url")
-        Logger.i(TAG, "handleuir provisioningModel sate: ${provisioningModel.state.value}")
+        Logger.i(TAG, "handleUrl provisioningModel sate: ${provisioningModel.state.value}")
         if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME)
             || url.startsWith(HAIP_URL_SCHEME)
         ) {
