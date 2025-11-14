@@ -32,13 +32,14 @@ fun MainViewController() = ComposeUIViewController(
     }
 ) {
     var isInitialized by remember { mutableStateOf(false) }
+    val credentialOffers: Channel<String> = Channel()
 
     // Initialize Koin dependencies eagerly (similar to old App.init())
     LaunchedEffect(Unit) {
         Logger.i(TAG, "iOS: Starting eager initialization of Koin dependencies")
         try {
             // Trigger initialization of all singletons that use runBlocking
-            val koinHelper = object : KoinComponent {}
+            val koinHelper = object : KoinComponent { }
             koinHelper.get<TrustManager>() // This loads certificates with runBlocking
             koinHelper.get<DocumentStore>()
             koinHelper.get<ProvisioningModel>()
@@ -64,16 +65,8 @@ fun MainViewController() = ComposeUIViewController(
         return@ComposeUIViewController
     }
 
-    // Create a KoinComponent to access dependencies
-    val koinHelper = object : KoinComponent {
-        val provisioningModel: ProvisioningModel = get()
-        val provisioningSupport: ProvisioningSupport = get()
-        val credentialOffers: Channel<String> = Channel()
-    }
 
     UtopiaSampleApp(
-        credentialOffers = koinHelper.credentialOffers,
-        provisioningModel = koinHelper.provisioningModel,
-        provisioningSupport = koinHelper.provisioningSupport
+        credentialOffers = credentialOffers
     )
 }
