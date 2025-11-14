@@ -67,27 +67,19 @@ fun AccountScreen(
     val blePermissionState = rememberBluetoothPermissionState()
     val bleEnabledState = rememberBluetoothEnabledState()
 
-
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         PromptDialogs(promptModel)
         Spacer(modifier = Modifier.height(30.dp))
+
         MembershipCard()
 
-        // Credential status indicator below the card
         Spacer(modifier = Modifier.height(16.dp))
         CredentialStatusIndicator(hasCredentials)
-    }
 
-
-    if (!blePermissionState.isGranted) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        if (!blePermissionState.isGranted) {
             Button(
                 onClick = {
                     coroutineScope.launch {
@@ -97,57 +89,51 @@ fun AccountScreen(
             ) {
                 Text("Request BLE permissions")
             }
-        }
-    } else if (!bleEnabledState.isEnabled) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        } else if (!bleEnabledState.isEnabled) {
             Button(onClick = { coroutineScope.launch { bleEnabledState.enable() } }) {
                 Text("Enable BLE")
             }
-        }
-    } else {
-        val context = LocalPlatformContext.current
-        val imageLoader = remember {
-            ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
-        }
-
-        val noCredentialDialog = remember { mutableStateOf(false) }
-        MdocProximityQrPresentment(
-            appName = APP_NAME,
-            appIconPainter = painterResource(appIcon),
-            presentmentModel = presentmentModel,
-            presentmentSource = presentmentSource,
-            promptModel = promptModel,
-            documentTypeRepository = documentTypeRepository,
-            imageLoader = imageLoader,
-            allowMultipleRequests = false,
-            showQrButton = { onQrButtonClicked ->
-                ShowQrButton(
-                    hasCredentials,
-                    onQrButtonClicked
-                )
-            },
-            showQrCode = { uri ->
-                ShowQrCode(
-                    uri = uri,
-                    presentmentModel = presentmentModel
-                )
+        } else {
+            val context = LocalPlatformContext.current
+            val imageLoader = remember {
+                ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
             }
-        )
-        if (noCredentialDialog.value) {
-            AlertDialog(
-                onDismissRequest = { noCredentialDialog.value = false },
-                title = { Text("No credential available") },
-                text = { Text("Please add a credential before presenting.") },
-                confirmButton = {
-                    TextButton(onClick = { noCredentialDialog.value = false }) {
-                        Text("OK")
-                    }
+
+            val noCredentialDialog = remember { mutableStateOf(false) }
+            MdocProximityQrPresentment(
+                appName = APP_NAME,
+                appIconPainter = painterResource(appIcon),
+                presentmentModel = presentmentModel,
+                presentmentSource = presentmentSource,
+                promptModel = promptModel,
+                documentTypeRepository = documentTypeRepository,
+                imageLoader = imageLoader,
+                allowMultipleRequests = false,
+                showQrButton = { onQrButtonClicked ->
+                    ShowQrButton(
+                        hasCredentials,
+                        onQrButtonClicked
+                    )
+                },
+                showQrCode = { uri ->
+                    ShowQrCode(
+                        uri = uri,
+                        presentmentModel = presentmentModel
+                    )
                 }
             )
+            if (noCredentialDialog.value) {
+                AlertDialog(
+                    onDismissRequest = { noCredentialDialog.value = false },
+                    title = { Text("No credential available") },
+                    text = { Text("Please add a credential before presenting.") },
+                    confirmButton = {
+                        TextButton(onClick = { noCredentialDialog.value = false }) {
+                            Text("OK")
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -241,6 +227,7 @@ private fun ShowQrButton(
                     textAlign = TextAlign.Center
                 )
             }
+
             false -> {
                 Text(
                     text = "No usable credentials available.\nPlease add a credential first.",
@@ -256,6 +243,7 @@ private fun ShowQrButton(
                     Text("Get Credentials from Issuer")
                 }
             }
+
             else -> {
                 Text("Checking credentials...")
             }
