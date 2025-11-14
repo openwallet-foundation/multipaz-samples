@@ -48,7 +48,6 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
             implementation(libs.multipaz)
-            implementation(libs.multipaz.models)
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
             implementation(libs.multipaz.vision)
