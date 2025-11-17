@@ -50,7 +50,6 @@ fun MainViewController() = ComposeUIViewController(
             isInitialized = true
         } catch (e: Exception) {
             Logger.e(TAG, "iOS: Error during initialization: ${e.message}", e)
-            throw e
         }
     }
 
