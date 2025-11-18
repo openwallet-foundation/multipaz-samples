@@ -262,7 +262,6 @@ private fun ShowQrCode(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val qrCodeBitmap = remember { generateQrCode(uri) }
-        Spacer(modifier = Modifier.height(330.dp))
         Text(text = "Present QR code to mdoc reader")
         Image(
             modifier = Modifier.fillMaxWidth(),
