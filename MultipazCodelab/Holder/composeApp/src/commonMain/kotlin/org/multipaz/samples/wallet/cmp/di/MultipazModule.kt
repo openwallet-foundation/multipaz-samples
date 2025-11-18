@@ -102,7 +102,10 @@ val multipazModule = module {
                     )
                     Logger.i("TrustManager", "Successfully added certificate: $displayName")
                 } catch (e: TrustPointAlreadyExistsException) {
-                    Logger.d("TrustManager", "Certificate already exists: $displayName")
+                    Logger.e(
+                        "TrustManager",
+                        "Certificate already exists: $displayName",
+                        e)
                 } catch (e: Exception) {
                     Logger.e(
                         "TrustManager",
@@ -130,9 +133,9 @@ val multipazModule = module {
                 displayName = "Multipaz Identity Reader (UnTrusted Devices)",
                 privacyPolicyUrl = "https://apps.multipaz.org"
             )
-        }
 
-        trustManager
+            trustManager
+        }
     }
 
     single<PresentmentSource> {
