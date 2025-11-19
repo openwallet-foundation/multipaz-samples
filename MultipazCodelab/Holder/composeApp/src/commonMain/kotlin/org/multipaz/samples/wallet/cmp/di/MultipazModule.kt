@@ -10,11 +10,11 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.LoyaltyID
-import org.multipaz.models.presentment.PresentmentModel
-import org.multipaz.models.presentment.PresentmentSource
-import org.multipaz.models.presentment.SimplePresentmentSource
-import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.documenttype.knowntypes.Loyalty
+import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.model.SimplePresentmentSource
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.samples.wallet.cmp.util.TestAppUtils
@@ -41,7 +41,7 @@ val multipazModule = module {
     single<DocumentTypeRepository> {
         DocumentTypeRepository().apply {
             addDocumentType(DrivingLicense.getDocumentType())
-            addDocumentType(LoyaltyID.getDocumentType())
+            addDocumentType(Loyalty.getDocumentType())
         }
     }
     single<DocumentStore> {

@@ -18,7 +18,7 @@ kotlinx-io = "0.4.0"
 kotlinx-datetime = "0.6.0"
 kotlinx-serialization = "1.7.3"
 # Align Multipaz with Kotlin 2.2.0 (same as identity-credential root)
-multipaz = "0.94.0"
+multipaz = "0.95.0"
 ktor = "2.3.13"
 androidx-sqlite = "2.5.2"
 coil = "3.3.0"
@@ -47,8 +47,8 @@ kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
-multipaz-models = { group = "org.multipaz", name = "multipaz-models", version.ref = "multipaz" }
 multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.ref = "multipaz" }
+multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }

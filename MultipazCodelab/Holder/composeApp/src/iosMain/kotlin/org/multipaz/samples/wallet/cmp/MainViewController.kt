@@ -16,9 +16,9 @@ import kotlinx.coroutines.channels.Channel
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.multipaz.document.DocumentStore
-import org.multipaz.models.presentment.PresentmentModel
-import org.multipaz.models.presentment.PresentmentSource
-import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.di.initKoin
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.trustmanagement.TrustManager

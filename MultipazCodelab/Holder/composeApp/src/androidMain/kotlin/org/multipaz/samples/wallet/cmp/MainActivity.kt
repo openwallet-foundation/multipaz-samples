@@ -12,7 +12,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.multipaz.context.initializeApplication
-import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.util.Logger
 
