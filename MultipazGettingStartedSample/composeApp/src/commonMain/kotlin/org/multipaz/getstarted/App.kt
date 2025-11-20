@@ -59,14 +59,18 @@ import org.multipaz.compose.permissions.rememberCameraPermissionState
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
+import org.multipaz.compose.provisioning.Provisioning
 import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.crypto.Algorithm
+import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
+import org.multipaz.digitalcredentials.Default
+import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.document.AbstractDocumentMetadata
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentMetadata
@@ -83,12 +87,11 @@ import org.multipaz.facematch.getFaceEmbeddings
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.util.MdocUtil
-import org.multipaz.models.digitalcredentials.DigitalCredentials
-import org.multipaz.models.presentment.PresentmentModel
-import org.multipaz.models.presentment.PresentmentSource
-import org.multipaz.models.presentment.SimplePresentmentSource
-import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.provisioning.Display
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
@@ -124,7 +127,7 @@ class App {
     lateinit var readerTrustManager: TrustManagerLocal
 
     lateinit var provisioningModel: ProvisioningModel
-    val provisioningSupport = ProvisioningSupport()
+    private lateinit var provisioningSupport: ProvisioningSupport
     private val credentialOffers = Channel<String>()
 
     val appName = "Multipaz Getting Started Sample"
@@ -182,8 +185,10 @@ class App {
                 // 3. Generate Document Signing (DS) Certificate
                 val dsKey = Crypto.createEcPrivateKey(EcCurve.P256)
                 val dsCert = MdocUtil.generateDsCertificate(
-                    iacaCert = iacaCert,
-                    iacaKey = iacaKey,
+                    iacaKey = AsymmetricKey.X509CertifiedExplicit(
+                        certChain = X509CertChain(certificates = listOf(iacaCert)),
+                        privateKey = dsKey,
+                    ),
                     dsKey = dsKey.publicKey,
                     subject = X500Name.fromName(name = "CN=Test DS Key"),
                     serial = ASN1Integer.fromRandom(numBits = 128),
@@ -200,8 +205,10 @@ class App {
                         nonce = "Challenge".encodeToByteString(),
                         userAuthenticationRequired = true
                     ),
-                    dsKey = dsKey,
-                    dsCertChain = X509CertChain(listOf(dsCert)),
+                    dsKey = AsymmetricKey.X509CertifiedExplicit(
+                        certChain = X509CertChain(certificates = listOf(dsCert)),
+                        privateKey = dsKey,
+                    ),
                     signedAt = signedAt,
                     validFrom = validFrom,
                     validUntil = validUntil,
@@ -314,6 +321,11 @@ class App {
                 promptModel = org.multipaz.util.Platform.promptModel,
                 documentMetadataInitializer = ::initializeDocumentMetadata
             )
+            provisioningSupport = ProvisioningSupport(
+                org.multipaz.util.Platform.nonBackedUpStorage,
+                org.multipaz.util.Platform.getSecureArea()
+            )
+            provisioningSupport.init()
 
             isInitialized = true
         }
@@ -362,19 +374,18 @@ class App {
             val provisioningState = provisioningModel.state.collectAsState().value
             val uriHandler = LocalUriHandler.current
 
-            val stableProvisioningModel = remember(provisioningModel) { provisioningModel }
-            val stableProvisioningSupport = remember(provisioningSupport) { provisioningSupport }
-
             // Use the working pattern from identity-credential project
             LaunchedEffect(true) {
                 while (true) {
                     val credentialOffer = credentialOffers.receive()
-                    stableProvisioningModel.launchOpenID4VCIProvisioning(
-                        offerUri = credentialOffer,
-                        clientPreferences = ProvisioningSupport.OPENID4VCI_CLIENT_PREFERENCES,
-                        backend = stableProvisioningSupport
-                    )
-                    isProvisioning = true
+                    if (!provisioningModel.isActive) {
+                        provisioningModel.launchOpenID4VCIProvisioning(
+                            offerUri = credentialOffer,
+                            clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
+                            backend = provisioningSupport.getOpenID4VCIBackend()
+                        )
+                        isProvisioning = true
+                    }
                 }
             }
 
@@ -392,9 +403,11 @@ class App {
             ) {
 
                 if (isProvisioning) {
-                    ProvisioningTestScreen(
-                        stableProvisioningModel,
-                        stableProvisioningSupport,
+                    Provisioning(
+                        provisioningModel = provisioningModel,
+                        waitForRedirectLinkInvocation = { state ->
+                            provisioningSupport.waitForAppLinkInvocation(state)
+                        }
                     )
                     Button(onClick = {
                         provisioningModel.cancel();

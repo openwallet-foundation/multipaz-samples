@@ -48,10 +48,10 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
             implementation(libs.multipaz)
-            implementation(libs.multipaz.models)
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
             implementation(libs.multipaz.vision)
+            implementation(libs.multipaz.dcapi)
 
             implementation(libs.coil.compose)
             implementation(libs.ktor.client.core)
