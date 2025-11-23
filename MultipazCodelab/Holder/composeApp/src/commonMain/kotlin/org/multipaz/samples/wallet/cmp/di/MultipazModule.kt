@@ -11,6 +11,7 @@ import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.LoyaltyID
+import org.multipaz.models.digitalcredentials.DigitalCredentials
 import org.multipaz.models.presentment.PresentmentModel
 import org.multipaz.models.presentment.PresentmentSource
 import org.multipaz.models.presentment.SimplePresentmentSource
@@ -139,17 +140,26 @@ val multipazModule = module {
     }
 
     single<PresentmentSource> {
-        SimplePresentmentSource(
-            documentStore = get(),
-            documentTypeRepository = get(),
-            readerTrustManager = get(),
-            preferSignatureToKeyAgreement = true,
-            // Match domains used when storing credentials via OpenID4VCI
-            domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-            domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-            domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-            domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
-        )
+        runBlocking {
+            if (DigitalCredentials.Default.available) {
+                DigitalCredentials.Default.startExportingCredentials(
+                    documentStore = get(),
+                    documentTypeRepository = get()
+                )
+            }
+
+            SimplePresentmentSource(
+                documentStore = get(),
+                documentTypeRepository = get(),
+                readerTrustManager = get(),
+                preferSignatureToKeyAgreement = true,
+                // Match domains used when storing credentials via OpenID4VCI
+                domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
+                domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
+                domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+                domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
+            )
+        }
     }
 
     single<ProvisioningSupport> {
