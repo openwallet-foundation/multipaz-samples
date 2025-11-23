@@ -119,24 +119,16 @@ class ProvisioningSupport: OpenID4VCIBackend {
         return channel.receive()
     }
 
+    override suspend fun getClientId(): String = CLIENT_ID
+
     @OptIn(ExperimentalTime::class)
-    override suspend fun createJwtClientAssertion(tokenUrl: String): String {
+    override suspend fun createJwtClientAssertion(authorizationServerIdentifier: String): String {
         val alg = localClientAssertionPrivateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
         val head = buildJsonObject {
             put("typ", "JWT")
             put("alg", alg)
             put("kid", localClientAssertionKeyId)
         }.toString().encodeToByteArray().toBase64Url()
-
-        // TODO: figure out what should be passed as `aud`.
-        //  per 'https://datatracker.ietf.org/doc/html/rfc7523#page-5' tokenUrl is appropriate,
-        //  but Openid validation suite does not seem to take that.
-        val aud = if (tokenUrl.endsWith("/token")) {
-            // A hack to get authorization url from token url; would not work in general case.
-            tokenUrl.substring(0, tokenUrl.length - 5)
-        } else {
-            tokenUrl
-        }
 
         val now = Clock.System.now()
         val expiration = now + 5.minutes
@@ -146,7 +138,7 @@ class ProvisioningSupport: OpenID4VCIBackend {
             put("sub", CLIENT_ID) // RFC 7523 Section 3, item 2.B
             put("exp", expiration.epochSeconds)
             put("iat", now.epochSeconds)
-            put("aud", aud)
+            put("aud", authorizationServerIdentifier)
         }.toString().encodeToByteArray().toBase64Url()
 
         val message = "$head.$payload"
@@ -170,7 +162,7 @@ class ProvisioningSupport: OpenID4VCIBackend {
             put("typ", "oauth-client-attestation+jwt")
             put("alg", signatureAlgorithm.joseAlgorithmIdentifier)
             put("x5c", buildJsonArray {
-                add(attestationCertificate.encodedCertificate.encodeBase64())
+                add(attestationCertificate.encoded.toByteArray().encodeBase64())
             })
         }.toString().encodeToByteArray().toBase64Url()
 
@@ -210,16 +202,19 @@ class ProvisioningSupport: OpenID4VCIBackend {
     @OptIn(ExperimentalTime::class)
     override suspend fun createJwtKeyAttestation(
         keyAttestations: List<KeyAttestation>,
-        challenge: String
+        challenge: String,
+        userAuthentication: List<String>?,
+        keyStorage: List<String>?
     ): String {
         val keyList = keyAttestations.map { it.publicKey }
 
         val alg = attestationPrivateKey.curve.defaultSigningAlgorithm.joseAlgorithmIdentifier
         val head = buildJsonObject {
-            put("typ", "keyattestation+jwt")
+            // OpenID4VCI Appendix D.1 expects "key-attestation+jwt" as typ
+            put("typ", "key-attestation+jwt")
             put("alg", alg)
             put("x5c", buildJsonArray {
-                add(attestationCertificate.encodedCertificate.encodeBase64())
+                add(attestationCertificate.encoded.toByteArray().encodeBase64())
             })
         }.toString().encodeToByteArray().toBase64Url()
 

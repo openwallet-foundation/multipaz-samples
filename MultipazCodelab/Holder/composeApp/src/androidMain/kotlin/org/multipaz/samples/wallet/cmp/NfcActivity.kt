@@ -6,7 +6,7 @@ import coil3.ImageLoader
 import org.koin.android.ext.android.inject
 import org.multipaz.compose.mdoc.MdocNfcPresentmentActivity
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.models.presentment.PresentmentSource
+import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.util.Constants.APP_NAME
 import org.multipaz.samples.wallet.cmp.util.Constants.appIcon

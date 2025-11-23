@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.channels.Channel
 import org.koin.compose.koinInject
-import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.ui.HomeScreen
 import org.multipaz.samples.wallet.cmp.ui.ProvisioningTestScreen
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport

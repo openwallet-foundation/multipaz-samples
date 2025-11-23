@@ -52,7 +52,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.multipaz)
             implementation(libs.multipaz.doctypes)
-            implementation(libs.multipaz.models)
+            implementation(libs.multipaz.dcapi)
             implementation(libs.multipaz.compose)
             implementation(libs.ktor.client.core)
             // CIO for JVM/Android; Darwin engine for iOS in iosMain
