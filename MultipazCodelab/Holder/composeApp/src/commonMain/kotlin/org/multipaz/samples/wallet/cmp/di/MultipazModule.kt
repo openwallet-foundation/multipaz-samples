@@ -5,16 +5,18 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.io.bytestring.ByteString
 import org.koin.dsl.module
 import org.multipaz.crypto.X509Cert
+import org.multipaz.digitalcredentials.Default
+import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.document.DocumentMetadata
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.LoyaltyID
-import org.multipaz.models.presentment.PresentmentModel
-import org.multipaz.models.presentment.PresentmentSource
-import org.multipaz.models.presentment.SimplePresentmentSource
-import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.documenttype.knowntypes.Loyalty
+import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.model.SimplePresentmentSource
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.samples.wallet.cmp.util.TestAppUtils
@@ -41,7 +43,7 @@ val multipazModule = module {
     single<DocumentTypeRepository> {
         DocumentTypeRepository().apply {
             addDocumentType(DrivingLicense.getDocumentType())
-            addDocumentType(LoyaltyID.getDocumentType())
+            addDocumentType(Loyalty.getDocumentType())
         }
     }
     single<DocumentStore> {
@@ -139,17 +141,26 @@ val multipazModule = module {
     }
 
     single<PresentmentSource> {
-        SimplePresentmentSource(
-            documentStore = get(),
-            documentTypeRepository = get(),
-            readerTrustManager = get(),
-            preferSignatureToKeyAgreement = true,
-            // Match domains used when storing credentials via OpenID4VCI
-            domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-            domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-            domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-            domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
-        )
+        runBlocking {
+            if (DigitalCredentials.Default.available) {
+                DigitalCredentials.Default.startExportingCredentials(
+                    documentStore = get(),
+                    documentTypeRepository = get()
+                )
+            }
+
+            SimplePresentmentSource(
+                documentStore = get(),
+                documentTypeRepository = get(),
+                readerTrustManager = get(),
+                preferSignatureToKeyAgreement = true,
+                // Match domains used when storing credentials via OpenID4VCI
+                domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
+                domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
+                domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+                domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
+            )
+        }
     }
 
     single<ProvisioningSupport> {
