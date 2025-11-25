@@ -13,7 +13,62 @@ target 'iosApp' do
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+        config.build_settings["FRAMEWORK_SEARCH_PATHS"] ||= []
+        config.build_settings["FRAMEWORK_SEARCH_PATHS"] << "$(inherited)"
+        config.build_settings["FRAMEWORK_SEARCH_PATHS"] << "${PODS_CONFIGURATION_BUILD_DIR}"
       end
+    end
+    
+    # Add script phase to iosApp target to copy compose resources after app is built
+    user_project = Xcodeproj::Project.open('iosApp/iosApp.xcodeproj')
+    app_target = user_project.targets.find { |t| t.name == 'iosApp' }
+    if app_target
+      # Check if phase already exists
+      existing_phase = app_target.shell_script_build_phases.find { |phase| phase.name == 'Copy Compose Resources to App Bundle' }
+      unless existing_phase
+        phase = app_target.new_shell_script_build_phase('Copy Compose Resources to App Bundle')
+        phase.shell_script = <<-SCRIPT
+          set -ev
+          # Find composeApp directory relative to project root
+          # SRCROOT points to iosApp directory, so go up one level
+          PROJECT_ROOT="$(dirname "$SRCROOT")"
+          REPO_ROOT="$PROJECT_ROOT/composeApp"
+          APP_BUNDLE_PATH="$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app"
+          
+          if [ -d "$APP_BUNDLE_PATH" ] && [ -d "$REPO_ROOT/build/compose/cocoapods/compose-resources" ]; then
+            echo "Copying compose resources to app bundle..."
+            cp -r "$REPO_ROOT/build/compose/cocoapods/compose-resources" "$APP_BUNDLE_PATH/"
+            echo "Compose resources copied successfully"
+          fi
+          
+          # Ensure PEM files are present
+          RES_CLASS_FILE=$(find "$REPO_ROOT/build/generated/compose/resourceGenerator/kotlin/commonResClass" -name Res.kt -print -quit 2>/dev/null)
+          if [ -n "$RES_CLASS_FILE" ]; then
+            RES_CLASS_DIR=$(dirname "$RES_CLASS_FILE")
+            PACKAGE_PATH=$(echo "$RES_CLASS_DIR" | sed "s#^$REPO_ROOT/build/generated/compose/resourceGenerator/kotlin/commonResClass/##")
+            PACKAGE_NAME=$(echo "$PACKAGE_PATH" | tr '/' '.')
+          else
+            PACKAGE_NAME="multipazgettingstartedsample.composeapp.generated.resources"
+          fi
+          
+          DEST_DIR="$APP_BUNDLE_PATH/compose-resources/composeResources/$PACKAGE_NAME/files"
+          mkdir -p "$DEST_DIR"
+          SRC_PEMS_DIR="$REPO_ROOT/src/commonMain/composeResources/files"
+          if [ -d "$SRC_PEMS_DIR" ] && [ -d "$APP_BUNDLE_PATH" ]; then
+            echo "Copying PEM files from $SRC_PEMS_DIR to $DEST_DIR"
+            find "$SRC_PEMS_DIR" -name "*.pem" -maxdepth 1 -type f -print -exec cp {} "$DEST_DIR/" \\;
+          fi
+        SCRIPT
+        phase.run_only_for_deployment_postprocessing = '0'
+        # Move phase to run after "Embed Pods Frameworks"
+        frameworks_phase = app_target.build_phases.find { |p| p.respond_to?(:name) && p.name == '[CP] Embed Pods Frameworks' }
+        if frameworks_phase
+          phase_index = app_target.build_phases.index(frameworks_phase) + 1
+          app_target.build_phases.delete(phase)
+          app_target.build_phases.insert(phase_index, phase)
+        end
+      end
+      user_project.save
     end
   end
 end

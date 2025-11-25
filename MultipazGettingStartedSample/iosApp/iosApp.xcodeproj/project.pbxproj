@@ -38,6 +38,8 @@
 		};
 		B9DA98002DC14AA900A4DA20 /* Configuration */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Configuration;
 			sourceTree = "<group>";
 		};
@@ -104,6 +106,7 @@
 				B9DA97AE2DC1472C00A4DA20 /* Frameworks */,
 				B9DA97AF2DC1472C00A4DA20 /* Resources */,
 				CAAF8B225B9976F427008448 /* [CP] Embed Pods Frameworks */,
+				D98FAB13A0D3E849056C129D /* Copy Compose Resources to App Bundle */,
 				A827D60FF0727CAA18D78AE9 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
@@ -180,25 +183,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		B9DA97F42DC1497100A4DA20 /* Compile Kotlin Framework */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Compile Kotlin Framework";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\n";
-		};
 		CAAF8B225B9976F427008448 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -215,6 +199,24 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		D98FAB13A0D3E849056C129D /* Copy Compose Resources to App Bundle */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Compose Resources to App Bundle";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "          set -ev\n          # Find composeApp directory relative to project root\n          # SRCROOT points to iosApp directory, so go up one level\n          PROJECT_ROOT=\"$(dirname \"$SRCROOT\")\"\n          REPO_ROOT=\"$PROJECT_ROOT/composeApp\"\n          APP_BUNDLE_PATH=\"$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app\"\n          \n          if [ -d \"$APP_BUNDLE_PATH\" ] && [ -d \"$REPO_ROOT/build/compose/cocoapods/compose-resources\" ]; then\n            echo \"Copying compose resources to app bundle...\"\n            cp -r \"$REPO_ROOT/build/compose/cocoapods/compose-resources\" \"$APP_BUNDLE_PATH/\"\n            echo \"Compose resources copied successfully\"\n          fi\n          \n          # Ensure PEM files are present\n          RES_CLASS_FILE=$(find \"$REPO_ROOT/build/generated/compose/resourceGenerator/kotlin/commonResClass\" -name Res.kt -print -quit 2>/dev/null)\n          if [ -n \"$RES_CLASS_FILE\" ]; then\n            RES_CLASS_DIR=$(dirname \"$RES_CLASS_FILE\")\n            PACKAGE_PATH=$(echo \"$RES_CLASS_DIR\" | sed \"s#^$REPO_ROOT/build/generated/compose/resourceGenerator/kotlin/commonResClass/##\")\n            PACKAGE_NAME=$(echo \"$PACKAGE_PATH\" | tr '/' '.')\n          else\n            PACKAGE_NAME=\"multipazgettingstartedsample.composeapp.generated.resources\"\n          fi\n          \n          DEST_DIR=\"$APP_BUNDLE_PATH/compose-resources/composeResources/$PACKAGE_NAME/files\"\n          mkdir -p \"$DEST_DIR\"\n          SRC_PEMS_DIR=\"$REPO_ROOT/src/commonMain/composeResources/files\"\n          if [ -d \"$SRC_PEMS_DIR\" ] && [ -d \"$APP_BUNDLE_PATH\" ]; then\n            echo \"Copying PEM files from $SRC_PEMS_DIR to $DEST_DIR\"\n            find \"$SRC_PEMS_DIR\" -name \"*.pem\" -maxdepth 1 -type f -print -exec cp {} \"$DEST_DIR/\" \\;\n          fi\n";
 		};
 		DA03F3EC2661927BF50B6663 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;

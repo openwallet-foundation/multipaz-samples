@@ -109,11 +109,57 @@ Pod::Spec.new do |spec|
         {
             :name => 'Copy Compose Resources',
             :execution_position => :after_compile,
+            :always_out_of_date => "1",
             :shell_path => '/bin/sh',
             :script => <<-SCRIPT
                 set -ev
                 REPO_ROOT="$PODS_TARGET_SRCROOT"
-                APP_BUNDLE_PATH="$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app"
+                
+                # Find the app bundle (not the pod framework)
+                # The script runs in pod context, so build dirs point to pod's directory
+                # We need to go up one level to find the app bundle
+                APP_BUNDLE_PATH=""
+                
+                # Get parent directory of pod's build directory (where app bundles are)
+                PARENT_BUILD_DIR=$(dirname "$BUILT_PRODUCTS_DIR")
+                
+                # Try iosApp.app first (the actual app target name)
+                if [ -d "$PARENT_BUILD_DIR/iosApp.app" ]; then
+                    APP_BUNDLE_PATH="$PARENT_BUILD_DIR/iosApp.app"
+                else
+                    # Search for any .app bundle in parent directory (excluding Pods)
+                    found_app=$(find "$PARENT_BUILD_DIR" -maxdepth 1 -name "*.app" -type d ! -path "*/Pods/*" ! -name "*framework*" ! -name "*composeApp*" | head -1)
+                    if [ -n "$found_app" ] && [ -d "$found_app" ]; then
+                        APP_BUNDLE_PATH="$found_app"
+                    fi
+                fi
+                
+                # If still not found, try searching in BUILD_DIR (root products directory)
+                if [ -z "$APP_BUNDLE_PATH" ] || [ ! -d "$APP_BUNDLE_PATH" ]; then
+                    BUILD_DIR_PARENT="$BUILD_DIR"
+                    if [ -d "$BUILD_DIR_PARENT/iosApp.app" ]; then
+                        APP_BUNDLE_PATH="$BUILD_DIR_PARENT/iosApp.app"
+                    else
+                        found_app=$(find "$BUILD_DIR_PARENT" -maxdepth 2 -name "iosApp.app" -type d 2>/dev/null | head -1)
+                        if [ -n "$found_app" ] && [ -d "$found_app" ]; then
+                            APP_BUNDLE_PATH="$found_app"
+                        fi
+                    fi
+                fi
+                
+                if [ -z "$APP_BUNDLE_PATH" ] || [ ! -d "$APP_BUNDLE_PATH" ]; then
+                    echo "Warning: Could not find app bundle at expected location."
+                    echo "Searched in:"
+                    echo "  $PARENT_BUILD_DIR"
+                    echo "  $BUILD_DIR"
+                    echo "Available .app bundles:"
+                    find "$PARENT_BUILD_DIR" "$BUILD_DIR" -name "*.app" -type d 2>/dev/null | head -10 || true
+                    echo "Skipping resource copy - app bundle will be created later in build process"
+                    exit 0
+                fi
+                
+                echo "Using app bundle path: $APP_BUNDLE_PATH"
+                
                 if [ -d "$REPO_ROOT/build/compose/cocoapods/compose-resources" ]; then
                     echo "Copying compose resources to app bundle..."
                     cp -r "$REPO_ROOT/build/compose/cocoapods/compose-resources" "$APP_BUNDLE_PATH/"
@@ -138,6 +184,10 @@ Pod::Spec.new do |spec|
                 if [ -d "$SRC_PEMS_DIR" ]; then
                     echo "Copying PEM files from $SRC_PEMS_DIR to $DEST_DIR"
                     find "$SRC_PEMS_DIR" -name "*.pem" -maxdepth 1 -type f -print -exec cp {} "$DEST_DIR/" \\;
+                    echo "PEM files copied. Verifying..."
+                    ls -la "$DEST_DIR" || echo "Warning: Could not list files in $DEST_DIR"
+                else
+                    echo "Warning: Source PEM directory not found at $SRC_PEMS_DIR"
                 fi
             SCRIPT
         }
