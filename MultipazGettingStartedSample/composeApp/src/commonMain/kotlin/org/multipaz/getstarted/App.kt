@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -59,14 +60,17 @@ import org.multipaz.compose.permissions.rememberCameraPermissionState
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
+import org.multipaz.compose.provisioning.Provisioning
 import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.crypto.Algorithm
+import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
-import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
+import org.multipaz.digitalcredentials.Default
+import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.document.AbstractDocumentMetadata
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentMetadata
@@ -83,12 +87,11 @@ import org.multipaz.facematch.getFaceEmbeddings
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.util.MdocUtil
-import org.multipaz.models.digitalcredentials.DigitalCredentials
-import org.multipaz.models.presentment.PresentmentModel
-import org.multipaz.models.presentment.PresentmentSource
-import org.multipaz.models.presentment.SimplePresentmentSource
-import org.multipaz.models.provisioning.ProvisioningModel
+import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.provisioning.Display
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
@@ -98,6 +101,7 @@ import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
+import org.multipaz.util.Platform.promptModel
 import org.multipaz.util.UUID
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -124,7 +128,7 @@ class App {
     lateinit var readerTrustManager: TrustManagerLocal
 
     lateinit var provisioningModel: ProvisioningModel
-    val provisioningSupport = ProvisioningSupport()
+    lateinit var provisioningSupport: ProvisioningSupport
     private val credentialOffers = Channel<String>()
 
     val appName = "Multipaz Getting Started Sample"
@@ -164,11 +168,6 @@ class App {
                 val iacaCert =
                     X509Cert.fromPem(Res.readBytes("files/iaca_certificate.pem").decodeToString())
 
-                val iacaKey = EcPrivateKey.fromPem(
-                    Res.readBytes("files/iaca_private_key.pem").decodeToString(),
-                    iacaCert.ecPublicKey
-                )
-
                 println("------- IACA PEM -------")
                 println(iacaCert.toPem().toString())
                 println("------- IACA PEM -------")
@@ -182,8 +181,10 @@ class App {
                 // 3. Generate Document Signing (DS) Certificate
                 val dsKey = Crypto.createEcPrivateKey(EcCurve.P256)
                 val dsCert = MdocUtil.generateDsCertificate(
-                    iacaCert = iacaCert,
-                    iacaKey = iacaKey,
+                    iacaKey = AsymmetricKey.X509CertifiedExplicit(
+                        certChain = X509CertChain(certificates = listOf(iacaCert)),
+                        privateKey = dsKey,
+                    ),
                     dsKey = dsKey.publicKey,
                     subject = X500Name.fromName(name = "CN=Test DS Key"),
                     serial = ASN1Integer.fromRandom(numBits = 128),
@@ -200,11 +201,14 @@ class App {
                         nonce = "Challenge".encodeToByteString(),
                         userAuthenticationRequired = true
                     ),
-                    dsKey = dsKey,
-                    dsCertChain = X509CertChain(listOf(dsCert)),
+                    dsKey = AsymmetricKey.X509CertifiedExplicit(
+                        certChain = X509CertChain(certificates = listOf(dsCert)),
+                        privateKey = dsKey,
+                    ),
                     signedAt = signedAt,
                     validFrom = validFrom,
                     validUntil = validUntil,
+                    domain = CREDENTIAL_DOMAIN_MDOC_USER_AUTH
                 )
             }
 
@@ -291,7 +295,11 @@ class App {
                 documentTypeRepository = documentTypeRepository,
                 readerTrustManager = readerTrustManager,
                 preferSignatureToKeyAgreement = true,
-                domainMdocSignature = "mdoc",
+                // Match domains used when storing credentials via OpenID4VCI
+                domainMdocSignature = CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
+                domainMdocKeyAgreement = CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
+                domainKeylessSdJwt = CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+                domainKeyBoundSdJwt = CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
             )
 
             val modelData = ByteString(*Res.readBytes("files/facenet_512.tflite"))
@@ -307,13 +315,18 @@ class App {
 
             provisioningModel = ProvisioningModel(
                 documentStore = documentStore,
-                secureArea = org.multipaz.util.Platform.getSecureArea(),
-                httpClient = io.ktor.client.HttpClient() {
+                secureArea = secureArea,
+                httpClient = HttpClient() {
                     followRedirects = false
                 },
-                promptModel = org.multipaz.util.Platform.promptModel,
+                promptModel = promptModel,
                 documentMetadataInitializer = ::initializeDocumentMetadata
             )
+            provisioningSupport = ProvisioningSupport(
+                storage = storage,
+                secureArea = secureArea,
+            )
+            provisioningSupport.init()
 
             isInitialized = true
         }
@@ -324,7 +337,8 @@ class App {
     fun Content() {
 
         val identityIssuer = "Multipaz Getting Started Sample"
-        val selfieCheckViewModel: SelfieCheckViewModel = remember { SelfieCheckViewModel(identityIssuer) }
+        val selfieCheckViewModel: SelfieCheckViewModel =
+            remember { SelfieCheckViewModel(identityIssuer) }
 
         // to track initialization
         val isInitialized = remember { mutableStateOf(false) }
@@ -362,19 +376,18 @@ class App {
             val provisioningState = provisioningModel.state.collectAsState().value
             val uriHandler = LocalUriHandler.current
 
-            val stableProvisioningModel = remember(provisioningModel) { provisioningModel }
-            val stableProvisioningSupport = remember(provisioningSupport) { provisioningSupport }
-
             // Use the working pattern from identity-credential project
             LaunchedEffect(true) {
                 while (true) {
-                    val credentialOffer = credentialOffers.receive()
-                    stableProvisioningModel.launchOpenID4VCIProvisioning(
-                        offerUri = credentialOffer,
-                        clientPreferences = ProvisioningSupport.OPENID4VCI_CLIENT_PREFERENCES,
-                        backend = stableProvisioningSupport
-                    )
-                    isProvisioning = true
+                    if (!provisioningModel.isActive) {
+                        val credentialOffer = credentialOffers.receive()
+                        provisioningModel.launchOpenID4VCIProvisioning(
+                            offerUri = credentialOffer,
+                            clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
+                            backend = provisioningSupport.getOpenID4VCIBackend()
+                        )
+                        isProvisioning = true
+                    }
                 }
             }
 
@@ -392,9 +405,11 @@ class App {
             ) {
 
                 if (isProvisioning) {
-                    ProvisioningTestScreen(
-                        stableProvisioningModel,
-                        stableProvisioningSupport,
+                    Provisioning(
+                        provisioningModel = provisioningModel,
+                        waitForRedirectLinkInvocation = { state ->
+                            provisioningSupport.waitForAppLinkInvocation(state)
+                        }
                     )
                     Button(onClick = {
                         provisioningModel.cancel();
@@ -598,6 +613,12 @@ class App {
         // OID4VCI url scheme used for filtering OID4VCI Urls from all incoming URLs (deep links or QR)
         private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
         private const val HAIP_URL_SCHEME = "haip://"
+
+        // Domains used for MdocCredential & SdJwtVcCredential
+        private const val CREDENTIAL_DOMAIN_MDOC_USER_AUTH = "mdoc_user_auth"
+        private const val CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH = "mdoc_mac_user_auth"
+        private const val CREDENTIAL_DOMAIN_SDJWT_USER_AUTH = "sdjwt_user_auth"
+        private const val CREDENTIAL_DOMAIN_SDJWT_KEYLESS = "sdjwt_keyless"
 
         val promptModel = org.multipaz.util.Platform.promptModel
 
