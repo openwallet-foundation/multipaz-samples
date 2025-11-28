@@ -18,9 +18,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.multipaz.compose.PassphraseEntryField
-import org.multipaz.models.provisioning.ProvisioningModel
 import org.multipaz.provisioning.AuthorizationChallenge
 import org.multipaz.provisioning.AuthorizationResponse
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.PassphraseConstraints
 
 @Composable
