@@ -1,4 +1,4 @@
-package org.multipaz.samples.wallet.cmp
+package org.multipaz.samples.wallet.cmp.util
 
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Tstr
@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.buildCborArray
-import org.multipaz.models.digitalcredentials.DigitalCredentials
+import org.multipaz.digitalcredentials.Default
+import org.multipaz.digitalcredentials.DigitalCredentials
 import kotlin.Boolean
 import kotlin.time.ExperimentalTime
 
