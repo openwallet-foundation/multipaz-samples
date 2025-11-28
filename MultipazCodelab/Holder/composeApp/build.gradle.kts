@@ -16,7 +16,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -29,14 +29,15 @@ kotlin {
     }
     // Create unified iOS source set hierarchy so 'iosMain' exists
     applyDefaultHierarchyTemplate()
-    
+
     sourceSets {
-        
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
             implementation(libs.ktor.client.android)
+            implementation(libs.koin.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -51,12 +52,16 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.multipaz)
             implementation(libs.multipaz.doctypes)
-            implementation(libs.multipaz.models)
+            implementation(libs.multipaz.dcapi)
             implementation(libs.multipaz.compose)
             implementation(libs.ktor.client.core)
             // CIO for JVM/Android; Darwin engine for iOS in iosMain
             implementation(libs.ktor.client.cio)
             implementation(libs.coil.compose)
+            // Koin for dependency injection
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
         }
         val iosMain by getting {
             dependencies {
@@ -67,6 +72,7 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.koin.test)
         }
     }
 }
@@ -101,4 +107,3 @@ android {
 dependencies {
     debugImplementation(compose.uiTooling)
 }
-
