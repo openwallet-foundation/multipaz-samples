@@ -40,6 +40,7 @@ import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
@@ -378,8 +379,8 @@ class App {
 
             // Use the working pattern from identity-credential project
             LaunchedEffect(true) {
-                while (true) {
-                    if (!provisioningModel.isActive) {
+                if (!provisioningModel.isActive)  {
+                    while (true) {
                         val credentialOffer = credentialOffers.receive()
                         provisioningModel.launchOpenID4VCIProvisioning(
                             offerUri = credentialOffer,

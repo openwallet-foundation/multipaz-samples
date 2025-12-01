@@ -7,17 +7,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.multipaz.crypto.Algorithm
-import org.multipaz.getstarted.ProvisioningSupport.Companion.TAG
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
-import org.multipaz.provisioning.openid4vci.OpenID4VCIBackendStub
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
-import org.multipaz.rpc.client.RpcAuthorizedClient
 import org.multipaz.rpc.handler.RpcAuthClientSession
-import org.multipaz.rpc.handler.RpcExceptionMap
-import org.multipaz.rpc.transport.HttpTransport
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
-import org.multipaz.util.Logger
 
 /**
  * Imitate OpenID4VCI wallet back-end for the test app and provide support for the app links.
@@ -32,7 +26,6 @@ class ProvisioningSupport(
     val secureArea: SecureArea,
 ) {
     companion object {
-
         // Custom URI Scheme - App-specific URLs. See AndroidManifest.xml Option #2
         const val APP_LINK_SERVER = "get-started-app"
         const val APP_LINK_BASE_URL = "$APP_LINK_SERVER://landing/"
@@ -40,42 +33,19 @@ class ProvisioningSupport(
         // Alternative HTTP App Links (more secure). See AndroidManifest.xml Option #1
         // const val APP_LINK_SERVER = "https://getstarted.multipaz.org"
         // const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/landing/"
-
-        const val TAG = "ProvisioningSupport"
-
-        val BACKEND_SERVER_URL: String? = null
     }
 
+    // Wait for wallet redirect: state is provided by the issuer during OAuth
     private val lock = Mutex()
     private val pendingLinksByState = mutableMapOf<String, SendChannel<String>>()
 
+    // Instances of backend and client preferences used for provisioning
     private lateinit var backend: OpenID4VCIBackend
     private lateinit var preferences: OpenID4VCIClientPreferences
 
     suspend fun init() {
-        var backend: OpenID4VCIBackend? = null
-        if (BACKEND_SERVER_URL != null) {
-            try {
-                val rpcAuthorizedClient = RpcAuthorizedClient.connect(
-                    exceptionMap = RpcExceptionMap.Builder().build(),
-                    httpClientEngine = platformHttpClientEngineFactory(),
-                    url = BACKEND_SERVER_URL,
-                    secureArea = secureArea,
-                    storage = storage
-                )
-                backend = OpenID4VCIBackendStub(
-                    endpoint = "openid4vci_backend",
-                    dispatcher = rpcAuthorizedClient.dispatcher,
-                    notifier = rpcAuthorizedClient.notifier
-                )
-            } catch (err: HttpTransport.ConnectionException) {
-                Logger.e(TAG, "Error connecting to back-end", err)
-            }
-        }
-        if (backend == null) {
-            backend = OpenID4VCILocalBackend()
-        }
-        this.backend = backend
+        this.backend = OpenID4VCILocalBackend()
+
         preferences = OpenID4VCIClientPreferences(
             clientId = withContext(RpcAuthClientSession()) {
                 backend.getClientId()
