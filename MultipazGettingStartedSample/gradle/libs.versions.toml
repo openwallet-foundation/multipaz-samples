@@ -16,6 +16,7 @@ kotlin = "2.2.0"
 
 coil = "3.3.0"
 ktor = "2.3.13"
+androidx-sqlite = "2.5.2"
 
 multipaz = "0.95.0" # latest version of Multipaz to use
 
@@ -48,6 +49,8 @@ ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+androidx-sqlite = { module="androidx.sqlite:sqlite", version.ref = "androidx-sqlite" }
+androidx-sqlite-framework = { module="androidx.sqlite:sqlite-framework", version.ref = "androidx-sqlite" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
