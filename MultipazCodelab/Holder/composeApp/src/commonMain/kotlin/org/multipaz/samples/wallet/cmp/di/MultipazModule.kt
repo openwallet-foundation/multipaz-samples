@@ -36,6 +36,7 @@ val multipazModule = module {
     //TODO: define SecureArea in Koin module
     //TODO: define SecureAreaRepository in Koin module
     //TODO: define DocumentStore in Koin module
+    //TODO: define DocumentTypeRepository in Koin module
     single<PromptModel> {
         Platform.promptModel
     }
