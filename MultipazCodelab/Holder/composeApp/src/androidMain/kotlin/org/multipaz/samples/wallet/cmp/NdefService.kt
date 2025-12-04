@@ -1,17 +1,19 @@
 package org.multipaz.samples.wallet.cmp
 
+import org.koin.android.ext.android.inject
 import org.multipaz.compose.mdoc.MdocNdefService
 
 import org.multipaz.mdoc.transport.MdocTransportOptions
+import org.multipaz.prompt.PromptModel
+import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 import org.multipaz.util.Platform
 
 class NdefService: MdocNdefService() {
     private lateinit var settingsModel: AppSettingsModel
+    private val promptModel: PromptModel by inject()
 
     override suspend fun getSettings(): Settings {
-        val app = App.getInstance()
-        app.init()
-        
+
         settingsModel = AppSettingsModel.create(
             storage = Platform.storage,
             readOnly = true
@@ -29,7 +31,7 @@ class NdefService: MdocNdefService() {
                 bleUseL2CAP = settingsModel.presentmentBleL2CapEnabled.value,
                 bleUseL2CAPInEngagement = settingsModel.presentmentBleL2CapInEngagementEnabled.value
             ),
-            promptModel = App.promptModel,
+            promptModel = promptModel,
             presentmentActivityClass = NfcActivity::class.java
         )
     }
