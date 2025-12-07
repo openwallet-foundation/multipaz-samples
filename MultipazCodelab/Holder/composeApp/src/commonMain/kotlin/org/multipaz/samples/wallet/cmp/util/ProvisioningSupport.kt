@@ -1,10 +1,7 @@
-package org.multipaz.samples.wallet.cmp
-
-
+package org.multipaz.samples.wallet.cmp.util
 
 import io.ktor.http.Url
 import io.ktor.util.encodeBase64
-import io.ktor.util.logging.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.runBlocking
@@ -26,6 +23,7 @@ import org.multipaz.crypto.X509Cert
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.securearea.KeyAttestation
+import org.multipaz.util.Logger
 import org.multipaz.util.toBase64Url
 import utopiasample.composeapp.generated.resources.Res
 import kotlin.random.Random
@@ -37,7 +35,7 @@ import kotlin.time.ExperimentalTime
 /**
  * Imitate OpenID4VCI wallet back-end for the test app and provide support for the app links.
  *
- * In a real wallet app, the app should call its back-end server to implement [OpenID4VCIBackend]
+ * In a real wallet app, the app should call its back-end server to implement [org.multipaz.provisioning.openid4vci.OpenID4VCIBackend]
  * interface, as keys that are used to sign various attestations and assertions must be kept
  * secret. For testing purposes the keys are embedded into the app itself - but such app can be
  * easily impersonated and therefore can never be trusted by a real-life provisioning server.
@@ -53,7 +51,7 @@ class ProvisioningSupport: OpenID4VCIBackend {
         const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/landing/"*/
 
 
-        private val localClientAssertionJwk = Json.parseToJsonElement("""
+        private val localClientAssertionJwk = Json.Default.parseToJsonElement("""
             {
                 "kty": "EC",
                 "alg": "ES256",
@@ -68,12 +66,12 @@ class ProvisioningSupport: OpenID4VCIBackend {
             }            
         """.trimIndent()).jsonObject
 
-        private val localClientAssertionPrivateKey = EcPrivateKey.fromJwk(localClientAssertionJwk)
+        private val localClientAssertionPrivateKey = EcPrivateKey.Companion.fromJwk(localClientAssertionJwk)
         private val localClientAssertionKeyId = localClientAssertionJwk["kid"]!!.jsonPrimitive.content
 
         private val attestationCertificate by lazy {
             runBlocking {
-                X509Cert.fromPem(
+                X509Cert.Companion.fromPem(
                     Res.readBytes("files/attestationCertificate.pem").decodeToString().trimIndent()
                 )
             }
@@ -81,7 +79,9 @@ class ProvisioningSupport: OpenID4VCIBackend {
 
         private val attestationPrivateKey =
             runBlocking {
-                EcPrivateKey.fromPem(Res.readBytes("files/attestationPrivateKey.pem").decodeToString().trimIndent().trimIndent(),
+                EcPrivateKey.Companion.fromPem(
+                    Res.readBytes("files/attestationPrivateKey.pem").decodeToString().trimIndent()
+                        .trimIndent(),
                     attestationCertificate.ecPublicKey
                 )
             }
@@ -92,13 +92,19 @@ class ProvisioningSupport: OpenID4VCIBackend {
                 ?: throw IllegalStateException("No common name (CN) in certificate's subject")
 
         //TODO: implement OpenID4VCI_CLIENT_PREFERENCES
+        val OPENID4VCI_CLIENT_PREFERENCES = OpenID4VCIClientPreferences(
+            clientId = CLIENT_ID,
+            redirectUrl = APP_LINK_BASE_URL,
+            locales = listOf("en-US"),
+            signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512)
+        )
     }
 
     private val lock = Mutex()
     private val pendingLinksByState = mutableMapOf<String, SendChannel<String>>()
 
     suspend fun processAppLinkInvocation(url: String) {
-        org.multipaz.util.Logger.i(TAG, "processAppLinkInvocation: $url")
+        Logger.i(TAG, "processAppLinkInvocation: $url")
         val state = Url(url).parameters["state"] ?: ""
         lock.withLock {
             pendingLinksByState.remove(state)?.send(url)
@@ -106,25 +112,25 @@ class ProvisioningSupport: OpenID4VCIBackend {
     }
 
     suspend fun waitForAppLinkInvocation(state: String): String {
-        org.multipaz.util.Logger.i(TAG, "waitForAppLinkInvocation: $state")
-        val channel = Channel<String>(Channel.RENDEZVOUS)
+        Logger.i(TAG, "waitForAppLinkInvocation: $state")
+        val channel = Channel<String>(Channel.Factory.RENDEZVOUS)
         lock.withLock {
             pendingLinksByState[state] = channel
         }
         return channel.receive()
     }
 
+    override suspend fun getClientId(): String = CLIENT_ID
+
     @OptIn(ExperimentalTime::class)
-    override suspend fun createJwtClientAssertion(tokenUrl: String): String {
+    override suspend fun createJwtClientAssertion(authorizationServerIdentifier: String): String {
         val alg = localClientAssertionPrivateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
         //TODO: implement head
-
-        val aud = if (tokenUrl.endsWith("/token")) {
-            // A hack to get authorization url from token url; would not work in general case.
-            tokenUrl.substring(0, tokenUrl.length - 5)
-        } else {
-            tokenUrl
-        }
+        val head = buildJsonObject {
+            put("typ", "JWT")
+            put("alg", alg)
+            put("kid", localClientAssertionKeyId)
+        }.toString().encodeToByteArray().toBase64Url()
 
         val now = Clock.System.now()
         val expiration = now + 5.minutes
@@ -134,7 +140,7 @@ class ProvisioningSupport: OpenID4VCIBackend {
             put("sub", CLIENT_ID) // RFC 7523 Section 3, item 2.B
             put("exp", expiration.epochSeconds)
             put("iat", now.epochSeconds)
-            put("aud", aud)
+            put("aud", authorizationServerIdentifier)
         }.toString().encodeToByteArray().toBase64Url()
 
         val message = "$head.$payload"
@@ -158,7 +164,7 @@ class ProvisioningSupport: OpenID4VCIBackend {
             put("typ", "oauth-client-attestation+jwt")
             put("alg", signatureAlgorithm.joseAlgorithmIdentifier)
             put("x5c", buildJsonArray {
-                add(attestationCertificate.encodedCertificate.encodeBase64())
+                add(attestationCertificate.encoded.toByteArray().encodeBase64())
             })
         }.toString().encodeToByteArray().toBase64Url()
 
@@ -173,7 +179,10 @@ class ProvisioningSupport: OpenID4VCIBackend {
             put("sub", CLIENT_ID)
             put("exp", expiration.epochSeconds)
             put("cnf", buildJsonObject {
-                put("jwk", keyAttestation.publicKey.toJwk(buildJsonObject { put("kid", CLIENT_ID) }))
+                put(
+                    "jwk",
+                    keyAttestation.publicKey.toJwk(buildJsonObject { put("kid", CLIENT_ID) })
+                )
             })
             put("nbf", notBefore.epochSeconds)
             put("iat", now.epochSeconds)
@@ -195,16 +204,19 @@ class ProvisioningSupport: OpenID4VCIBackend {
     @OptIn(ExperimentalTime::class)
     override suspend fun createJwtKeyAttestation(
         keyAttestations: List<KeyAttestation>,
-        challenge: String
+        challenge: String,
+        userAuthentication: List<String>?,
+        keyStorage: List<String>?
     ): String {
         val keyList = keyAttestations.map { it.publicKey }
 
         val alg = attestationPrivateKey.curve.defaultSigningAlgorithm.joseAlgorithmIdentifier
         val head = buildJsonObject {
-            put("typ", "keyattestation+jwt")
+            // OpenID4VCI Appendix D.1 expects "key-attestation+jwt" as typ
+            put("typ", "key-attestation+jwt")
             put("alg", alg)
             put("x5c", buildJsonArray {
-                add(attestationCertificate.encodedCertificate.encodeBase64())
+                add(attestationCertificate.encoded.toByteArray().encodeBase64())
             })
         }.toString().encodeToByteArray().toBase64Url()
 
