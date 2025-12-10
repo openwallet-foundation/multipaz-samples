@@ -40,6 +40,7 @@ multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
 multipaz-vision = { group = "org.multipaz", name = "multipaz-vision", version.ref = "multipaz" }
 multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
+multipaz-longfellow = { group = "org.multipaz", name = "multipaz-longfellow", version.ref = "multipaz" }
 
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "androidx-fragment" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
