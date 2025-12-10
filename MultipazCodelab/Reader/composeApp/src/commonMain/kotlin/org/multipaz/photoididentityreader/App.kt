@@ -29,7 +29,7 @@ import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.documenttype.knowntypes.LoyaltyID
+import org.multipaz.documenttype.knowntypes.Loyalty
 import org.multipaz.facematch.FaceMatchLiteRtModel
 import org.multipaz.identityreader.BuildConfig
 import org.multipaz.identityreader.ShowResultsScreen
@@ -111,7 +111,7 @@ class App(
             documentTypeRepository = DocumentTypeRepository()
             // documentTypeRepository.addDocumentType(DrivingLicense.getDocumentType())
 
-            documentTypeRepository.addDocumentType(LoyaltyID.getDocumentType())
+            documentTypeRepository.addDocumentType(Loyalty.getDocumentType())
 
             // Note: builtInTrustManager will be populated at app startup, see updateBuiltInIssuers()
             //   and its call-sites
@@ -279,12 +279,12 @@ class App(
                         onScanQrClicked = {
                             navController.navigate(route = ScanQrDestination.route)
                         },
-                        onNfcHandover = { transport, encodedDeviceEngagement, handover, updateMessage ->
+                        onNfcHandover = { scanResult ->
                             readerModel.reset()
                             readerModel.setConnectionEndpoint(
-                                encodedDeviceEngagement = encodedDeviceEngagement,
-                                handover = handover,
-                                existingTransport = transport
+                                encodedDeviceEngagement = scanResult.encodedDeviceEngagement,
+                                handover = scanResult.handover,
+                                existingTransport = scanResult.transport
                             )
                             val readerQuery = ReaderQuery.valueOf(settingsModel.selectedQueryName.value)
                             readerModel.setDeviceRequest(
