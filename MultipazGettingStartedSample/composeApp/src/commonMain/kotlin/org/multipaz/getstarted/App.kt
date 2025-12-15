@@ -123,9 +123,6 @@ class App {
     lateinit var provisioningSupport: ProvisioningSupport
     private val credentialOffers = Channel<String>()
 
-
-    // TODO: CHECK
-
     lateinit var iacaKey: AsymmetricKey.X509Certified
     lateinit var issuerTrustManager: CompositeTrustManager
     lateinit var zkSystemRepository: ZkSystemRepository
@@ -196,11 +193,9 @@ class App {
 
                 // Creating a Document
                 val document = documentStore.createDocument(
-                    displayName = "Erika's Driving License",
-                    typeDisplayName = "Utopia Driving License",
+                    displayName = SAMPLE_DOCUMENT_DISPLAY_NAME,
+                    typeDisplayName = SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME,
                 )
-
-
                 // 4. Create the mDoc Credential
                 DrivingLicense.getDocumentType().createMdocCredentialWithSampleData(
                     document = document,
@@ -299,7 +294,6 @@ class App {
             }
 
 
-            // TODO: NEW TRUST MANAGER
             val builtInIssuerTrustManager = TrustManagerLocal(
                 storage = EphemeralStorage(),
                 partitionId = "BuiltInTrustedIssuers",
@@ -711,6 +705,10 @@ class App {
     }
 
     companion object {
+
+        const val SAMPLE_DOCUMENT_DISPLAY_NAME = "Erika's Driving License"
+        private const val SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME = "Utopia Driving License"
+
         // OID4VCI url scheme used for filtering OID4VCI Urls from all incoming URLs (deep links or QR)
         private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
         private const val HAIP_URL_SCHEME = "haip://"
