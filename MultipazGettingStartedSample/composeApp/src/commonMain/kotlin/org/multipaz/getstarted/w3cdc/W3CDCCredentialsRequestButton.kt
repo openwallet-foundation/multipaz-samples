@@ -39,7 +39,6 @@ import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.storage.StorageTable
 import org.multipaz.util.Logger
-import org.multipaz.util.Platform
 import org.multipaz.verification.MdocApiDcResponse
 import org.multipaz.verification.OpenID4VPDcResponse
 import org.multipaz.verification.VerificationUtil
@@ -56,10 +55,12 @@ const val TAG = "W3CDCCredentialsRequestButton"
 
 // Storage Configuration
 // ---------------------
-// The name of the storage table where cryptographic keys are persisted locally.
-// This is used to store and retrieve the reader's private keys and certificates across app sessions.
-// You can change this to any name that makes sense for your app (e.g., "MyAppVerifierKeys").
-
+// Storage key names for persisting different cryptographic materials.
+// These keys are used to store and retrieve the reader's private keys and certificates 
+// across app sessions in the provided StorageTable.
+// 
+// The actual storage table is passed as a parameter to W3CDCCredentialsRequestButton.
+// You can change these key names if needed, but ensure consistency across app sessions.
 
 // Storage key names for persisting different cryptographic materials
 private const val STORAGE_KEY_READER_ROOT_PRIVATE_KEY = "readerRootKey"
@@ -239,10 +240,6 @@ fun W3CDCCredentialsRequestButton(
             // Parse certificate validity dates from constants
             val certsValidFrom = LocalDate.parse(CERT_VALID_FROM_DATE).atStartOfDayIn(TimeZone.UTC)
             val certsValidUntil = LocalDate.parse(CERT_VALID_UNTIL_DATE).atStartOfDayIn(TimeZone.UTC)
-
-            // Get or create the storage table for persisting cryptographic keys
-            // This ensures keys survive app restarts
-            Platform.nonBackedUpStorage
 
             // Initialize the reader root key and certificate
             // This is the "root of trust" for your verifier application
@@ -433,7 +430,6 @@ private suspend fun readerRootInit(
             bundledReaderRootCert
         }
 
-    // Log the root certificate for debugging/verification
     println("readerRootCert: ${readerRootCert.toPem()}")
 
     return AsymmetricKey.X509CertifiedExplicit(
