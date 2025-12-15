@@ -54,6 +54,7 @@ import org.multipaz.document.Document
 import org.multipaz.facedetection.detectFaces
 import org.multipaz.facematch.FaceEmbedding
 import org.multipaz.facematch.getFaceEmbeddings
+import org.multipaz.getstarted.App.Companion.SAMPLE_DOCUMENT_DISPLAY_NAME
 import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
 import org.multipaz.getstarted.w3cdc.W3CDCCredentialsRequestButton
 import org.multipaz.getstarted.w3cdc.toDataItem
@@ -159,7 +160,7 @@ fun HomeScreen(
                             text = document.metadata.displayName ?: document.identifier,
                             modifier = Modifier.padding(4.dp)
                         )
-                        if (index > 0) {
+                        if (document.metadata.displayName != SAMPLE_DOCUMENT_DISPLAY_NAME) {
                             IconButton(
                                 content = @Composable {
                                     Icon(
