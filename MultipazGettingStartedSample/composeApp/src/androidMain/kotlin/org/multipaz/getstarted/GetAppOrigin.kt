@@ -8,5 +8,10 @@ import org.multipaz.digitalcredentials.getAppOrigin
 actual fun getAppToAppOrigin(): String {
     val packageInfo = applicationContext.packageManager
         .getPackageInfo(applicationContext.packageName, PackageManager.GET_SIGNATURES)
-    return getAppOrigin(packageInfo.signatures!![0].toByteArray())
+
+    val signatures = packageInfo.signatures
+    if (signatures.isNullOrEmpty()) {
+        throw IllegalStateException("No signatures found for package ${applicationContext.packageName}")
+    }
+    return getAppOrigin(signatures[0].toByteArray())
 }
