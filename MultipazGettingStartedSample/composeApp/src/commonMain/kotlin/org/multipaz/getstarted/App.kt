@@ -1,13 +1,9 @@
 package org.multipaz.getstarted
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,8 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -44,9 +38,7 @@ import org.multipaz.asn1.ASN1Integer
 import org.multipaz.cbor.Cbor
 import org.multipaz.compose.camera.CameraFrame
 import org.multipaz.compose.cropRotateScaleImage
-import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
-import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
@@ -68,8 +60,6 @@ import org.multipaz.facedetection.FaceLandmarkType
 import org.multipaz.facematch.FaceMatchLiteRtModel
 import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
 import org.multipaz.getstarted.w3cdc.fromDataItem
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
-import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.mdoc.vical.SignedVical
 import org.multipaz.presentment.model.PresentmentModel
@@ -89,7 +79,6 @@ import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.trustmanagement.VicalTrustManager
-import org.multipaz.util.UUID
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
 import kotlin.math.PI
