@@ -3,6 +3,7 @@ package org.multipaz.samples.wallet.cmp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -19,11 +21,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 import mpzcmpwallet.composeapp.generated.resources.Res
 import mpzcmpwallet.composeapp.generated.resources.compose_multiplatform
@@ -34,6 +38,7 @@ import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
+import org.multipaz.compose.provisioning.Provisioning
 import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
@@ -44,6 +49,8 @@ import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
+import org.multipaz.document.AbstractDocumentMetadata
+import org.multipaz.document.DocumentMetadata
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -54,6 +61,8 @@ import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
+import org.multipaz.provisioning.Display
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
@@ -82,6 +91,8 @@ class App() {
     lateinit var readerTrustManager: TrustManagerLocal
     lateinit var presentmentModel: PresentmentModel
     lateinit var presentmentSource: PresentmentSource
+    lateinit var provisioningModel: ProvisioningModel
+    lateinit var provisioningSupport: ProvisioningSupport
 
     private val initLock = Mutex()
     private var initialized = false
@@ -151,7 +162,7 @@ class App() {
                         validUntil = validUntil,
                     )
             }
-            presentmentModel = PresentmentModel().apply { setPromptModel(promptModel) }
+            presentmentModel = PresentmentModel().apply { setPromptModel(App.promptModel) }
             readerTrustManager = TrustManagerLocal(
                 storage = EphemeralStorage()
             ).apply {
@@ -193,6 +204,18 @@ class App() {
                     documentTypeRepository = documentTypeRepository
                 )
             }
+            provisioningModel = ProvisioningModel(
+                documentStore = documentStore,
+                secureArea = secureArea,
+                httpClient = HttpClient(platformHttpClientEngineFactory()) {
+                    followRedirects = false
+                },
+                promptModel = promptModel,
+                documentMetadataInitializer = App::initializeDocumentMetadata
+            )
+            provisioningSupport = ProvisioningSupport()
+            provisioningSupport.init()
+
             initialized = true
         }
     }
@@ -217,6 +240,7 @@ class App() {
 
         val context = LocalPlatformContext.current
         val imageLoader = remember { ImageLoader.Builder(context).components { /* network loader omitted */ }.build() }
+        val provisioningState = provisioningModel.state.collectAsState().value
 
         MaterialTheme {
             val coroutineScope = rememberCoroutineScope { promptModel }
@@ -235,6 +259,9 @@ class App() {
                         Text("Request BLE permissions")
                     }
                 }
+            } else if (provisioningState != ProvisioningModel.Idle &&
+                provisioningState != ProvisioningModel.CredentialsIssued) {
+                ProvisioningScreen()
             } else if (!bleEnabledState.isEnabled) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -317,15 +344,78 @@ class App() {
         }
     }
 
+    @Composable
+    private fun ProvisioningScreen() {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.weight(1.0f))
+            Provisioning(
+                provisioningModel = provisioningModel,
+                waitForRedirectLinkInvocation = { state ->
+                    provisioningSupport.waitForAppLinkInvocation(state)
+                }
+            )
+            Spacer(modifier = Modifier.weight(1.0f))
+            Button(onClick = {
+                provisioningModel.cancel()
+            }) {
+                Text("Cancel Provisioning")
+            }
+            Spacer(modifier = Modifier.weight(1.0f))
+        }
+    }
+
+    /**
+     * Handle a link (either a app link, universal link, or custom URL schema link).
+     */
+    fun handleUrl(url: String) {
+        if (url.startsWith("openid-credential-offer:") || url.startsWith("haip-vci")) {
+            val queryIndex = url.indexOf('?')
+            if (queryIndex >= 0) {
+                try {
+                    provisioningModel.launchOpenID4VCIProvisioning(
+                        offerUri = url,
+                        clientPreferences = provisioningSupport.preferences,
+                        backend = provisioningSupport.backend
+                    )
+                } catch (_: IllegalStateException) {
+                    // provisioning is already active
+                }
+            }
+        } else if (url.startsWith(ProvisioningSupport.APP_LINK_BASE_URL)) {
+            CoroutineScope(Dispatchers.Default).launch {
+                provisioningSupport.processAppLinkInvocation(url)
+            }
+        }
+    }
+
     companion object {
         val promptModel = Platform.promptModel
-
+        
         private var app: App? = null
         fun getInstance(): App {
             if (app == null) {
                 app = App()
             }
             return app!!
+        }
+
+        private suspend fun initializeDocumentMetadata(
+            metadata: AbstractDocumentMetadata,
+            credentialDisplay: Display,
+            issuerDisplay: Display
+        ) {
+            (metadata as DocumentMetadata).setMetadata(
+                displayName = credentialDisplay.text,  // TODO: customize after provisioning?
+                typeDisplayName = credentialDisplay.text,
+                cardArt = credentialDisplay.logo
+                    ?: ByteString(Res.readBytes("drawable/card_generic.png")),
+                issuerLogo = issuerDisplay.logo,
+                other = null
+            )
         }
     }
 }
