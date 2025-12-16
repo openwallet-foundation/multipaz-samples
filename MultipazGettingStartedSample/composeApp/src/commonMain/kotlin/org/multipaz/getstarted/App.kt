@@ -432,6 +432,9 @@ class App {
                         documents = documents,
                         onDeleteDocument = {
                             documents.remove(it)
+                        },
+                        onCancel = {
+                            presentmentModel.reset()
                         }
                     )
                 }
@@ -504,59 +507,6 @@ class App {
                         }
                     )
                 }
-            }
-        }
-    }
-
-    @Composable
-    fun ShowQrButton(onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Button(onClick = {
-                val connectionMethods = listOf(
-                    MdocConnectionMethodBle(
-                        supportsPeripheralServerMode = false,
-                        supportsCentralClientMode = true,
-                        peripheralServerModeUuid = null,
-                        centralClientModeUuid = UUID.randomUUID(),
-                    )
-                )
-                onQrButtonClicked(
-                    MdocProximityQrSettings(
-                        availableConnectionMethods = connectionMethods,
-                        createTransportOptions = MdocTransportOptions(bleUseL2CAP = true)
-                    )
-                )
-            }) {
-                Text("Present mDL via QR Code")
-            }
-        }
-    }
-
-    @Composable
-    fun ShowQrCode(uri: String) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            val qrCodeBitmap = remember { generateQrCode(uri) }
-            Text(text = "Present QR code to mdoc reader")
-            Image(
-                modifier = Modifier.fillMaxWidth(),
-                bitmap = qrCodeBitmap,
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth
-            )
-            Button(
-                onClick = {
-                    presentmentModel.reset()
-                }
-            ) {
-                Text("Cancel")
             }
         }
     }

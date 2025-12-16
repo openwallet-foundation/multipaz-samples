@@ -1,6 +1,7 @@
 package org.multipaz.getstarted
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -49,6 +51,8 @@ import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.permissions.rememberCameraPermissionState
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
+import org.multipaz.compose.presentment.MdocProximityQrSettings
+import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.document.Document
 import org.multipaz.facedetection.detectFaces
@@ -58,8 +62,11 @@ import org.multipaz.getstarted.App.Companion.SAMPLE_DOCUMENT_DISPLAY_NAME
 import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
 import org.multipaz.getstarted.w3cdc.W3CDCCredentialsRequestButton
 import org.multipaz.getstarted.w3cdc.toDataItem
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
+import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.selfiecheck.SelfieCheck
 import org.multipaz.selfiecheck.SelfieCheckViewModel
+import org.multipaz.util.UUID
 import org.multipaz.util.toBase64Url
 import kotlin.math.roundToInt
 
@@ -70,7 +77,8 @@ fun HomeScreen(
     documents: List<Document>,
     imageLoader: ImageLoader,
     identityIssuer: String = "Multipaz Getting Started Sample",
-    onDeleteDocument: (Document) -> Unit
+    onDeleteDocument: (Document) -> Unit,
+    onCancel: () -> Unit
 ) {
     val selfieCheckViewModel: SelfieCheckViewModel =
         remember { SelfieCheckViewModel(identityIssuer) }
@@ -126,8 +134,13 @@ fun HomeScreen(
                 documentTypeRepository = app.documentTypeRepository,
                 imageLoader = imageLoader,
                 allowMultipleRequests = false,
-                showQrButton = { onQrButtonClicked -> app.ShowQrButton(onQrButtonClicked) },
-                showQrCode = { uri -> app.ShowQrCode(uri) }
+                showQrButton = { onQrButtonClicked -> ShowQrButton(onQrButtonClicked) },
+                showQrCode = { uri ->
+                    ShowQrCode(
+                        uri,
+                        onCancel = onCancel
+                    )
+                }
             )
 
             Button(
@@ -308,6 +321,62 @@ fun HomeScreen(
                     Text("Close")
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ShowQrButton(onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(onClick = {
+            val connectionMethods = listOf(
+                MdocConnectionMethodBle(
+                    supportsPeripheralServerMode = false,
+                    supportsCentralClientMode = true,
+                    peripheralServerModeUuid = null,
+                    centralClientModeUuid = UUID.randomUUID(),
+                )
+            )
+            onQrButtonClicked(
+                MdocProximityQrSettings(
+                    availableConnectionMethods = connectionMethods,
+                    createTransportOptions = MdocTransportOptions(bleUseL2CAP = true)
+                )
+            )
+        }) {
+            Text("Present mDL via QR Code")
+        }
+    }
+}
+
+@Composable
+fun ShowQrCode(
+    uri: String,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val qrCodeBitmap = remember { generateQrCode(uri) }
+        Text(text = "Present QR code to mdoc reader")
+        Image(
+            modifier = Modifier.fillMaxWidth(),
+            bitmap = qrCodeBitmap,
+            contentDescription = null,
+            contentScale = ContentScale.FillWidth
+        )
+        Button(
+            onClick = {
+                onCancel()
+            }
+        ) {
+            Text("Cancel")
         }
     }
 }
