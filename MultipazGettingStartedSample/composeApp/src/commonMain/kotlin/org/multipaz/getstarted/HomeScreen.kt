@@ -184,34 +184,39 @@ fun HomeScreen(
         }
 
         AnimatedVisibility(documents.isNotEmpty()) {
-            W3CDCCredentialsRequestButton(
-                promptModel = App.promptModel,
-                storageTable = app.storageTable,
-                zkSystemRepository = app.zkSystemRepository,
+            // W3C Digital Credentials API is only available on Android
+            // iOS uses different approaches (OpenID4VP with deep links, etc.)
+            if (isAndroid()) {
+                W3CDCCredentialsRequestButton(
+                    promptModel = App.promptModel,
+                    storageTable = app.storageTable,
+                    zkSystemRepository = app.zkSystemRepository,
 
-                showResponse = { vpToken: JsonObject?,
-                                 deviceResponse: DataItem?,
-                                 sessionTranscript: DataItem,
-                                 nonce: ByteString?,
-                                 eReaderKey: EcPrivateKey?,
-                                 metadata: ShowResponseMetadata ->
-                    val route = Destination.ShowResponseDestination.route +
-                            "/${
-                                vpToken?.let { Json.encodeToString(it) }?.encodeToByteArray()
-                                    ?.toBase64Url() ?: "_"
-                            }" +
-                            "/${deviceResponse?.let { Cbor.encode(it).toBase64Url() } ?: "_"}" +
-                            "/${Cbor.encode(sessionTranscript).toBase64Url()}" +
-                            "/${nonce?.let { nonce.toByteArray().toBase64Url() } ?: "_"}" +
-                            "/${
-                                eReaderKey?.let {
-                                    Cbor.encode(eReaderKey.toCoseKey().toDataItem()).toBase64Url()
-                                } ?: "_"
-                            }" +
-                            "/${Cbor.encode(metadata.toDataItem()).toBase64Url()}"
-                    navController.navigate(route)
-                }
-            )
+                    showResponse = { vpToken: JsonObject?,
+                                     deviceResponse: DataItem?,
+                                     sessionTranscript: DataItem,
+                                     nonce: ByteString?,
+                                     eReaderKey: EcPrivateKey?,
+                                     metadata: ShowResponseMetadata ->
+                        val route = Destination.ShowResponseDestination.route +
+                                "/${
+                                    vpToken?.let { Json.encodeToString(it) }?.encodeToByteArray()
+                                        ?.toBase64Url() ?: "_"
+                                }" +
+                                "/${deviceResponse?.let { Cbor.encode(it).toBase64Url() } ?: "_"}" +
+                                "/${Cbor.encode(sessionTranscript).toBase64Url()}" +
+                                "/${nonce?.let { nonce.toByteArray().toBase64Url() } ?: "_"}" +
+                                "/${
+                                    eReaderKey?.let {
+                                        Cbor.encode(eReaderKey.toCoseKey().toDataItem())
+                                            .toBase64Url()
+                                    } ?: "_"
+                                }" +
+                                "/${Cbor.encode(metadata.toDataItem()).toBase64Url()}"
+                        navController.navigate(route)
+                    }
+                )
+            }
         }
 
         if (!cameraPermissionState.isGranted)
