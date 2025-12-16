@@ -38,7 +38,6 @@ import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
@@ -107,7 +106,6 @@ fun ShowResponse(
     metadata: ShowResponseMetadata?,
     issuerTrustManager: TrustManager,
     documentTypeRepository: DocumentTypeRepository?,
-    zkSystemRepository: ZkSystemRepository?,
     onViewCertChain: ((certChain: X509CertChain) -> Unit)?
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -127,7 +125,6 @@ fun ShowResponse(
                     eReaderKey = eReaderKey,
                     metadata = metadata,
                     documentTypeRepository = documentTypeRepository,
-                    zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
                     onViewCertChain = onViewCertChain
                 )
@@ -215,7 +212,6 @@ private suspend fun parseResponse(
     eReaderKey: EcPrivateKey?,
     metadata: ShowResponseMetadata?,
     documentTypeRepository: DocumentTypeRepository?,
-    zkSystemRepository: ZkSystemRepository?,
     issuerTrustManager: TrustManager,
     onViewCertChain: ((certChain: X509CertChain) -> Unit)?
 ): VerificationResult {
@@ -231,7 +227,7 @@ private suspend fun parseResponse(
                 AsymmetricKey.anonymous(it, it.curve.defaultKeyAgreementAlgorithm)
             },
             documentTypeRepository = documentTypeRepository,
-            zkSystemRepository = zkSystemRepository
+            zkSystemRepository = null
         )
     } else if (vpToken != null) {
         verifyOpenID4VPResponse(
@@ -240,7 +236,7 @@ private suspend fun parseResponse(
             sessionTranscript = sessionTranscript,
             nonce = nonce!!,
             documentTypeRepository = documentTypeRepository,
-            zkSystemRepository = zkSystemRepository
+            zkSystemRepository = null
         )
     } else {
         throw IllegalStateException("Either deviceResponse or vpToken must be non-null")

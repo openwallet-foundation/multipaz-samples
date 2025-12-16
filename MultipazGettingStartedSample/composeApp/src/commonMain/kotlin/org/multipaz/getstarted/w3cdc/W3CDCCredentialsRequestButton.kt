@@ -34,7 +34,6 @@ import org.multipaz.documenttype.knowntypes.PhotoID
 import org.multipaz.documenttype.knowntypes.UtopiaMovieTicket
 import org.multipaz.getstarted.getAppToAppOrigin
 import org.multipaz.mdoc.util.MdocUtil
-import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.storage.StorageTable
@@ -207,7 +206,6 @@ val provisionedDocumentTypes = listOf(
 fun W3CDCCredentialsRequestButton(
     storageTable: StorageTable,
     promptModel: PromptModel,
-    zkSystemRepository: ZkSystemRepository,
     text: String = "W3CDC Credentials Request",
     showResponse: (
         vpToken: JsonObject?,
@@ -266,7 +264,6 @@ fun W3CDCCredentialsRequestButton(
                     request = requestOptions.first().sampleRequest,
                     protocol = RequestProtocol.W3C_DC_OPENID4VP_29,
                     format = CredentialFormat.ISO_MDOC,
-                    zkSystemRepository = zkSystemRepository,
                     showResponse = showResponse
                 )
             } catch (error: Throwable) {
@@ -475,7 +472,6 @@ private suspend fun readerRootInit(
  * @param appReaderKey Reader's certified key for signing requests
  * @param request The credential request (what data to ask for)
  * @param protocol Which W3C DC protocol to use
- * @param zkSystemRepository ZKP circuits for privacy-preserving verification
  * @param showResponse Callback invoked with verified response data
  */
 @OptIn(ExperimentalTime::class)
@@ -484,7 +480,6 @@ private suspend fun doDcRequestFlow(
     request: DocumentCannedRequest,
     protocol: RequestProtocol,
     format: CredentialFormat,
-    zkSystemRepository: ZkSystemRepository,
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -546,11 +541,7 @@ private suspend fun doDcRequestFlow(
         } else {
             null  // Unsigned request (less secure, for testing)
         },
-        zkSystemSpecs = if (request.mdocRequest!!.useZkp) {
-            zkSystemRepository.getAllZkSystemSpecs()  // Enable ZKP verification
-        } else {
-            emptyList()  // Standard verification only
-        }
+        zkSystemSpecs = emptyList()
     )
 
     // Log request details for debugging

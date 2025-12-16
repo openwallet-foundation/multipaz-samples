@@ -1,7 +1,6 @@
 package org.multipaz.getstarted
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -74,8 +72,6 @@ import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.mdoc.vical.SignedVical
-import org.multipaz.mdoc.zkp.ZkSystemRepository
-import org.multipaz.mdoc.zkp.longfellow.LongfellowZkSystem
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
@@ -96,7 +92,6 @@ import org.multipaz.trustmanagement.VicalTrustManager
 import org.multipaz.util.UUID
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
-import kotlin.collections.addAll
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -127,7 +122,6 @@ class App {
 
     lateinit var iacaKey: AsymmetricKey.X509Certified
     lateinit var issuerTrustManager: CompositeTrustManager
-    lateinit var zkSystemRepository: ZkSystemRepository
 
     val appName = "Multipaz Getting Started Sample"
     val appIcon = Res.drawable.compose_multiplatform
@@ -166,7 +160,7 @@ class App {
                 X509Cert.fromPem(Res.readBytes("files/iaca_certificate.pem").decodeToString())
 
             println("------- IACA PEM -------")
-            println(iacaCert.toPem().toString())
+            println(iacaCert.toPem())
             println("------- IACA PEM -------")
 
             // 1. Prepare Timestamps
@@ -338,7 +332,7 @@ class App {
             provisioningModel = ProvisioningModel(
                 documentStore = documentStore,
                 secureArea = secureArea,
-                httpClient = HttpClient() {
+                httpClient = HttpClient {
                     followRedirects = false
                 },
                 promptModel = promptModel,
@@ -349,8 +343,6 @@ class App {
                 secureArea = secureArea,
             )
             provisioningSupport.init()
-
-            zkSystemRepository = zkSystemRepositoryInit()
 
             isInitialized = true
         }
@@ -479,7 +471,6 @@ class App {
                         metadata = metadata,
                         issuerTrustManager = issuerTrustManager,
                         documentTypeRepository = documentTypeRepository,
-                        zkSystemRepository = zkSystemRepository,
                         onViewCertChain = { certChain ->
                             val encodedCertificateData =
                                 Cbor.encode(certChain.toDataItem()).toBase64Url()
@@ -667,45 +658,6 @@ class App {
         )
     }
 
-    /**
-     * Initialize Zero-Knowledge Proof System Repository
-     *
-     * Loads Longfellow ZKP circuits that enable privacy-preserving credential verification.
-     *
-     * **What are ZKP Circuits?**
-     * - Pre-computed cryptographic circuits for zero-knowledge proofs
-     * - Allow proving properties about credentials without revealing the data
-     * - Example: Prove "age > 21" without revealing exact birthdate
-     *
-     * **Circuit Files:**
-     * - Each file is ~300KB and contains circuit parameters
-     * - Named with complexity parameters and a hash for integrity
-     * - Loaded from app resources at runtime
-     *
-     * **When to use:**
-     * - Enable for privacy-sensitive verification scenarios
-     * - Disable if you only need standard credential verification (saves ~1.2MB memory)
-     *
-     * @return Initialized ZkSystemRepository with Longfellow circuits
-     */
-    private suspend fun zkSystemRepositoryInit(): ZkSystemRepository {
-        val longfellowSystem = LongfellowZkSystem()
-
-        // Load each circuit file from resources
-        for (circuit in LONGFELLOW_CIRCUIT_FILES) {
-            val circuitBytes = Res.readBytes(circuit)
-            val pathParts = circuit.split("/")
-            val circuitName = pathParts[pathParts.size - 1]  // Extract filename from path
-            longfellowSystem.addCircuit(circuitName, ByteString(circuitBytes))
-        }
-
-        val zkSystemRepository = ZkSystemRepository().apply {
-            add(longfellowSystem)
-        }
-
-        return zkSystemRepository
-    }
-
     companion object {
 
         const val SAMPLE_DOCUMENT_DISPLAY_NAME = "Erika's Driving License"
@@ -722,26 +674,6 @@ class App {
         private const val CREDENTIAL_DOMAIN_SDJWT_KEYLESS = "sdjwt_keyless"
 
         private const val STORAGE_TABLE_NAME = "TestAppKeys"
-
-        // Zero-Knowledge Proof (ZKP) Configuration - Longfellow Circuits
-// ---------------------------------------------------------------
-// These are pre-computed cryptographic circuits for Zero-Knowledge Proofs.
-// Longfellow enables privacy-preserving credential verification (e.g., proving age > 21
-// without revealing exact birthdate).
-//
-// The circuits are named: {params}_{hash} where:
-// - params describe circuit complexity (e.g., "6_1_4096_2945")
-// - hash is a SHA-256 identifier for integrity verification
-//
-// These files are bundled in: composeApp/src/commonMain/composeResources/files/longfellow-libzk-v1/
-// If you don't need ZKP features, you can skip loading these circuits.
-        private val LONGFELLOW_CIRCUIT_FILES = listOf(
-            "files/longfellow-libzk-v1/6_1_4096_2945_137e5a75ce72735a37c8a72da1a8a0a5df8d13365c2ae3d2c2bd6a0e7197c7c6",
-            "files/longfellow-libzk-v1/6_2_4025_2945_b4bb6f01b7043f4f51d8302a30b36e3d4d2d0efc3c24557ab9212ad524a9764e",
-            "files/longfellow-libzk-v1/6_3_4121_2945_b2211223b954b34a1081e3fbf71b8ea2de28efc888b4be510f532d6ba76c2010",
-            "files/longfellow-libzk-v1/6_4_4283_2945_c70b5f44a1365c53847eb8948ad5b4fdc224251a2bc02d958c84c862823c49d6",
-        )
-
 
         val promptModel = org.multipaz.util.Platform.promptModel
 

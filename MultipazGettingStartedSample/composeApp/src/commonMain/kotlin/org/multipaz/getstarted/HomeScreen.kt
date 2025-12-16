@@ -190,8 +190,6 @@ fun HomeScreen(
                 W3CDCCredentialsRequestButton(
                     promptModel = App.promptModel,
                     storageTable = app.storageTable,
-                    zkSystemRepository = app.zkSystemRepository,
-
                     showResponse = { vpToken: JsonObject?,
                                      deviceResponse: DataItem?,
                                      sessionTranscript: DataItem,

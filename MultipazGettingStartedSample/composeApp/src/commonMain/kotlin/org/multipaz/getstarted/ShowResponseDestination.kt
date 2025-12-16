@@ -32,7 +32,6 @@ fun ShowResponseScreen(
     metadata: ShowResponseMetadata,
     issuerTrustManager: TrustManager,
     documentTypeRepository: DocumentTypeRepository?,
-    zkSystemRepository: ZkSystemRepository?,
     onViewCertChain: (certChain: X509CertChain) -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -50,7 +49,6 @@ fun ShowResponseScreen(
             metadata = metadata,
             issuerTrustManager = issuerTrustManager,
             documentTypeRepository = documentTypeRepository,
-            zkSystemRepository = zkSystemRepository,
             onViewCertChain = onViewCertChain
         )
     }
