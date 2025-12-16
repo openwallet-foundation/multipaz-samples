@@ -38,7 +38,6 @@ import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.verification.JsonVerifiedPresentation
@@ -104,19 +103,18 @@ fun ShowResponse(
     nonce: ByteString?,
     eReaderKey: EcPrivateKey?,
     metadata: ShowResponseMetadata?,
-    issuerTrustManager: TrustManager,
     documentTypeRepository: DocumentTypeRepository?,
     onViewCertChain: ((certChain: X509CertChain) -> Unit)?
 ) {
     val coroutineScope = rememberCoroutineScope()
     val verificationError = remember { mutableStateOf<Throwable?>(null) }
-    val verficationResult = remember { mutableStateOf<VerificationResult?>(null) }
+    val verificationResult = remember { mutableStateOf<VerificationResult?>(null) }
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             val now = Clock.System.now()
             try {
-                verficationResult.value = parseResponse(
+                verificationResult.value = parseResponse(
                     now = now,
                     vpToken = vpToken,
                     deviceResponse = deviceResponse,
@@ -125,7 +123,6 @@ fun ShowResponse(
                     eReaderKey = eReaderKey,
                     metadata = metadata,
                     documentTypeRepository = documentTypeRepository,
-                    issuerTrustManager = issuerTrustManager,
                     onViewCertChain = onViewCertChain
                 )
             } catch (e: Throwable) {
@@ -137,8 +134,8 @@ fun ShowResponse(
 
     if (verificationError.value != null) {
         Text(text = verificationError.value!!.message ?: "Failed")
-    } else if (verficationResult.value != null) {
-        for (section in verficationResult.value!!.sections) {
+    } else if (verificationResult.value != null) {
+        for (section in verificationResult.value!!.sections) {
             val entries = mutableListOf<@Composable () -> Unit>()
             for (line in section.lines) {
                 entries.add {
@@ -212,7 +209,6 @@ private suspend fun parseResponse(
     eReaderKey: EcPrivateKey?,
     metadata: ShowResponseMetadata?,
     documentTypeRepository: DocumentTypeRepository?,
-    issuerTrustManager: TrustManager,
     onViewCertChain: ((certChain: X509CertChain) -> Unit)?
 ): VerificationResult {
     val sections = mutableListOf<Section>()
@@ -277,21 +273,11 @@ private suspend fun parseResponse(
                 lines.add(Line("Credential format", ValueText("ISO mdoc")))
                 lines.add(Line("DocType", ValueText(vp.docType)))
                 lines.add(Line("Issuer DS curve", ValueText(vp.documentSignerCertChain.certificates.first().ecPublicKey.curve.name)))
-                val trustResult =
-                    issuerTrustManager.verify(vp.documentSignerCertChain.certificates, now)
-                if (trustResult.isTrusted) {
-                    val tpName =
-                        trustResult.trustPoints.first().metadata?.displayName?.let { " ($it)" } ?: ""
-                    lines.add(Line("Issuer Trusted", ValueText("Yes$tpName")))
-                } else {
-                    lines.add(Line("Issuer Trusted", ValueText("No")))
-                }
                 lines.add(
                     Line(
                         "Issuer certificate chain",
-                        ValueCertChain(vp.documentSignerCertChain),
-                        { onViewCertChain?.let { it(vp.documentSignerCertChain) } }
-                    )
+                        ValueCertChain(vp.documentSignerCertChain)
+                    ) { onViewCertChain?.let { it(vp.documentSignerCertChain) } }
                 )
                 if (vp.zkpUsed) {
                     lines.add(Line("ZK proof", ValueText("Successfully verified \uD83E\uDE84")))
@@ -323,21 +309,11 @@ private suspend fun parseResponse(
                 lines.add(Line("Credential format", ValueText("IETF SD-JWT VC")))
                 lines.add(Line("Verifiable Credential Type", ValueText(vp.vct)))
                 lines.add(Line("Issuer DS curve", ValueText(vp.documentSignerCertChain.certificates.first().ecPublicKey.curve.name)))
-                val trustResult =
-                    issuerTrustManager.verify(vp.documentSignerCertChain.certificates, now)
-                if (trustResult.isTrusted) {
-                    val tpName =
-                        trustResult.trustPoints.first().metadata?.displayName?.let { " ($it)" } ?: ""
-                    lines.add(Line("Issuer Trusted", ValueText("Yes$tpName")))
-                } else {
-                    lines.add(Line("Issuer Trusted", ValueText("No")))
-                }
                 lines.add(
                     Line(
                         "Issuer certificate chain",
-                        ValueCertChain(vp.documentSignerCertChain),
-                        { onViewCertChain?.let { it(vp.documentSignerCertChain) } }
-                    )
+                        ValueCertChain(vp.documentSignerCertChain)
+                    ) { onViewCertChain?.let { it(vp.documentSignerCertChain) } }
                 )
                 if (vp.zkpUsed) {
                     lines.add(Line("ZK proof", ValueText("Successfully verified \uD83E\uDE84")))

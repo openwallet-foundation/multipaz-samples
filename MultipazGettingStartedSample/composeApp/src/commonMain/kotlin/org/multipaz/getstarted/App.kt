@@ -61,7 +61,6 @@ import org.multipaz.facematch.FaceMatchLiteRtModel
 import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
 import org.multipaz.getstarted.w3cdc.fromDataItem
 import org.multipaz.mdoc.util.MdocUtil
-import org.multipaz.mdoc.vical.SignedVical
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
@@ -73,12 +72,9 @@ import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
 import org.multipaz.storage.StorageTableSpec
-import org.multipaz.storage.ephemeral.EphemeralStorage
-import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
-import org.multipaz.trustmanagement.VicalTrustManager
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
 import kotlin.math.PI
@@ -110,7 +106,6 @@ class App {
     private val credentialOffers = Channel<String>()
 
     lateinit var iacaKey: AsymmetricKey.X509Certified
-    lateinit var issuerTrustManager: CompositeTrustManager
 
     val appName = "Multipaz Getting Started Sample"
     val appIcon = Res.drawable.compose_multiplatform
@@ -277,23 +272,6 @@ class App {
             } catch (e: TrustPointAlreadyExistsException) {
                 e.printStackTrace()
             }
-
-
-            val builtInIssuerTrustManager = TrustManagerLocal(
-                storage = EphemeralStorage(),
-                partitionId = "BuiltInTrustedIssuers",
-                identifier = "Built-in Trusted Issuers"
-            )
-            builtInIssuerTrustManager.addX509Cert(
-                certificate = iacaKey.certChain.certificates.first(),
-                metadata = TrustMetadata(displayName = "OWF Multipaz TestApp Issuer"),
-            )
-            val signedVical =
-                SignedVical.parse(Res.readBytes("files/ISO_SC17WG10_Wellington_Test_Event_Nov_2025.vical"))
-            val vicalTrustManager = VicalTrustManager(signedVical)
-            issuerTrustManager =
-                CompositeTrustManager(listOf(builtInIssuerTrustManager, vicalTrustManager))
-
             presentmentModel = PresentmentModel().apply { setPromptModel(promptModel) }
             presentmentSource = SimplePresentmentSource(
                 documentStore = documentStore,
@@ -461,7 +439,6 @@ class App {
                         nonce = nonce,
                         eReaderKey = eReaderKey,
                         metadata = metadata,
-                        issuerTrustManager = issuerTrustManager,
                         documentTypeRepository = documentTypeRepository,
                         onViewCertChain = { certChain ->
                             val encodedCertificateData =

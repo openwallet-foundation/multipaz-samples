@@ -16,11 +16,6 @@ import org.multipaz.crypto.X509CertChain
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.getstarted.w3cdc.ShowResponse
 import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
-import org.multipaz.mdoc.zkp.ZkSystemRepository
-import org.multipaz.trustmanagement.TrustManager
-
-
-private const val TAG = "ShowResponseScreen"
 
 @Composable
 fun ShowResponseScreen(
@@ -30,7 +25,6 @@ fun ShowResponseScreen(
     nonce: ByteString?,
     eReaderKey: EcPrivateKey?,
     metadata: ShowResponseMetadata,
-    issuerTrustManager: TrustManager,
     documentTypeRepository: DocumentTypeRepository?,
     onViewCertChain: (certChain: X509CertChain) -> Unit
 ) {
@@ -47,7 +41,6 @@ fun ShowResponseScreen(
             nonce = nonce,
             eReaderKey = eReaderKey,
             metadata = metadata,
-            issuerTrustManager = issuerTrustManager,
             documentTypeRepository = documentTypeRepository,
             onViewCertChain = onViewCertChain
         )

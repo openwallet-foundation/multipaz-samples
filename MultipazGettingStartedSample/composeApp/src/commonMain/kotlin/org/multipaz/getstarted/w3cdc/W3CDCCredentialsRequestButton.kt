@@ -46,10 +46,6 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-// ================================================================================================
-// CONFIGURATION CONSTANTS
-// ================================================================================================
-
 const val TAG = "W3CDCCredentialsRequestButton"
 
 // Storage Configuration
@@ -105,16 +101,9 @@ private const val NONCE_SIZE_BYTES = 16
 // Response encryption configuration
 private val RESPONSE_ENCRYPTION_CURVE = EcCurve.P256
 
-
-// Metadata Constants
-// ------------------
 // Descriptive labels used in response metadata for logging and analytics
 private const val METADATA_ENGAGEMENT_TYPE = "OS-provided CredentialManager API"
 private const val METADATA_TRANSFER_PROTOCOL_PREFIX = "W3C Digital Credentials"
-
-// ================================================================================================
-// BUNDLED READER ROOT KEY
-// ================================================================================================
 
 /**
  * Bundled Reader Root Key Pair (P-384 Elliptic Curve)
@@ -163,10 +152,6 @@ val bundledReaderRootKey: EcPrivateKey by lazy {
         readerRootKeyPub
     )
 }
-
-// ================================================================================================
-// COMPOSABLE Button
-// ================================================================================================
 
 /**
  * W3C Digital Credentials Request Button
@@ -274,12 +259,6 @@ fun W3CDCCredentialsRequestButton(
         Text(text = text)
     }
 }
-
-// ================================================================================================
-// INITIALIZATION FUNCTIONS
-// ================================================================================================
-
-
 
 /**
  * Initialize Reader Certificate and Key
@@ -434,10 +413,6 @@ private suspend fun readerRootInit(
         privateKey = readerRootPrivateKey
     )
 }
-
-// ================================================================================================
-// CREDENTIAL REQUEST FLOW
-// ================================================================================================
 
 /**
  * Execute W3C Digital Credentials Request Flow
