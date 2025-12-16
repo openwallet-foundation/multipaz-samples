@@ -15,3 +15,5 @@ actual fun getAppToAppOrigin(): String {
     }
     return getAppOrigin(signatures[0].toByteArray())
 }
+
+actual fun isAndroid(): Boolean = true

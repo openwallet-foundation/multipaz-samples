@@ -2,6 +2,9 @@ package org.multipaz.getstarted
 
 import platform.Foundation.NSBundle
 
+actual fun isAndroid(): Boolean = false
+
+
 actual fun getAppToAppOrigin(): String {
     // On iOS, use the bundle identifier as the app origin
     // This uniquely identifies the app and is the iOS equivalent
