@@ -60,9 +60,10 @@ import org.multipaz.compose.camera.CameraFrame
 import org.multipaz.compose.camera.CameraSelection
 import org.multipaz.compose.cropRotateScaleImage
 import org.multipaz.compose.decodeImage
+import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.LoyaltyID
+import org.multipaz.documenttype.knowntypes.Loyalty
 import org.multipaz.documenttype.knowntypes.PhotoID
 import org.multipaz.facedetection.DetectedFace
 import org.multipaz.facedetection.FaceLandmarkType
@@ -190,7 +191,7 @@ private suspend fun parseResponse(
         encodedDeviceResponse = readerModel.result!!.encodedDeviceResponse!!.toByteArray(),
         encodedSessionTranscript = readerModel.result!!.encodedSessionTranscript.toByteArray()
     )
-    parser.setEphemeralReaderKey(readerModel.result!!.eReaderKey)
+    parser.setEphemeralReaderKey(AsymmetricKey.AnonymousExplicit(privateKey = readerModel.result!!.eReaderKey))
     val deviceResponse = parser.parse()
 
     val readerDocuments = mutableListOf<MdocDocument>()
@@ -442,7 +443,7 @@ private fun ShowAgeOver(
     // val portraitBitmap = remember { getPortraitBitmapPhotoId(document) }
 
 //    val mdlNameSpace = document.namespaces.find { it.name == DrivingLicense.MDL_NAMESPACE }
-    val mdlNameSpace = document.namespaces.find { it.name == LoyaltyID.LOYALTY_ID_NAMESPACE }
+    val mdlNameSpace = document.namespaces.find { it.name == Loyalty.LOYALTY_NAMESPACE }
 
     //val mdlNameSpace = document.namespaces.find { it.name == PhotoID.ISO_23220_2_NAMESPACE }
 
@@ -777,13 +778,13 @@ private fun getPortraitBitmapPhotoId(document: MdocDocument): ImageBitmap? {
         }
     }
     
-    if (document.docType != LoyaltyID.LOYALTY_ID_DOCTYPE) {
-        Logger.i(TAG, "getPortraitBitmapPhotoId - Document type mismatch, expected: ${LoyaltyID.LOYALTY_ID_DOCTYPE}")
+    if (document.docType != Loyalty.LOYALTY_DOCTYPE) {
+        Logger.i(TAG, "getPortraitBitmapPhotoId - Document type mismatch, expected: ${Loyalty.LOYALTY_DOCTYPE}")
         return null
     }
-    val photoIDNamespace = document.namespaces.find { it.name == LoyaltyID.LOYALTY_ID_NAMESPACE }
+    val photoIDNamespace = document.namespaces.find { it.name == Loyalty.LOYALTY_NAMESPACE }
     if (photoIDNamespace == null) {
-        Logger.i(TAG, "getPortraitBitmapPhotoId - PhotoID namespace not found, expected: ${LoyaltyID.LOYALTY_ID_NAMESPACE}")
+        Logger.i(TAG, "getPortraitBitmapPhotoId - PhotoID namespace not found, expected: ${Loyalty.LOYALTY_NAMESPACE}")
         return null
     }
     val portraitClaim = photoIDNamespace.dataElements["portrait"]
