@@ -198,7 +198,6 @@ fun HomeScreen(
 
         AnimatedVisibility(documents.isNotEmpty()) {
             // W3C Digital Credentials API is only available on Android
-            // iOS uses different approaches (OpenID4VP with deep links, etc.)
             if (isAndroid()) {
                 W3CDCCredentialsRequestButton(
                     promptModel = App.promptModel,
@@ -209,21 +208,35 @@ fun HomeScreen(
                                      nonce: ByteString?,
                                      eReaderKey: EcPrivateKey?,
                                      metadata: ShowResponseMetadata ->
+                        val vpTokenString =  vpToken
+                            ?.let { Json.encodeToString(it) }
+                            ?.encodeToByteArray()
+                            ?.toBase64Url() ?: "_"
+
+                        val deviceResponseString =
+                            deviceResponse
+                                ?.let { Cbor.encode(it).toBase64Url() }
+                                ?: "_"
+
+                        val sessionTranscriptString = Cbor.encode(sessionTranscript).toBase64Url()
+
+                        val nonceString = nonce
+                            ?.let { nonce.toByteArray().toBase64Url() }
+                            ?: "_"
+
+                        val eReaderKeyString =  eReaderKey
+                            ?.let { Cbor.encode(eReaderKey.toCoseKey().toDataItem()).toBase64Url() }
+                            ?: "_"
+
+                        val metadataString = Cbor.encode(metadata.toDataItem()).toBase64Url()
+                        
                         val route = Destination.ShowResponseDestination.route +
-                                "/${
-                                    vpToken?.let { Json.encodeToString(it) }?.encodeToByteArray()
-                                        ?.toBase64Url() ?: "_"
-                                }" +
-                                "/${deviceResponse?.let { Cbor.encode(it).toBase64Url() } ?: "_"}" +
-                                "/${Cbor.encode(sessionTranscript).toBase64Url()}" +
-                                "/${nonce?.let { nonce.toByteArray().toBase64Url() } ?: "_"}" +
-                                "/${
-                                    eReaderKey?.let {
-                                        Cbor.encode(eReaderKey.toCoseKey().toDataItem())
-                                            .toBase64Url()
-                                    } ?: "_"
-                                }" +
-                                "/${Cbor.encode(metadata.toDataItem()).toBase64Url()}"
+                                "/$vpTokenString" +
+                                "/$deviceResponseString" +
+                                "/$sessionTranscriptString" +
+                                "/$nonceString" +
+                                "/$eReaderKeyString" +
+                                "/$metadataString"
                         navController.navigate(route)
                     }
                 )

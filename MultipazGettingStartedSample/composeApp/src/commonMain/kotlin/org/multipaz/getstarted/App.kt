@@ -58,8 +58,6 @@ import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.facedetection.DetectedFace
 import org.multipaz.facedetection.FaceLandmarkType
 import org.multipaz.facematch.FaceMatchLiteRtModel
-import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
-import org.multipaz.getstarted.w3cdc.fromDataItem
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
@@ -76,7 +74,6 @@ import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.fromBase64Url
-import org.multipaz.util.toBase64Url
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -416,46 +413,21 @@ class App {
                                     it.fromBase64Url().decodeToString()
                                 ) else null
                             }
-                    val deviceResponse =
-                        backStackEntry.arguments?.getString(Destination.ShowResponseDestination.DEVICE_RESPONSE)
-                            ?.let { if (it != "_") Cbor.decode(it.fromBase64Url()) else null }
                     val sessionTranscript =
                         backStackEntry.arguments!!.getString(Destination.ShowResponseDestination.SESSION_TRANSCRIPT)!!
                             .fromBase64Url().let { Cbor.decode(it) }
                     val nonce =
                         backStackEntry.arguments?.getString(Destination.ShowResponseDestination.NONCE)
                             ?.let { if (it != "_") ByteString(it.fromBase64Url()) else null }
-                    val eReaderKey =
-                        backStackEntry.arguments?.getString(Destination.ShowResponseDestination.EREADERKEY)
-                            ?.let { if (it != "_") Cbor.decode(it.fromBase64Url()).asCoseKey.ecPrivateKey else null }
-                    val metadata =
-                        backStackEntry.arguments!!.getString(Destination.ShowResponseDestination.METADATA)!!
-                            .fromBase64Url()
-                            .let { ShowResponseMetadata.Companion.fromDataItem(Cbor.decode(it)) }
                     ShowResponseScreen(
                         vpToken = vpToken,
-                        deviceResponse = deviceResponse,
                         sessionTranscript = sessionTranscript,
                         nonce = nonce,
-                        eReaderKey = eReaderKey,
-                        metadata = metadata,
                         documentTypeRepository = documentTypeRepository,
-                        onViewCertChain = { certChain ->
-                            val encodedCertificateData =
-                                Cbor.encode(certChain.toDataItem()).toBase64Url()
-                            navController.navigate(Destination.CertificateViewerDestination.route + "/${encodedCertificateData}")
+                        goBack = {
+                            navController.popBackStack()
                         }
                     )
-                }
-
-                composable(
-                    route = Destination.CertificateViewerDestination.routeWithArgs,
-                    arguments = Destination.CertificateViewerDestination.arguments
-                ) { backStackEntry ->
-                    val certData = backStackEntry.arguments?.getString(
-                        Destination.CertificateViewerDestination.CERTIFICATE_DATA
-                    )!!
-                    CertificateScreen(certData)
                 }
 
                 composable(

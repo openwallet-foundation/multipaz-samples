@@ -36,30 +36,3 @@ fun ShowResponseMetadata.toDataItem(): DataItem {
     builder.put("durationMsecRequestSentToResponseReceived", this.durationMsecRequestSentToResponseReceived.toDataItem())
     return builder.end().build()
 }
-
-fun ShowResponseMetadata.Companion.fromDataItem(dataItem: DataItem): ShowResponseMetadata {
-    val engagementType = dataItem["engagementType"].asTstr
-    val transferProtocol = dataItem["transferProtocol"].asTstr
-    val requestSize = dataItem["requestSize"].asNumber
-    val responseSize = dataItem["responseSize"].asNumber
-    val durationMsecNfcTapToEngagement0 = if (dataItem.hasKey("durationMsecNfcTapToEngagement")) {
-        dataItem["durationMsecNfcTapToEngagement"].asNumber
-    } else {
-        null
-    }
-    val durationMsecEngagementReceivedToRequestSent0 = if (dataItem.hasKey("durationMsecEngagementReceivedToRequestSent")) {
-        dataItem["durationMsecEngagementReceivedToRequestSent"].asNumber
-    } else {
-        null
-    }
-    val durationMsecRequestSentToResponseReceived = dataItem["durationMsecRequestSentToResponseReceived"].asNumber
-    return ShowResponseMetadata(
-        engagementType = engagementType,
-        transferProtocol = transferProtocol,
-        requestSize = requestSize,
-        responseSize = responseSize,
-        durationMsecNfcTapToEngagement = durationMsecNfcTapToEngagement0,
-        durationMsecEngagementReceivedToRequestSent = durationMsecEngagementReceivedToRequestSent0,
-        durationMsecRequestSentToResponseReceived = durationMsecRequestSentToResponseReceived,
-    )
-}

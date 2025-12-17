@@ -32,12 +32,4 @@ sealed interface Destination {
             navArgument(METADATA) { type = NavType.StringType },
         )
     }
-    data object CertificateViewerDestination : Destination {
-        override val route = "certificate_details_viewer"
-        const val CERTIFICATE_DATA = "certificate_data_arg"
-        val routeWithArgs = "$route/{$CERTIFICATE_DATA}"
-        val arguments = listOf(
-            navArgument(CERTIFICATE_DATA) { type = NavType.StringType },
-        )
-    }
 }
