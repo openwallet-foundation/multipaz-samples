@@ -26,12 +26,7 @@ import org.multipaz.crypto.X509CertChain
 import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.documenttype.DocumentCannedRequest
-import org.multipaz.documenttype.knowntypes.AgeVerification
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.EUPersonalID
-import org.multipaz.documenttype.knowntypes.Loyalty
-import org.multipaz.documenttype.knowntypes.PhotoID
-import org.multipaz.documenttype.knowntypes.UtopiaMovieTicket
 import org.multipaz.getstarted.getAppToAppOrigin
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.prompt.PromptModel
@@ -175,17 +170,6 @@ val bundledReaderRootKey: EcPrivateKey by lazy {
  * credentials (like driver's licenses, health cards, etc.) from a user's device.
  */
 
-// Provisioned Document Types
-// --------------------------
-val provisionedDocumentTypes = listOf(
-    DrivingLicense.getDocumentType(),
-    PhotoID.getDocumentType(),
-    EUPersonalID.getDocumentType(),
-    UtopiaMovieTicket.getDocumentType(),
-    AgeVerification.getDocumentType(),
-    Loyalty.getDocumentType(),
-)
-
 @OptIn(ExperimentalTime::class)
 @Composable
 fun W3CDCCredentialsRequestButton(
@@ -206,7 +190,7 @@ fun W3CDCCredentialsRequestButton(
 
     // Prepare request options from available document types
     LaunchedEffect(Unit) {
-        val documentType = provisionedDocumentTypes[0]
+        val documentType = DrivingLicense.getDocumentType()
         documentType.cannedRequests.forEach { sampleRequest ->
             requestOptions.add(
                 RequestEntry(
@@ -222,7 +206,8 @@ fun W3CDCCredentialsRequestButton(
         coroutineScope.launch {
             // Parse certificate validity dates from constants
             val certsValidFrom = LocalDate.parse(CERT_VALID_FROM_DATE).atStartOfDayIn(TimeZone.UTC)
-            val certsValidUntil = LocalDate.parse(CERT_VALID_UNTIL_DATE).atStartOfDayIn(TimeZone.UTC)
+            val certsValidUntil =
+                LocalDate.parse(CERT_VALID_UNTIL_DATE).atStartOfDayIn(TimeZone.UTC)
 
             // Initialize the reader root key and certificate
             // This is the "root of trust" for your verifier application
@@ -247,8 +232,6 @@ fun W3CDCCredentialsRequestButton(
                 doDcRequestFlow(
                     appReaderKey = readerKey,
                     request = requestOptions.first().sampleRequest,
-                    protocol = RequestProtocol.W3C_DC_OPENID4VP_29,
-                    format = CredentialFormat.ISO_MDOC,
                     showResponse = showResponse
                 )
             } catch (error: Throwable) {
@@ -446,15 +429,12 @@ private suspend fun readerRootInit(
  *
  * @param appReaderKey Reader's certified key for signing requests
  * @param request The credential request (what data to ask for)
- * @param protocol Which W3C DC protocol to use
  * @param showResponse Callback invoked with verified response data
  */
 @OptIn(ExperimentalTime::class)
 private suspend fun doDcRequestFlow(
     appReaderKey: AsymmetricKey.X509Compatible,
     request: DocumentCannedRequest,
-    protocol: RequestProtocol,
-    format: CredentialFormat,
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -465,15 +445,10 @@ private suspend fun doDcRequestFlow(
     ) -> Unit
 ) {
 
-    when (format) {
-        CredentialFormat.ISO_MDOC -> {
-            require(request.mdocRequest != null) { "No ISO mdoc format in request" }
-        }
 
-        CredentialFormat.IETF_SDJWT -> {
-            require(request.jsonRequest != null) { "No IETF SD-JWT format in request" }
-        }
-    }
+    require(request.mdocRequest != null) { "No ISO mdoc format in request" }
+
+
     // Generate random nonce for request/response correlation
     // This prevents replay attacks and binds request to response
     val nonce = ByteString(Random.Default.nextBytes(NONCE_SIZE_BYTES))
@@ -487,6 +462,10 @@ private suspend fun doDcRequestFlow(
 
     // Client ID is required for signed requests per OpenID4VP spec
     val clientId = "web-origin:$origin"
+
+
+    val protocolDisplayName = "OpenID4VP 1.0"
+    val exchangeProtocolNames = listOf("openid4vp-v1-signed")
 
     // Build list of claims (specific data elements) to request
     val claims = mutableListOf<MdocRequestedClaim>()
@@ -504,18 +483,14 @@ private suspend fun doDcRequestFlow(
 
     // Build the W3C Digital Credentials request object
     val dcRequestObject = VerificationUtil.generateDcRequestMdoc(
-        exchangeProtocols = protocol.exchangeProtocolNames,
+        exchangeProtocols = exchangeProtocolNames,
         docType = request.mdocRequest!!.docType,
         claims = claims,
         nonce = nonce,
         origin = origin,
         clientId = clientId,
         responseEncryptionKey = responseEncryptionKey.publicKey,
-        readerAuthenticationKey = if (protocol.signRequest) {
-            appReaderKey  // Sign request to prove verifier identity
-        } else {
-            null  // Unsigned request (less secure, for testing)
-        },
+        readerAuthenticationKey = appReaderKey,
         zkSystemSpecs = emptyList()
     )
 
@@ -543,7 +518,7 @@ private suspend fun doDcRequestFlow(
     // Create metadata for analytics/logging
     val metadata = ShowResponseMetadata(
         engagementType = METADATA_ENGAGEMENT_TYPE,
-        transferProtocol = "$METADATA_TRANSFER_PROTOCOL_PREFIX (${protocol.displayName})",
+        transferProtocol = "$METADATA_TRANSFER_PROTOCOL_PREFIX ($protocolDisplayName)",
         requestSize = Json.encodeToString(dcRequestObject).length.toLong(),
         responseSize = Json.encodeToString(dcResponseObject).length.toLong(),
         durationMsecNfcTapToEngagement = null,  // N/A for W3C DC (not NFC)
