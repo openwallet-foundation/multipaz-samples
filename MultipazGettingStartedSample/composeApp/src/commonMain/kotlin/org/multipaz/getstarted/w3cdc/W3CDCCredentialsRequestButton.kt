@@ -11,6 +11,8 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import multipazgettingstartedsample.composeapp.generated.resources.Res
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.multipaz.asn1.ASN1Integer
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
@@ -101,54 +103,6 @@ private const val METADATA_ENGAGEMENT_TYPE = "OS-provided CredentialManager API"
 private const val METADATA_TRANSFER_PROTOCOL_PREFIX = "W3C Digital Credentials"
 
 /**
- * Bundled Reader Root Key Pair (P-384 Elliptic Curve)
- *
- * This is the root certificate authority key for the "reader" (verifier) side.
- * It's used to sign reader certificates that authenticate your app when requesting credentials.
- *
- * **Important Notes:**
- * - This key is hardcoded for TESTING/DEMO purposes only
- * - For PRODUCTION, generate your own key pair and keep the private key secure
- * - The public key should be shared with issuers who need to trust your verifier
- * - The private key should NEVER be exposed in production code
- *
- * **Key Details:**
- * - Algorithm: ECDSA with P-384 curve (NIST standard, 384-bit security)
- * - Format: PEM (Privacy Enhanced Mail) encoding
- * - Usage: Signs reader certificates to establish trust chain
- *
- * **How to generate your own:**
- * Use OpenSSL or similar tools:
- * ```
- * openssl ecparam -name secp384r1 -genkey -noout -out reader_root_key.pem
- * openssl ec -in reader_root_key.pem -pubout -out reader_root_pub.pem
- * ```
- */
-val bundledReaderRootKey: EcPrivateKey by lazy {
-    val readerRootKeyPub = EcPublicKey.fromPem(
-        """
-                    -----BEGIN PUBLIC KEY-----
-                    MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE+QDye70m2O0llPXMjVjxVZz3m5k6agT+
-                    wih+L79b7jyqUl99sbeUnpxaLD+cmB3HK3twkA7fmVJSobBc+9CDhkh3mx6n+YoH
-                    5RulaSWThWBfMyRjsfVODkosHLCDnbPV
-                    -----END PUBLIC KEY-----
-                """.trimIndent().trim(),
-        READER_ROOT_KEY_CURVE
-    )
-    EcPrivateKey.fromPem(
-        """
-                    -----BEGIN PRIVATE KEY-----
-                    MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCcRuzXW3pW2h9W8pu5
-                    /CSR6JSnfnZVATq+408WPoNC3LzXqJEQSMzPsI9U1q+wZ2yhZANiAAT5APJ7vSbY
-                    7SWU9cyNWPFVnPebmTpqBP7CKH4vv1vuPKpSX32xt5SenFosP5yYHccre3CQDt+Z
-                    UlKhsFz70IOGSHebHqf5igflG6VpJZOFYF8zJGOx9U4OSiwcsIOds9U=
-                    -----END PRIVATE KEY-----
-                """.trimIndent().trim(),
-        readerRootKeyPub
-    )
-}
-
-/**
  * W3C Digital Credentials Request Button
  *
  * This Button demonstrates how to request credentials using the W3C Digital Credentials API.
@@ -213,7 +167,6 @@ fun W3CDCCredentialsRequestButton(
             // This is the "root of trust" for your verifier application
             val readerRootKey = readerRootInit(
                 keyStorage = storageTable,
-                bundledReaderRootKey = bundledReaderRootKey,
                 certsValidFrom = certsValidFrom,
                 certsValidUntil = certsValidUntil
             )
@@ -342,18 +295,18 @@ private suspend fun readerInit(
  * - Store private keys in secure hardware (HSM/TPM) if available
  *
  * @param keyStorage Storage table for persisting keys
- * @param bundledReaderRootKey Pre-generated root key pair (for testing)
  * @param certsValidFrom Certificate validity start date
  * @param certsValidUntil Certificate validity end date
  * @return Root certificate authority key pair
  */
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalResourceApi::class)
 private suspend fun readerRootInit(
     keyStorage: StorageTable,
-    bundledReaderRootKey: EcPrivateKey,
     certsValidFrom: Instant,
     certsValidUntil: Instant
 ): AsymmetricKey.X509CertifiedExplicit {
+    val readerRootKey = loadBundledReaderRootKey()
+
     // Try to retrieve existing root private key
     // If not found, use the bundled key
     val readerRootPrivateKey = keyStorage.get(STORAGE_KEY_READER_ROOT_PRIVATE_KEY)
@@ -362,9 +315,9 @@ private suspend fun readerRootInit(
             // Store bundled key for future use
             keyStorage.insert(
                 STORAGE_KEY_READER_ROOT_PRIVATE_KEY,
-                ByteString(Cbor.encode(bundledReaderRootKey.toDataItem()))
+                ByteString(Cbor.encode(readerRootKey.toDataItem()))
             )
-            bundledReaderRootKey
+            readerRootKey
         }
 
     // Try to retrieve existing root certificate
@@ -374,7 +327,7 @@ private suspend fun readerRootInit(
         ?: run {
             // Generate self-signed root certificate
             val bundledReaderRootCert = MdocUtil.generateReaderRootCertificate(
-                readerRootKey = AsymmetricKey.anonymous(bundledReaderRootKey),
+                readerRootKey = AsymmetricKey.anonymous(readerRootKey),
                 subject = X500Name.fromName(CERT_SUBJECT_COMMON_NAME),
                 serial = ASN1Integer.fromRandom(numBits = CERT_SERIAL_NUMBER_BITS),
                 validFrom = certsValidFrom,
@@ -394,6 +347,46 @@ private suspend fun readerRootInit(
     return AsymmetricKey.X509CertifiedExplicit(
         certChain = X509CertChain(listOf(readerRootCert)),
         privateKey = readerRootPrivateKey
+    )
+}
+
+/**
+ * Bundled Reader Root Key Pair (P-384 Elliptic Curve)
+ *
+ * This loads the root certificate authority key for the "reader" (verifier) side from PEM files.
+ * It's used to sign reader certificates that authenticate your app when requesting credentials.
+ *
+ * **Important Notes:**
+ * - These keys are for TESTING/DEMO purposes only
+ * - For PRODUCTION, generate your own key pair and keep the private key secure
+ * - The public key should be shared with issuers who need to trust your verifier
+ * - The private key should NEVER be exposed in production code
+ *
+ * **Key Details:**
+ * - Algorithm: ECDSA with P-384 curve (NIST standard, 384-bit security)
+ * - Format: PEM (Privacy Enhanced Mail) encoding
+ * - Usage: Signs reader certificates to establish trust chain
+ *
+ * **How to generate your own:**
+ * Use OpenSSL or similar tools:
+ * ```
+ * openssl ecparam -name secp384r1 -genkey -noout -out reader_root_key.pem
+ * openssl ec -in reader_root_key.pem -pubout -out reader_root_pub.pem
+ * ```
+ */
+@OptIn(ExperimentalResourceApi::class)
+private suspend fun loadBundledReaderRootKey(): EcPrivateKey {
+    val publicKeyPem = Res.readBytes("files/reader_root_key_public.pem").decodeToString()
+    val privateKeyPem = Res.readBytes("files/reader_root_key_private.pem").decodeToString()
+
+    val readerRootKeyPub = EcPublicKey.fromPem(
+        publicKeyPem,
+        READER_ROOT_KEY_CURVE
+    )
+
+    return EcPrivateKey.fromPem(
+        privateKeyPem,
+        readerRootKeyPub
     )
 }
 
