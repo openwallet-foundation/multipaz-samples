@@ -407,17 +407,22 @@ class App {
                     arguments = Destination.ShowResponseDestination.arguments
                 ) { backStackEntry ->
                     val vpToken =
-                        backStackEntry.arguments?.getString(Destination.ShowResponseDestination.VP_TOKEN)
+                        backStackEntry.arguments
+                            ?.getString(Destination.ShowResponseDestination.VP_TOKEN)
                             ?.let {
                                 if (it != "_") Json.decodeFromString<JsonObject>(
                                     it.fromBase64Url().decodeToString()
                                 ) else null
                             }
                     val sessionTranscript =
-                        backStackEntry.arguments!!.getString(Destination.ShowResponseDestination.SESSION_TRANSCRIPT)!!
-                            .fromBase64Url().let { Cbor.decode(it) }
+                        backStackEntry.arguments
+                            ?.getString(Destination.ShowResponseDestination.SESSION_TRANSCRIPT)
+                            ?.fromBase64Url()
+                            ?.let { Cbor.decode(it) }
+
                     val nonce =
-                        backStackEntry.arguments?.getString(Destination.ShowResponseDestination.NONCE)
+                        backStackEntry.arguments
+                            ?.getString(Destination.ShowResponseDestination.NONCE)
                             ?.let { if (it != "_") ByteString(it.fromBase64Url()) else null }
                     ShowResponseScreen(
                         vpToken = vpToken,

@@ -54,7 +54,7 @@ import kotlin.time.Instant
 @Composable
 fun ShowResponseScreen(
     vpToken: JsonObject?,
-    sessionTranscript: DataItem,
+    sessionTranscript: DataItem?,
     nonce: ByteString?,
     documentTypeRepository: DocumentTypeRepository?,
     goBack: () -> Unit
@@ -66,6 +66,10 @@ fun ShowResponseScreen(
 
     LaunchedEffect(Unit) {
         val now = Clock.System.now()
+        if (sessionTranscript == null) {
+            verificationResult.value = VerificationResult.Error("Session transcript is null")
+            return@LaunchedEffect
+        }
         try {
             verificationResult.value = parseResponse(
                 now = now,
