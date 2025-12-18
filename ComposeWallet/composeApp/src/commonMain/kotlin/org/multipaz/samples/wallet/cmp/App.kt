@@ -142,7 +142,9 @@ class App() {
                 documentTypeRepository = documentTypeRepository,
                 readerTrustManager = readerTrustManager,
                 preferSignatureToKeyAgreement = true,
-                domainMdocSignature = "mdoc",
+                domainMdocSignature = "mdoc_user_auth",
+                domainKeyBoundSdJwt = "sdjwt_user_auth",
+                domainKeylessSdJwt = "sdjwt_keyless"
             )
             if (DigitalCredentials.Default.available) {
                 DigitalCredentials.Default.startExportingCredentials(
