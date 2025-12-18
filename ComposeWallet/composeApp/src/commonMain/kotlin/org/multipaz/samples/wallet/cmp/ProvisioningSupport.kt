@@ -1,6 +1,7 @@
 package org.multipaz.samples.wallet.cmp
 
 import io.ktor.http.Url
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.sync.Mutex
@@ -10,6 +11,7 @@ import org.multipaz.crypto.Algorithm
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.rpc.handler.RpcAuthClientSession
+import org.multipaz.util.Logger
 import kotlin.time.ExperimentalTime
 
 /**
@@ -18,8 +20,9 @@ import kotlin.time.ExperimentalTime
 @OptIn(ExperimentalTime::class)
 class ProvisioningSupport() {
     companion object {
+        const val TAG = "ProvisioningSupport"
         const val APP_LINK_SERVER = "https://apps.multipaz.org"
-        const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/landing/"
+        const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/redirect/org.multipaz.samples.wallet.cmp"
     }
 
     private val lock = Mutex()
@@ -56,10 +59,16 @@ class ProvisioningSupport() {
      * @return url that was passed to the app by the brower.
      */
     suspend fun waitForAppLinkInvocation(state: String): String {
+        Logger.e(TAG, "Waiting for redirect state '$state'")
         val channel = Channel<String>(Channel.RENDEZVOUS)
         lock.withLock {
             pendingLinksByState[state] = channel
         }
-        return channel.receive()
+        try {
+            return channel.receive()
+        } catch (err: CancellationException) {
+            Logger.e(TAG, "Cancelled waiting for redirect state '$state'")
+            throw err
+        }
     }
 }

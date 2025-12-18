@@ -39,6 +39,7 @@
         <activity
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:launchMode="singleTop"
             android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -57,11 +58,11 @@
                 <!--
                 Do not include other schemes, only https. If domain is changed here, it
                 also MUST be changed in ProvisioningSupport class.
-                 -->
+                -->
                 <data
                     android:scheme="https"
                     android:host="apps.multipaz.org"
-                    android:pathPattern="/landing/.*"/>
+                    android:pathPattern="/redirect/org.multipaz.samples.wallet.cmp"/>
             </intent-filter>
 
             <!-- 2. OpenID4VCI Credential Offers -->
