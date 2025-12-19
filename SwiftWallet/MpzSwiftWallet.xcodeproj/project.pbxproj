@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7BEFDF622DFC8ED7007AAE5D /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 7BEFDF612DFC8ED7007AAE5D /* Multipaz */; };
+		7B1E53DE2EF5C774007C8E8D /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 7B1E53DD2EF5C774007C8E8D /* Multipaz */; };
+		7B1E53E02EF5C7D5007C8E8D /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 7B1E53DF2EF5C7D5007C8E8D /* Multipaz */; };
+		7B5C135B2EF5AD9700307D9D /* DocumentProviderExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 7B5C13542EF5AD9700307D9D /* DocumentProviderExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,6 +27,13 @@
 			remoteGlobalIDString = 7B0028F42DFB17B7007ADB13;
 			remoteInfo = MpzSwiftWallet;
 		};
+		7B5C13592EF5AD9700307D9D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7B0028ED2DFB17B7007ADB13 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7B5C13532EF5AD9700307D9D;
+			remoteInfo = DocumentProviderExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -38,17 +47,50 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7B5C135C2EF5AD9700307D9D /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				7B5C135B2EF5AD9700307D9D /* DocumentProviderExtension.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		7B0028F52DFB17B7007ADB13 /* MpzSwiftWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MpzSwiftWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B0029022DFB17B8007ADB13 /* MpzSwiftWalletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MpzSwiftWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B00290C2DFB17B8007ADB13 /* MpzSwiftWalletUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MpzSwiftWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B1E53DA2EF5C71A007C8E8D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		7B5C13542EF5AD9700307D9D /* DocumentProviderExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = DocumentProviderExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		51804B392EF743AF00A95196 /* Exceptions for "MpzSwiftWallet" folder in "MpzSwiftWallet" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7B0028F42DFB17B7007ADB13 /* MpzSwiftWallet */;
+		};
+		7B5C135F2EF5AD9700307D9D /* Exceptions for "DocumentProviderExtension" folder in "DocumentProviderExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7B5C13532EF5AD9700307D9D /* DocumentProviderExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7B0028F72DFB17B7007ADB13 /* MpzSwiftWallet */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				51804B392EF743AF00A95196 /* Exceptions for "MpzSwiftWallet" folder in "MpzSwiftWallet" target */,
+			);
 			path = MpzSwiftWallet;
 			sourceTree = "<group>";
 		};
@@ -62,6 +104,14 @@
 			path = MpzSwiftWalletUITests;
 			sourceTree = "<group>";
 		};
+		7B5C13552EF5AD9700307D9D /* DocumentProviderExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7B5C135F2EF5AD9700307D9D /* Exceptions for "DocumentProviderExtension" folder in "DocumentProviderExtension" target */,
+			);
+			path = DocumentProviderExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,7 +119,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7BEFDF622DFC8ED7007AAE5D /* Multipaz in Frameworks */,
+				7B1E53DE2EF5C774007C8E8D /* Multipaz in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +137,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7B5C13512EF5AD9700307D9D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7B1E53E02EF5C7D5007C8E8D /* Multipaz in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -96,6 +154,8 @@
 				7B0028F72DFB17B7007ADB13 /* MpzSwiftWallet */,
 				7B0029052DFB17B8007ADB13 /* MpzSwiftWalletTests */,
 				7B00290F2DFB17B8007ADB13 /* MpzSwiftWalletUITests */,
+				7B5C13552EF5AD9700307D9D /* DocumentProviderExtension */,
+				7B40B8E42EF57D50000BFF65 /* Frameworks */,
 				7B0028F62DFB17B7007ADB13 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -106,8 +166,17 @@
 				7B0028F52DFB17B7007ADB13 /* MpzSwiftWallet.app */,
 				7B0029022DFB17B8007ADB13 /* MpzSwiftWalletTests.xctest */,
 				7B00290C2DFB17B8007ADB13 /* MpzSwiftWalletUITests.xctest */,
+				7B5C13542EF5AD9700307D9D /* DocumentProviderExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7B40B8E42EF57D50000BFF65 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7B1E53DA2EF5C71A007C8E8D /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -121,17 +190,19 @@
 				7B0028F22DFB17B7007ADB13 /* Frameworks */,
 				7B0028F32DFB17B7007ADB13 /* Resources */,
 				7B00295A2DFB5EED007ADB13 /* Embed Frameworks */,
+				7B5C135C2EF5AD9700307D9D /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7B5C135A2EF5AD9700307D9D /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				7B0028F72DFB17B7007ADB13 /* MpzSwiftWallet */,
 			);
 			name = MpzSwiftWallet;
 			packageProductDependencies = (
-				7BEFDF612DFC8ED7007AAE5D /* Multipaz */,
+				7B1E53DD2EF5C774007C8E8D /* Multipaz */,
 			);
 			productName = MpzSwiftWallet;
 			productReference = 7B0028F52DFB17B7007ADB13 /* MpzSwiftWallet.app */;
@@ -183,6 +254,29 @@
 			productReference = 7B00290C2DFB17B8007ADB13 /* MpzSwiftWalletUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		7B5C13532EF5AD9700307D9D /* DocumentProviderExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B5C13602EF5AD9700307D9D /* Build configuration list for PBXNativeTarget "DocumentProviderExtension" */;
+			buildPhases = (
+				7B5C13502EF5AD9700307D9D /* Sources */,
+				7B5C13512EF5AD9700307D9D /* Frameworks */,
+				7B5C13522EF5AD9700307D9D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				7B5C13552EF5AD9700307D9D /* DocumentProviderExtension */,
+			);
+			name = DocumentProviderExtension;
+			packageProductDependencies = (
+				7B1E53DF2EF5C7D5007C8E8D /* Multipaz */,
+			);
+			productName = DocumentProviderExtension;
+			productReference = 7B5C13542EF5AD9700307D9D /* DocumentProviderExtension.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -190,7 +284,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1640;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
 					7B0028F42DFB17B7007ADB13 = {
@@ -204,6 +298,9 @@
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = 7B0028F42DFB17B7007ADB13;
 					};
+					7B5C13532EF5AD9700307D9D = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 				};
 			};
 			buildConfigurationList = 7B0028F02DFB17B7007ADB13 /* Build configuration list for PBXProject "MpzSwiftWallet" */;
@@ -216,7 +313,7 @@
 			mainGroup = 7B0028EC2DFB17B7007ADB13;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7BEFDF602DFC8ED7007AAE5D /* XCRemoteSwiftPackageReference "multipaz" */,
+				7B1E53DC2EF5C774007C8E8D /* XCLocalSwiftPackageReference "../../multipaz" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B0028F62DFB17B7007ADB13 /* Products */;
@@ -226,6 +323,7 @@
 				7B0028F42DFB17B7007ADB13 /* MpzSwiftWallet */,
 				7B0029012DFB17B8007ADB13 /* MpzSwiftWalletTests */,
 				7B00290B2DFB17B8007ADB13 /* MpzSwiftWalletUITests */,
+				7B5C13532EF5AD9700307D9D /* DocumentProviderExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -246,6 +344,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7B00290A2DFB17B8007ADB13 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B5C13522EF5AD9700307D9D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -276,6 +381,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7B5C13502EF5AD9700307D9D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -288,6 +400,11 @@
 			isa = PBXTargetDependency;
 			target = 7B0028F42DFB17B7007ADB13 /* MpzSwiftWallet */;
 			targetProxy = 7B00290D2DFB17B8007ADB13 /* PBXContainerItemProxy */;
+		};
+		7B5C135A2EF5AD9700307D9D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7B5C13532EF5AD9700307D9D /* DocumentProviderExtension */;
+			targetProxy = 7B5C13592EF5AD9700307D9D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -416,11 +533,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MpzSwiftWallet/MpzSwiftWallet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = VKE2G3K56V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MpzSwiftWallet/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This application uses Bluetooth Low Energy to communicate with mdoc readers";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "This application uses Face ID to protect device-bound credential keys";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -428,6 +547,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -446,11 +566,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MpzSwiftWallet/MpzSwiftWallet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = VKE2G3K56V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MpzSwiftWallet/Info.plist;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This application uses Bluetooth Low Energy to communicate with mdoc readers";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "This application uses Face ID to protect device-bound credential keys";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -458,6 +580,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -539,6 +662,66 @@
 			};
 			name = Release;
 		};
+		7B5C135D2EF5AD9700307D9D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = DocumentProviderExtension/DocumentProviderExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VKE2G3K56V;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DocumentProviderExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DocumentProviderExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.samples.MpzSwiftWallet.DocumentProviderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7B5C135E2EF5AD9700307D9D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = DocumentProviderExtension/DocumentProviderExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VKE2G3K56V;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DocumentProviderExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DocumentProviderExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.samples.MpzSwiftWallet.DocumentProviderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -578,23 +761,32 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		7B5C13602EF5AD9700307D9D /* Build configuration list for PBXNativeTarget "DocumentProviderExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7B5C135D2EF5AD9700307D9D /* Debug */,
+				7B5C135E2EF5AD9700307D9D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		7BEFDF602DFC8ED7007AAE5D /* XCRemoteSwiftPackageReference "multipaz" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/openwallet-foundation/multipaz";
-			requirement = {
-				kind = exactVersion;
-				version = 0.95.0;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		7B1E53DC2EF5C774007C8E8D /* XCLocalSwiftPackageReference "../../multipaz" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../multipaz;
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7BEFDF612DFC8ED7007AAE5D /* Multipaz */ = {
+		7B1E53DD2EF5C774007C8E8D /* Multipaz */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7BEFDF602DFC8ED7007AAE5D /* XCRemoteSwiftPackageReference "multipaz" */;
+			productName = Multipaz;
+		};
+		7B1E53DF2EF5C7D5007C8E8D /* Multipaz */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B1E53DC2EF5C774007C8E8D /* XCLocalSwiftPackageReference "../../multipaz" */;
 			productName = Multipaz;
 		};
 /* End XCSwiftPackageProductDependency section */

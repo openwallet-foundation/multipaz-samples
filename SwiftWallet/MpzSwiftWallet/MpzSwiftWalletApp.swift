@@ -12,6 +12,9 @@ struct MpzSwiftWalletApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL(perform: { url in
+                    print("TOOD: handle url \(url)")
+                })
         }
     }
 }

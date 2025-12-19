@@ -6,247 +6,116 @@
 //
 
 import SwiftUI
+import IdentityDocumentServices
+import IdentityDocumentServicesUI
+
 import Multipaz
-
-struct WalletData {
-    let storage: Storage
-    let secureArea: SecureArea
-    let secureAreaRepository: SecureAreaRepository
-    let documentTypeRepository: DocumentTypeRepository
-    let documentStore: DocumentStore
-    let readerTrustManager: TrustManagerLocal
-
-    let presentmentModel = PresentmentModel()
-    
-    init() async {
-        storage = Platform.shared.nonBackedUpStorage
-        secureArea = try! await Platform.shared.getSecureArea()
-        secureAreaRepository = SecureAreaRepository.Builder()
-            .add(secureArea: secureArea)
-            .build()
-        documentTypeRepository = DocumentTypeRepository()
-        documentTypeRepository.addDocumentType(documentType: DrivingLicense.shared.getDocumentType())
-        documentStore = DocumentStore.Builder(
-            storage: storage,
-            secureAreaRepository: secureAreaRepository
-        ).build()
-        if (try! await documentStore.listDocuments().isEmpty) {
-            let now = KotlinClockCompanion().getSystem().now()
-            let signedAt = now
-            let validFrom = now
-            let validUntil = now.plus(duration: 365*86400*1000*1000*1000)
-            let iacaKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-            let iacaCert = try! await MdocUtil.shared.generateIacaCertificate(
-                iacaKey: AsymmetricKey.AnonymousExplicit(privateKey: iacaKey, algorithm: Algorithm.esp256),
-                subject: X500Name.companion.fromName(name: "CN=Test IACA Key"),
-                serial: ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
-                validFrom: validFrom,
-                validUntil: validUntil,
-                issuerAltNameUrl: "https://issuer.example.com",
-                crlUrl: "https://issuer.example.com/crl"
-            )
-            let dsKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-            let dsCert = try! await MdocUtil.shared.generateDsCertificate(
-                iacaKey: AsymmetricKey.X509CertifiedExplicit(
-                    certChain: X509CertChain(certificates: [iacaCert]),
-                    privateKey: dsKey,
-                    algorithm: Algorithm.esp256
-                ),
-                dsKey: dsKey.publicKey,
-                subject: X500Name.companion.fromName(name: "CN=Test DS Key"),
-                serial:  ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
-                validFrom: validFrom,
-                validUntil: validUntil
-            )
-            let document = try! await documentStore.createDocument(
-                displayName: "Erika's Driving License",
-                typeDisplayName: "Utopia Driving License",
-                cardArt: nil,
-                issuerLogo: nil,
-                other: nil
-            )
-            let _ = try! await DrivingLicense.shared.getDocumentType().createMdocCredentialWithSampleData(
-                document: document,
-                secureArea: secureArea,
-                createKeySettings: CreateKeySettings(
-                    algorithm: Algorithm.esp256,
-                    nonce: ByteStringBuilder(initialCapacity: 3).appendString(string: "123").toByteString(),
-                    userAuthenticationRequired: true,
-                    userAuthenticationTimeout: 0,
-                    validFrom: nil,
-                    validUntil: nil
-                ),
-                dsKey: AsymmetricKey.X509CertifiedExplicit(
-                    certChain: X509CertChain(certificates: [dsCert]),
-                    privateKey: dsKey,
-                    algorithm: Algorithm.esp256
-                ),
-                signedAt: signedAt,
-                validFrom: validFrom,
-                validUntil: validUntil,
-                expectedUpdate: nil,
-                domain: "mdoc"
-            )
-        }
-        let ephemeralStorage = EphemeralStorage(clock: KotlinClockCompanion().getSystem())
-        readerTrustManager = TrustManagerLocal(storage: ephemeralStorage, identifier: "default", partitionId: "default_default")
-        try! await readerTrustManager.addX509Cert(
-            certificate: X509Cert.companion.fromPem(
-                pemEncoding: """
-                    -----BEGIN CERTIFICATE-----
-                    MIICYTCCAeegAwIBAgIQOSV5JyesOLKHeDc+0qmtuTAKBggqhkjOPQQDAzAzMQsw
-                    CQYDVQQGDAJVUzEkMCIGA1UEAwwbTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENB
-                    MB4XDTI1MDcwNTEyMjAyMVoXDTMwMDcwNTEyMjAyMVowMzELMAkGA1UEBgwCVVMx
-                    JDAiBgNVBAMMG011bHRpcGF6IElkZW50aXR5IFJlYWRlciBDQTB2MBAGByqGSM49
-                    AgEGBSuBBAAiA2IABD4UX5jabDLuRojEp9rsZkAEbP8Icuj3qN4wBUYq6UiOkoUL
-                    MOLUb+78Ygonm+sJRwqyDJ9mxYTjlqliW8PpDfulQZejZo2QGqpB9JPInkrCBol5
-                    T+0TUs0ghkE5ZQBsVKOBvzCBvDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgw
-                    BgEB/wIBADBWBgNVHR8ETzBNMEugSaBHhkVodHRwczovL2dpdGh1Yi5jb20vb3Bl
-                    bndhbGxldC1mb3VuZGF0aW9uLWxhYnMvaWRlbnRpdHktY3JlZGVudGlhbC9jcmww
-                    HQYDVR0OBBYEFM+kr4eQcxKWLk16F2RqzBxFcZshMB8GA1UdIwQYMBaAFM+kr4eQ
-                    cxKWLk16F2RqzBxFcZshMAoGCCqGSM49BAMDA2gAMGUCMQCQ+4+BS8yH20KVfSK1
-                    TSC/RfRM4M9XNBZ+0n9ePg9ftXUFt5e4lBddK9mL8WznJuoCMFuk8ey4lKnb4nub
-                    v5iPIzwuC7C0utqj7Fs+qdmcWNrSYSiks2OEnjJiap1cPOPk2g==
-                    -----END CERTIFICATE-----
-                    """.trimmingCharacters(in: .whitespacesAndNewlines)
-            ),
-            metadata: TrustMetadata(
-                displayName: "Multipaz Identity Reader",
-                displayIcon: nil,
-                displayIconUrl: nil,
-                privacyPolicyUrl: nil,
-                disclaimer: nil,
-                testOnly: true,
-                extensions: [:]
-            )
-        )
-        try! await readerTrustManager.addX509Cert(
-            certificate: X509Cert.companion.fromPem(
-                pemEncoding: """
-                    -----BEGIN CERTIFICATE-----
-                    MIICiTCCAg+gAwIBAgIQQd/7PXEzsmI+U14J2cO1bjAKBggqhkjOPQQDAzBHMQsw
-                    CQYDVQQGDAJVUzE4MDYGA1UEAwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENB
-                    IChVbnRydXN0ZWQgRGV2aWNlcykwHhcNMjUwNzE5MjMwODE0WhcNMzAwNzE5MjMw
-                    ODE0WjBHMQswCQYDVQQGDAJVUzE4MDYGA1UEAwwvTXVsdGlwYXogSWRlbnRpdHkg
-                    UmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNlcykwdjAQBgcqhkjOPQIBBgUrgQQA
-                    IgNiAATqihOe05W3nIdyVf7yE4mHJiz7tsofcmiNTonwYsPKBbJwRTHa7AME+ToA
-                    fNhPMaEZ83lBUTBggsTUNShVp1L5xzPS+jK0tGJkR2ny9+UygPGtUZxEOulGK5I8
-                    ZId+35Gjgb8wgbwwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQAw
-                    VgYDVR0fBE8wTTBLoEmgR4ZFaHR0cHM6Ly9naXRodWIuY29tL29wZW53YWxsZXQt
-                    Zm91bmRhdGlvbi1sYWJzL2lkZW50aXR5LWNyZWRlbnRpYWwvY3JsMB0GA1UdDgQW
-                    BBSbz9r9IFmXjiGGnH3Siq90geurxTAfBgNVHSMEGDAWgBSbz9r9IFmXjiGGnH3S
-                    iq90geurxTAKBggqhkjOPQQDAwNoADBlAjEAomqjfJe2k162S5Way3sEBTcj7+DP
-                    vaLJcsloEsj/HaThIsKWqQlQKxgNu1rE/XryAjB/Gq6UErgWKlspp+KpzuAAWaKk
-                    +bMjcM4aKOKOU3itmB+9jXTQ290Dc8MnWVwQBs4=
-                    -----END CERTIFICATE-----
-                    """.trimmingCharacters(in: .whitespacesAndNewlines)
-            ),
-            metadata: TrustMetadata(
-                displayName: "Multipaz Identity Reader (Untrusted Devices)",
-                displayIcon: nil,
-                displayIconUrl: nil,
-                privacyPolicyUrl: nil,
-                disclaimer: nil,
-                testOnly: true,
-                extensions: [:]
-            )
-        )
-    }
-}
-
-
-var walletData: WalletData? = nil
+import MultipazSwift
 
 struct ContentView: View {
-    @State private var presentmentState: PresentmentModel.State = .idle
+    @State private var viewModel = ViewModel()
+    
     @State private var qrCode: UIImage? = nil
     
     var body: some View {
-        VStack {
-            switch presentmentState {
-            case .idle:
-                handleIdle()
-                
-            case .connecting:
-                handleConnecting()
-
-            case .waitingForSource:
-                handleWaitingForSource()
-
-            case .processing:
-                handleProcessing()
-                
-            case .waitingForConsent:
-                handleWaitingForConsent()
-                
-            case .completed:
-                handleCompleted()
+        
+        NavigationStack(path: $viewModel.path) {
+            VStack {
+                if (viewModel.isLoading) {
+                    VStack {
+                        ProgressView()
+                    }
+                } else {
+                    StartView()
+                }
             }
-        }
-        .padding()
-        .onAppear {
-            Task {
-                walletData = await WalletData()
-                for await state in walletData!.presentmentModel.state {
-                    presentmentState = state
+            .navigationDestination(for: Destination.self) { destination in
+                switch destination {
+                case .startView: StartView()
+                case .showQrView: ShowQrView()
+                case .transferView: TransferView()
                 }
             }
         }
+        .environment(viewModel)
+        .onAppear { Task { await viewModel.load() } }
     }
 
+    /*
     private func handleIdle() -> some View {
-        return Button(action: {
-            Task {
-                walletData!.presentmentModel.reset()
-                walletData!.presentmentModel.setConnecting()
-                let connectionMethods = [
-                    MdocConnectionMethodBle(
-                        supportsPeripheralServerMode: false,
-                        supportsCentralClientMode: true,
-                        peripheralServerModeUuid: nil,
-                        centralClientModeUuid: UUID.companion.randomUUID(),
-                        peripheralServerModePsm: nil,
-                        peripheralServerModeMacAddress: nil)
-                ]
-                let eDeviceKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-                let advertisedTransports = try! await ConnectionHelperKt.advertise(
-                    connectionMethods,
-                    role: MdocRole.mdoc,
-                    transportFactory: MdocTransportFactoryDefault.shared,
-                    options: MdocTransportOptions(bleUseL2CAP: false, bleUseL2CAPInEngagement: true)
-                )
-                let engagementGenerator = EngagementGenerator(
-                    eSenderKey: eDeviceKey.publicKey,
-                    version: "1.0"
-                )
-                engagementGenerator.addConnectionMethods(
-                    connectionMethods: advertisedTransports.map({transport in transport.connectionMethod})
-                )
-                let encodedDeviceEngagement = ByteString(bytes: engagementGenerator.generate())
-                let qrCodeUrl = "mdoc:" + encodedDeviceEngagement
-                    .toByteArray(startIndex: 0, endIndex: encodedDeviceEngagement.size)
-                    .toBase64Url()
-                qrCode = generateQrCode(url: qrCodeUrl)!
-                let transport = try! await ConnectionHelperKt.waitForConnection(
-                    advertisedTransports,
-                    eSenderKey: eDeviceKey.publicKey,
-                    coroutineScope: walletData!.presentmentModel.presentmentScope
-                )
-                walletData!.presentmentModel.setMechanism(
-                    mechanism: MdocPresentmentMechanism(
-                        transport: transport,
-                        eDeviceKey: eDeviceKey,
-                        encodedDeviceEngagement: encodedDeviceEngagement,
-                        handover: Simple.companion.NULL,
-                        engagementDuration: nil,
-                        allowMultipleRequests: false
+        return VStack {
+            Text("Number of documents: \(documentModel.documentInfos.count)")
+            Button(action: {
+                Task {
+                    for docId in try! await viewModel.documentStore.listDocuments() {
+                        try! await viewModel.documentStore.deleteDocument(identifier: docId)
+                    }
+                }
+            }) {
+                Text("Delete all documents")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+
+            Button(action: {
+                Task {
+                    await viewModel.addSelfsignedDocument()
+                }
+            }) {
+                Text("Add document")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+
+            Button(action: {
+                Task {
+                    viewModel.presentmentModel.reset()
+                    viewModel.presentmentModel.setConnecting()
+                    let connectionMethods = [
+                        MdocConnectionMethodBle(
+                            supportsPeripheralServerMode: false,
+                            supportsCentralClientMode: true,
+                            peripheralServerModeUuid: nil,
+                            centralClientModeUuid: UUID.companion.randomUUID(),
+                            peripheralServerModePsm: nil,
+                            peripheralServerModeMacAddress: nil)
+                    ]
+                    let eDeviceKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
+                    let advertisedTransports = try! await ConnectionHelperKt.advertise(
+                        connectionMethods,
+                        role: MdocRole.mdoc,
+                        transportFactory: MdocTransportFactoryDefault.shared,
+                        options: MdocTransportOptions(bleUseL2CAP: false, bleUseL2CAPInEngagement: true)
                     )
-                )
-                qrCode = nil
-            }
-        }) {
-            Text("Present mDL via QR")
-        }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                    let engagementGenerator = EngagementGenerator(
+                        eSenderKey: eDeviceKey.publicKey,
+                        version: "1.0"
+                    )
+                    engagementGenerator.addConnectionMethods(
+                        connectionMethods: advertisedTransports.map({transport in transport.connectionMethod})
+                    )
+                    let encodedDeviceEngagement = ByteString(bytes: engagementGenerator.generate())
+                    let qrCodeUrl = "mdoc:" + encodedDeviceEngagement
+                        .toByteArray(startIndex: 0, endIndex: encodedDeviceEngagement.size)
+                        .toBase64Url()
+                    qrCode = generateQrCode(url: qrCodeUrl)!
+                    let transport = try! await ConnectionHelperKt.waitForConnection(
+                        advertisedTransports,
+                        eSenderKey: eDeviceKey.publicKey,
+                        coroutineScope: viewModel.presentmentModel.presentmentScope
+                    )
+                    viewModel.presentmentModel.setMechanism(
+                        mechanism: MdocPresentmentMechanism(
+                            transport: transport,
+                            eDeviceKey: eDeviceKey,
+                            encodedDeviceEngagement: encodedDeviceEngagement,
+                            handover: Simple.companion.NULL,
+                            engagementDuration: nil,
+                            allowMultipleRequests: false
+                        )
+                    )
+                    qrCode = nil
+                }
+            }) {
+                Text("Present mDL via QR")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+        }
     }
 
     private func handleConnecting() -> some View {
@@ -256,7 +125,7 @@ struct ContentView: View {
                 Image(uiImage: qrCode!)
             }
             Button(action: {
-                walletData!.presentmentModel.reset()
+                viewModel.presentmentModel.reset()
             }) {
                 Text("Cancel")
             }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
@@ -264,16 +133,16 @@ struct ContentView: View {
     }
 
     private func handleWaitingForSource() -> some View {
-        walletData!.presentmentModel.setSource(source: SimplePresentmentSource(
-            documentStore: walletData!.documentStore,
-            documentTypeRepository: walletData!.documentTypeRepository,
-            readerTrustManager: walletData!.readerTrustManager,
+        viewModel.presentmentModel.setSource(source: SimplePresentmentSource(
+            documentStore: viewModel.documentStore,
+            documentTypeRepository: viewModel.documentTypeRepository,
+            readerTrustManager: viewModel.readerTrustManager,
             zkSystemRepository: nil,
             skipConsentPrompt: false,
             dynamicMetadataResolver: { requester in
                 nil
             },
-            preferSignatureToKeyAgreement: true,
+            preferSignatureToKeyAgreement: false,
             domainMdocSignature: "mdoc",
             domainMdocKeyAgreement: nil,
             domainKeylessSdJwt: nil,
@@ -285,52 +154,50 @@ struct ContentView: View {
     private func handleProcessing() -> some View {
         return Text("Communicating with reader")
     }
-
+    
+    @State private var presentSheet = true
+    
     private func handleWaitingForConsent() -> some View {
         return VStack {
-            let consentData = walletData!.presentmentModel.consentData
-            if (consentData.trustPoint == nil) {
-                Text("Unknown mdoc reader is requesting information")
-                    .font(.title)
-            } else {
-                let displayName = consentData.trustPoint?.metadata.displayName ?? "Unknown"
-                Text("Trusted mdoc reader **\(displayName)** is requesting information")
-                    .font(.title)
-            }
-            let selection = consentData.credentialPresentmentData.select(preselectedDocuments: [])
-            VStack {
-                let match = selection.matches.first!
-                ForEach(match.claims.map({ (key: RequestedClaim, value: Claim) in
-                    value
-                }), id: \.self) { claim in
-                    Text(claim.displayName)
-                        .font(.body)
-                        .fontWeight(.thin)
-                        .textScale(.secondary)
+            let consentData = viewModel.presentmentModel.consentData
+            VStack {}
+                .sheet(isPresented: $presentSheet) {
+                    NavigationStack {
+                        Consent(
+                            credentialPresentmentData: consentData.credentialPresentmentData,
+                            requester: consentData.requester,
+                            trustPoint: consentData.trustPoint,
+                            onConfirm: {
+                                let selection = consentData.credentialPresentmentData.select(preselectedDocuments: [])
+                                viewModel.presentmentModel.consentObtained(selection: selection)
+                            }
+                        )
+                        .navigationTitle("Multipaz Wallet")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .automatic) {
+                                Button(action: {
+                                    Task {
+                                        viewModel.presentmentModel.reset()
+                                    }
+                                }) {
+                                    Image(systemName: "xmark")
+                                }
+                            }
+                        }
+                    }
+                    // TODO: would be nice to have this automatically adjust size
+                    .presentationDetents([.fraction(0.8)])
                 }
-            }
-            HStack {
-                Button(action: {
-                    walletData!.presentmentModel.reset()
-                }) {
-                    Text("Cancel")
-                }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
-
-                Button(action: {
-                    walletData!.presentmentModel.consentObtained(selection: selection)
-                }) {
-                    Text("Consent")
-                }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
-            }
         }
     }
     
     private func handleCompleted() -> some View {
         Task {
             try! await delay(timeMillis: 2500)
-            walletData!.presentmentModel.reset()
+            viewModel.presentmentModel.reset()
         }
-        if (walletData!.presentmentModel.error == nil) {
+        if (viewModel.presentmentModel.error == nil) {
             return VStack {
                 Image(systemName: "checkmark.circle")
                     .renderingMode(.original)
@@ -381,7 +248,79 @@ struct ContentView: View {
         }
         return nil
     }
+     */
 }
+
+struct StartView: View {
+    @Environment(ViewModel.self) private var viewModel
+    
+    var body: some View {
+        VStack {
+            Text("Number of documents: \(viewModel.documentModel.documentInfos.count)")
+            Button(action: {
+                Task {
+                    for docId in try! await viewModel.documentStore.listDocuments() {
+                        try! await viewModel.documentStore.deleteDocument(identifier: docId)
+                    }
+                }
+            }) {
+                Text("Delete all documents")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+            
+            Button(action: {
+                Task {
+                    await viewModel.addSelfsignedDocument()
+                }
+            }) {
+                Text("Add document")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+
+            Button(action: {
+                Task {
+                    await viewModel.startPresentment()
+                }
+            }) {
+                Text("Present using QR code")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+        }
+    }
+}
+
+struct ShowQrView: View {
+    @Environment(ViewModel.self) private var viewModel
+
+    var body: some View {
+        VStack {
+            Text("Present QR code to reader")
+            if (viewModel.qrCode != nil) {
+                Image(uiImage: viewModel.qrCode!)
+            }
+            Button(action: {
+                print("TODO: cancel")
+            }) {
+                Text("Cancel")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+        }
+        .onDisappear {
+            print("QR vanished!")
+        }
+    }
+}
+
+struct TransferView: View {
+    @Environment(ViewModel.self) private var viewModel
+
+    var body: some View {
+        VStack {
+            Text("Transfer")
+                .font(.largeTitle)
+        }
+        .onDisappear {
+            print("Transfer vanished!")
+        }
+    }
+}
+
 
 #Preview {
     ContentView()

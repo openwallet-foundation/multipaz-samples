@@ -4,11 +4,18 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
+		<key>DocumentProviderExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>MpzSwiftWallet.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
 	</dict>
+	<key>New item</key>
+	<string>./MpzSwiftWallet.xcodeproj/xcuserdata/zeuthen.xcuserdatad/xcschemes/xcschememanagement.plist</string>
 </dict>
 </plist>
