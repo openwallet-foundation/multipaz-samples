@@ -6,7 +6,11 @@
 //
 
 import SwiftUI
+import IdentityDocumentServices
+import IdentityDocumentServicesUI
+
 import Multipaz
+import MultipazSwift
 
 struct WalletData {
     let storage: Storage
@@ -19,8 +23,13 @@ struct WalletData {
     let presentmentModel = PresentmentModel()
     
     init() async {
-        storage = Platform.shared.nonBackedUpStorage
-        secureArea = try! await Platform.shared.getSecureArea()
+        storage = IosStorage(
+            storageFileUrl: FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: "group.org.multipaz.samples.MpzSwiftWallet.sharedgroup")!
+                .appendingPathComponent("storage.db"),
+            excludeFromBackup: true
+        )
+        secureArea = try! await Platform.shared.getSecureArea(storage: storage)
         secureAreaRepository = SecureAreaRepository.Builder()
             .add(secureArea: secureArea)
             .build()
@@ -30,127 +39,199 @@ struct WalletData {
             storage: storage,
             secureAreaRepository: secureAreaRepository
         ).build()
+        readerTrustManager = TrustManagerLocal(storage: storage, identifier: "default", partitionId: "default_default")
+        if (try! await readerTrustManager.getTrustPoints().isEmpty) {
+            try! await readerTrustManager.addX509Cert(
+                certificate: X509Cert.companion.fromPem(
+                    pemEncoding: """
+                    -----BEGIN CERTIFICATE-----
+                    MIICYTCCAeegAwIBAgIQOSV5JyesOLKHeDc+0qmtuTAKBggqhkjOPQQDAzAzMQswCQYDVQQGDAJV
+                    UzEkMCIGA1UEAwwbTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBMB4XDTI1MDcwNTEyMjAyMVoX
+                    DTMwMDcwNTEyMjAyMVowMzELMAkGA1UEBgwCVVMxJDAiBgNVBAMMG011bHRpcGF6IElkZW50aXR5
+                    IFJlYWRlciBDQTB2MBAGByqGSM49AgEGBSuBBAAiA2IABD4UX5jabDLuRojEp9rsZkAEbP8Icuj3
+                    qN4wBUYq6UiOkoULMOLUb+78Ygonm+sJRwqyDJ9mxYTjlqliW8PpDfulQZejZo2QGqpB9JPInkrC
+                    Bol5T+0TUs0ghkE5ZQBsVKOBvzCBvDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIB
+                    ADBWBgNVHR8ETzBNMEugSaBHhkVodHRwczovL2dpdGh1Yi5jb20vb3BlbndhbGxldC1mb3VuZGF0
+                    aW9uLWxhYnMvaWRlbnRpdHktY3JlZGVudGlhbC9jcmwwHQYDVR0OBBYEFM+kr4eQcxKWLk16F2Rq
+                    zBxFcZshMB8GA1UdIwQYMBaAFM+kr4eQcxKWLk16F2RqzBxFcZshMAoGCCqGSM49BAMDA2gAMGUC
+                    MQCQ+4+BS8yH20KVfSK1TSC/RfRM4M9XNBZ+0n9ePg9ftXUFt5e4lBddK9mL8WznJuoCMFuk8ey4
+                    lKnb4nubv5iPIzwuC7C0utqj7Fs+qdmcWNrSYSiks2OEnjJiap1cPOPk2g==
+                    -----END CERTIFICATE-----
+                    """.trimmingCharacters(in: .whitespacesAndNewlines)
+                ),
+                metadata: TrustMetadata(
+                    displayName: "Multipaz Identity Reader",
+                    displayIcon: nil,
+                    displayIconUrl: "https://www.multipaz.org/multipaz-logo-200x200.png",
+                    privacyPolicyUrl: nil,
+                    disclaimer: nil,
+                    testOnly: true,
+                    extensions: [:]
+                )
+            )
+            try! await readerTrustManager.addX509Cert(
+                certificate: X509Cert.companion.fromPem(
+                    pemEncoding: """
+                    -----BEGIN CERTIFICATE-----
+                    MIICiTCCAg+gAwIBAgIQQd/7PXEzsmI+U14J2cO1bjAKBggqhkjOPQQDAzBHMQswCQYDVQQGDAJV
+                    UzE4MDYGA1UEAwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNl
+                    cykwHhcNMjUwNzE5MjMwODE0WhcNMzAwNzE5MjMwODE0WjBHMQswCQYDVQQGDAJVUzE4MDYGA1UE
+                    AwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNlcykwdjAQBgcq
+                    hkjOPQIBBgUrgQQAIgNiAATqihOe05W3nIdyVf7yE4mHJiz7tsofcmiNTonwYsPKBbJwRTHa7AME
+                    +ToAfNhPMaEZ83lBUTBggsTUNShVp1L5xzPS+jK0tGJkR2ny9+UygPGtUZxEOulGK5I8ZId+35Gj
+                    gb8wgbwwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQAwVgYDVR0fBE8wTTBLoEmg
+                    R4ZFaHR0cHM6Ly9naXRodWIuY29tL29wZW53YWxsZXQtZm91bmRhdGlvbi1sYWJzL2lkZW50aXR5
+                    LWNyZWRlbnRpYWwvY3JsMB0GA1UdDgQWBBSbz9r9IFmXjiGGnH3Siq90geurxTAfBgNVHSMEGDAW
+                    gBSbz9r9IFmXjiGGnH3Siq90geurxTAKBggqhkjOPQQDAwNoADBlAjEAomqjfJe2k162S5Way3sE
+                    BTcj7+DPvaLJcsloEsj/HaThIsKWqQlQKxgNu1rE/XryAjB/Gq6UErgWKlspp+KpzuAAWaKk+bMj
+                    cM4aKOKOU3itmB+9jXTQ290Dc8MnWVwQBs4=
+                    -----END CERTIFICATE-----
+                    """.trimmingCharacters(in: .whitespacesAndNewlines)
+                ),
+                metadata: TrustMetadata(
+                    displayName: "Multipaz Identity Reader (Untrusted Devices)",
+                    displayIcon: nil,
+                    displayIconUrl: "https://www.multipaz.org/multipaz-logo-200x200.png",
+                    privacyPolicyUrl: nil,
+                    disclaimer: nil,
+                    testOnly: true,
+                    extensions: [:]
+                )
+            )
+            try! await readerTrustManager.addX509Cert(
+                    certificate: X509Cert.companion.fromPem(
+                        pemEncoding: """
+                            -----BEGIN CERTIFICATE-----
+                            MIICPzCCAcWgAwIBAgIQBpWf6aJhn7GaGv3AffPk8TAKBggqhkjOPQQDAzAiMSAwHgYDVQQDDBdN
+                            dWx0aXBheiBURVNUIFJlYWRlciBDQTAeFw0yNTA3MjYyMDEwMzBaFw0zMDA3MjYyMDEwMzBaMCIx
+                            IDAeBgNVBAMMF011bHRpcGF6IFRFU1QgUmVhZGVyIENBMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE
+                            L/cxWy6+d5Yf5LX/qkPQhyIhUGoPBIdlJxcaJ/l8gJOOvNSTQlBUvuzD8paQkZKs6fHvt3aGLiGL
+                            /bLYMhiQHmO7kVpz9DCI6+X82aZfiaSLMiHCrBC9yF1QiqahaKZxo4G/MIG8MA4GA1UdDwEB/wQE
+                            AwIBBjASBgNVHRMBAf8ECDAGAQH/AgEAMFYGA1UdHwRPME0wS6BJoEeGRWh0dHBzOi8vZ2l0aHVi
+                            LmNvbS9vcGVud2FsbGV0LWZvdW5kYXRpb24tbGFicy9pZGVudGl0eS1jcmVkZW50aWFsL2NybDAd
+                            BgNVHQ4EFgQU0B8Z/qjh8qzVXpR5JDdtmPmVx+kwHwYDVR0jBBgwFoAU0B8Z/qjh8qzVXpR5JDdt
+                            mPmVx+kwCgYIKoZIzj0EAwMDaAAwZQIxALxFZApDi8GcLiF6DXM41Krw+gtjxg4xzQfScuwgBtXf
+                            KPyHJ0RVMukttE+BEKNzjwIwHW7yJad8/+oSQf6hDo/JtMcdCvUk/gvzczJX7dDUpOGIxEmLmnCg
+                            H2bY+I2qhZCt
+                            -----END CERTIFICATE-----
+                            """.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ),
+                    metadata: TrustMetadata(
+                        displayName: "David's Identity Verifier",
+                        displayIcon: nil,
+                        displayIconUrl: "https://www.multipaz.org/multipaz-logo-200x200.png",
+                        privacyPolicyUrl: "https://apps.multipaz.org",
+                        disclaimer: nil,
+                        testOnly: true,
+                        extensions: [:]
+                    )
+                )
+            try! await readerTrustManager.addX509Cert(
+                    certificate: X509Cert.companion.fromPem(
+                        pemEncoding: """
+                            -----BEGIN CERTIFICATE-----
+                            MIICaTCCAe+gAwIBAgIQtzUvFDCKLUBWQAZ4UnCw5zAKBggqhkjOPQQDAzA3MQswCQYDVQQGDAJV
+                            UzEoMCYGA1UEAwwfdmVyaWZpZXIubXVsdGlwYXoub3JnIFJlYWRlciBDQTAeFw0yNTA2MTkyMjE2
+                            MzJaFw0zMDA2MTkyMjE2MzJaMDcxCzAJBgNVBAYMAlVTMSgwJgYDVQQDDB92ZXJpZmllci5tdWx0
+                            aXBhei5vcmcgUmVhZGVyIENBMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEa6oCzC8rfHfwVOmQf83W
+                            yHEQFE8HrLK+NxsufJDrSFgMXjhRvPt3fIjlMyRAaf94Y25Ux9tXg+28EzzB/xG7q8P/FQ9nOSJk
+                            w4cQJVdD/ufN599uVdfp1URdG95Vncuoo4G/MIG8MA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8E
+                            CDAGAQH/AgEAMFYGA1UdHwRPME0wS6BJoEeGRWh0dHBzOi8vZ2l0aHViLmNvbS9vcGVud2FsbGV0
+                            LWZvdW5kYXRpb24tbGFicy9pZGVudGl0eS1jcmVkZW50aWFsL2NybDAdBgNVHQ4EFgQUsYQ5hS9K
+                            buq/6mKtvFHQgfdIhykwHwYDVR0jBBgwFoAUsYQ5hS9Kbuq/6mKtvFHQgfdIhykwCgYIKoZIzj0E
+                            AwMDaAAwZQIwKh87sK/cMbzuc9PFvyiSRedr2RoP0fuFK0X8ddOpi6hEMOapHL/Gs/QByROCpDpk
+                            AjEA2yLSJDZEu1GI8uChAsDBZwJPtv5KHUjq1Vpok69SNn+zzb1mNpqmiey+tchPBjZm
+                            -----END CERTIFICATE-----
+                            """.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ),
+                    metadata: TrustMetadata(
+                        displayName: "Multipaz Identity Verifier",
+                        displayIcon: nil,
+                        displayIconUrl: "https://www.multipaz.org/multipaz-logo-200x200.png",
+                        privacyPolicyUrl: "https://apps.multipaz.org",
+                        disclaimer: nil,
+                        testOnly: true,
+                        extensions: [:]
+                    )
+                )
+            print("Added reader certificates to readerTrustManager")
+        }
+
         if (try! await documentStore.listDocuments().isEmpty) {
-            let now = KotlinClockCompanion().getSystem().now()
-            let signedAt = now
-            let validFrom = now
-            let validUntil = now.plus(duration: 365*86400*1000*1000*1000)
-            let iacaKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-            let iacaCert = try! await MdocUtil.shared.generateIacaCertificate(
-                iacaKey: AsymmetricKey.AnonymousExplicit(privateKey: iacaKey, algorithm: Algorithm.esp256),
-                subject: X500Name.companion.fromName(name: "CN=Test IACA Key"),
-                serial: ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
-                validFrom: validFrom,
-                validUntil: validUntil,
-                issuerAltNameUrl: "https://issuer.example.com",
-                crlUrl: "https://issuer.example.com/crl"
-            )
-            let dsKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-            let dsCert = try! await MdocUtil.shared.generateDsCertificate(
-                iacaKey: AsymmetricKey.X509CertifiedExplicit(
-                    certChain: X509CertChain(certificates: [iacaCert]),
-                    privateKey: dsKey,
-                    algorithm: Algorithm.esp256
-                ),
-                dsKey: dsKey.publicKey,
-                subject: X500Name.companion.fromName(name: "CN=Test DS Key"),
-                serial:  ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
-                validFrom: validFrom,
-                validUntil: validUntil
-            )
-            let document = try! await documentStore.createDocument(
-                displayName: "Erika's Driving License",
-                typeDisplayName: "Utopia Driving License",
-                cardArt: nil,
-                issuerLogo: nil,
-                other: nil
-            )
-            let _ = try! await DrivingLicense.shared.getDocumentType().createMdocCredentialWithSampleData(
-                document: document,
-                secureArea: secureArea,
-                createKeySettings: CreateKeySettings(
-                    algorithm: Algorithm.esp256,
-                    nonce: ByteStringBuilder(initialCapacity: 3).appendString(string: "123").toByteString(),
-                    userAuthenticationRequired: true,
-                    userAuthenticationTimeout: 0,
-                    validFrom: nil,
-                    validUntil: nil
-                ),
-                dsKey: AsymmetricKey.X509CertifiedExplicit(
-                    certChain: X509CertChain(certificates: [dsCert]),
-                    privateKey: dsKey,
-                    algorithm: Algorithm.esp256
-                ),
-                signedAt: signedAt,
-                validFrom: validFrom,
-                validUntil: validUntil,
-                expectedUpdate: nil,
-                domain: "mdoc"
+            await self.addSelfsignedDocument()
+        }
+        
+        let dcApi = DigitalCredentialsCompanion.shared.Default
+        if (dcApi.available) {
+            print("DC API available")
+            try! await dcApi.startExportingCredentials(
+                documentStore: documentStore,
+                documentTypeRepository: documentTypeRepository
             )
         }
-        let ephemeralStorage = EphemeralStorage(clock: KotlinClockCompanion().getSystem())
-        readerTrustManager = TrustManagerLocal(storage: ephemeralStorage, identifier: "default", partitionId: "default_default")
-        try! await readerTrustManager.addX509Cert(
-            certificate: X509Cert.companion.fromPem(
-                pemEncoding: """
-                    -----BEGIN CERTIFICATE-----
-                    MIICYTCCAeegAwIBAgIQOSV5JyesOLKHeDc+0qmtuTAKBggqhkjOPQQDAzAzMQsw
-                    CQYDVQQGDAJVUzEkMCIGA1UEAwwbTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENB
-                    MB4XDTI1MDcwNTEyMjAyMVoXDTMwMDcwNTEyMjAyMVowMzELMAkGA1UEBgwCVVMx
-                    JDAiBgNVBAMMG011bHRpcGF6IElkZW50aXR5IFJlYWRlciBDQTB2MBAGByqGSM49
-                    AgEGBSuBBAAiA2IABD4UX5jabDLuRojEp9rsZkAEbP8Icuj3qN4wBUYq6UiOkoUL
-                    MOLUb+78Ygonm+sJRwqyDJ9mxYTjlqliW8PpDfulQZejZo2QGqpB9JPInkrCBol5
-                    T+0TUs0ghkE5ZQBsVKOBvzCBvDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgw
-                    BgEB/wIBADBWBgNVHR8ETzBNMEugSaBHhkVodHRwczovL2dpdGh1Yi5jb20vb3Bl
-                    bndhbGxldC1mb3VuZGF0aW9uLWxhYnMvaWRlbnRpdHktY3JlZGVudGlhbC9jcmww
-                    HQYDVR0OBBYEFM+kr4eQcxKWLk16F2RqzBxFcZshMB8GA1UdIwQYMBaAFM+kr4eQ
-                    cxKWLk16F2RqzBxFcZshMAoGCCqGSM49BAMDA2gAMGUCMQCQ+4+BS8yH20KVfSK1
-                    TSC/RfRM4M9XNBZ+0n9ePg9ftXUFt5e4lBddK9mL8WznJuoCMFuk8ey4lKnb4nub
-                    v5iPIzwuC7C0utqj7Fs+qdmcWNrSYSiks2OEnjJiap1cPOPk2g==
-                    -----END CERTIFICATE-----
-                    """.trimmingCharacters(in: .whitespacesAndNewlines)
-            ),
-            metadata: TrustMetadata(
-                displayName: "Multipaz Identity Reader",
-                displayIcon: nil,
-                displayIconUrl: nil,
-                privacyPolicyUrl: nil,
-                disclaimer: nil,
-                testOnly: true,
-                extensions: [:]
-            )
+        
+        print("num reader certs \(try! await readerTrustManager.getEntries().count)")
+    }
+    
+    func addSelfsignedDocument() async {
+        let now = KotlinClockCompanion().getSystem().now().truncateToWholeSeconds()
+        let signedAt = now
+        let validFrom = now
+        let validUntil = now.plus(duration: 365*86400*1000*1000*1000)
+        let iacaKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
+        let iacaCert = try! await MdocUtil.shared.generateIacaCertificate(
+            iacaKey: AsymmetricKey.AnonymousExplicit(privateKey: iacaKey, algorithm: Algorithm.esp256),
+            subject: X500Name.companion.fromName(name: "CN=Test IACA Key"),
+            serial: ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
+            validFrom: validFrom,
+            validUntil: validUntil,
+            issuerAltNameUrl: "https://issuer.example.com",
+            crlUrl: "https://issuer.example.com/crl"
         )
-        try! await readerTrustManager.addX509Cert(
-            certificate: X509Cert.companion.fromPem(
-                pemEncoding: """
-                    -----BEGIN CERTIFICATE-----
-                    MIICiTCCAg+gAwIBAgIQQd/7PXEzsmI+U14J2cO1bjAKBggqhkjOPQQDAzBHMQsw
-                    CQYDVQQGDAJVUzE4MDYGA1UEAwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENB
-                    IChVbnRydXN0ZWQgRGV2aWNlcykwHhcNMjUwNzE5MjMwODE0WhcNMzAwNzE5MjMw
-                    ODE0WjBHMQswCQYDVQQGDAJVUzE4MDYGA1UEAwwvTXVsdGlwYXogSWRlbnRpdHkg
-                    UmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNlcykwdjAQBgcqhkjOPQIBBgUrgQQA
-                    IgNiAATqihOe05W3nIdyVf7yE4mHJiz7tsofcmiNTonwYsPKBbJwRTHa7AME+ToA
-                    fNhPMaEZ83lBUTBggsTUNShVp1L5xzPS+jK0tGJkR2ny9+UygPGtUZxEOulGK5I8
-                    ZId+35Gjgb8wgbwwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQAw
-                    VgYDVR0fBE8wTTBLoEmgR4ZFaHR0cHM6Ly9naXRodWIuY29tL29wZW53YWxsZXQt
-                    Zm91bmRhdGlvbi1sYWJzL2lkZW50aXR5LWNyZWRlbnRpYWwvY3JsMB0GA1UdDgQW
-                    BBSbz9r9IFmXjiGGnH3Siq90geurxTAfBgNVHSMEGDAWgBSbz9r9IFmXjiGGnH3S
-                    iq90geurxTAKBggqhkjOPQQDAwNoADBlAjEAomqjfJe2k162S5Way3sEBTcj7+DP
-                    vaLJcsloEsj/HaThIsKWqQlQKxgNu1rE/XryAjB/Gq6UErgWKlspp+KpzuAAWaKk
-                    +bMjcM4aKOKOU3itmB+9jXTQ290Dc8MnWVwQBs4=
-                    -----END CERTIFICATE-----
-                    """.trimmingCharacters(in: .whitespacesAndNewlines)
+        let dsKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
+        let dsCert = try! await MdocUtil.shared.generateDsCertificate(
+            iacaKey: AsymmetricKey.X509CertifiedExplicit(
+                certChain: X509CertChain(certificates: [iacaCert]),
+                privateKey: dsKey,
+                algorithm: Algorithm.esp256
             ),
-            metadata: TrustMetadata(
-                displayName: "Multipaz Identity Reader (Untrusted Devices)",
-                displayIcon: nil,
-                displayIconUrl: nil,
-                privacyPolicyUrl: nil,
-                disclaimer: nil,
-                testOnly: true,
-                extensions: [:]
-            )
+            dsKey: dsKey.publicKey,
+            subject: X500Name.companion.fromName(name: "CN=Test DS Key"),
+            serial:  ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
+            validFrom: validFrom,
+            validUntil: validUntil
         )
+        let document = try! await documentStore.createDocument(
+            displayName: "Erika's Driving License",
+            typeDisplayName: "Utopia Driving License",
+            cardArt: nil,
+            issuerLogo: nil,
+            other: nil
+        )
+        let _ = try! await DrivingLicense.shared.getDocumentType().createMdocCredentialWithSampleData(
+            document: document,
+            secureArea: secureArea,
+            createKeySettings: CreateKeySettings(
+                algorithm: Algorithm.esp256,
+                nonce: ByteStringBuilder(initialCapacity: 3).appendString(string: "123").toByteString(),
+                userAuthenticationRequired: true,
+                userAuthenticationTimeout: 0,
+                validFrom: nil,
+                validUntil: nil
+            ),
+            dsKey: AsymmetricKey.X509CertifiedExplicit(
+                certChain: X509CertChain(certificates: [dsCert]),
+                privateKey: dsKey,
+                algorithm: Algorithm.esp256
+            ),
+            signedAt: signedAt,
+            validFrom: validFrom,
+            validUntil: validUntil,
+            expectedUpdate: nil,
+            domain: "mdoc",
+            randomProvider: KotlinRandom.companion
+        )
+        print("Provisioned self-signed document")
     }
 }
 
@@ -160,6 +241,7 @@ var walletData: WalletData? = nil
 struct ContentView: View {
     @State private var presentmentState: PresentmentModel.State = .idle
     @State private var qrCode: UIImage? = nil
+    @ObservedObject private var documentModel = DocumentModel()
     
     var body: some View {
         VStack {
@@ -187,6 +269,7 @@ struct ContentView: View {
         .onAppear {
             Task {
                 walletData = await WalletData()
+                await documentModel.setDocumentStore(documentStore: walletData!.documentStore)
                 for await state in walletData!.presentmentModel.state {
                     presentmentState = state
                 }
@@ -195,58 +278,79 @@ struct ContentView: View {
     }
 
     private func handleIdle() -> some View {
-        return Button(action: {
-            Task {
-                walletData!.presentmentModel.reset()
-                walletData!.presentmentModel.setConnecting()
-                let connectionMethods = [
-                    MdocConnectionMethodBle(
-                        supportsPeripheralServerMode: false,
-                        supportsCentralClientMode: true,
-                        peripheralServerModeUuid: nil,
-                        centralClientModeUuid: UUID.companion.randomUUID(),
-                        peripheralServerModePsm: nil,
-                        peripheralServerModeMacAddress: nil)
-                ]
-                let eDeviceKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-                let advertisedTransports = try! await ConnectionHelperKt.advertise(
-                    connectionMethods,
-                    role: MdocRole.mdoc,
-                    transportFactory: MdocTransportFactoryDefault.shared,
-                    options: MdocTransportOptions(bleUseL2CAP: false, bleUseL2CAPInEngagement: true)
-                )
-                let engagementGenerator = EngagementGenerator(
-                    eSenderKey: eDeviceKey.publicKey,
-                    version: "1.0"
-                )
-                engagementGenerator.addConnectionMethods(
-                    connectionMethods: advertisedTransports.map({transport in transport.connectionMethod})
-                )
-                let encodedDeviceEngagement = ByteString(bytes: engagementGenerator.generate())
-                let qrCodeUrl = "mdoc:" + encodedDeviceEngagement
-                    .toByteArray(startIndex: 0, endIndex: encodedDeviceEngagement.size)
-                    .toBase64Url()
-                qrCode = generateQrCode(url: qrCodeUrl)!
-                let transport = try! await ConnectionHelperKt.waitForConnection(
-                    advertisedTransports,
-                    eSenderKey: eDeviceKey.publicKey,
-                    coroutineScope: walletData!.presentmentModel.presentmentScope
-                )
-                walletData!.presentmentModel.setMechanism(
-                    mechanism: MdocPresentmentMechanism(
-                        transport: transport,
-                        eDeviceKey: eDeviceKey,
-                        encodedDeviceEngagement: encodedDeviceEngagement,
-                        handover: Simple.companion.NULL,
-                        engagementDuration: nil,
-                        allowMultipleRequests: false
+        return VStack {
+            Text("Number of documents: \(documentModel.documentInfos.count)")
+            Button(action: {
+                Task {
+                    for docId in try! await walletData?.documentStore.listDocuments() ?? [] {
+                        try! await walletData?.documentStore.deleteDocument(identifier: docId)
+                    }
+                }
+            }) {
+                Text("Delete all documents")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+
+            Button(action: {
+                Task {
+                    await walletData!.addSelfsignedDocument()
+                }
+            }) {
+                Text("Add document")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+
+            Button(action: {
+                Task {
+                    walletData!.presentmentModel.reset()
+                    walletData!.presentmentModel.setConnecting()
+                    let connectionMethods = [
+                        MdocConnectionMethodBle(
+                            supportsPeripheralServerMode: false,
+                            supportsCentralClientMode: true,
+                            peripheralServerModeUuid: nil,
+                            centralClientModeUuid: UUID.companion.randomUUID(),
+                            peripheralServerModePsm: nil,
+                            peripheralServerModeMacAddress: nil)
+                    ]
+                    let eDeviceKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
+                    let advertisedTransports = try! await ConnectionHelperKt.advertise(
+                        connectionMethods,
+                        role: MdocRole.mdoc,
+                        transportFactory: MdocTransportFactoryDefault.shared,
+                        options: MdocTransportOptions(bleUseL2CAP: false, bleUseL2CAPInEngagement: true)
                     )
-                )
-                qrCode = nil
-            }
-        }) {
-            Text("Present mDL via QR")
-        }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                    let engagementGenerator = EngagementGenerator(
+                        eSenderKey: eDeviceKey.publicKey,
+                        version: "1.0"
+                    )
+                    engagementGenerator.addConnectionMethods(
+                        connectionMethods: advertisedTransports.map({transport in transport.connectionMethod})
+                    )
+                    let encodedDeviceEngagement = ByteString(bytes: engagementGenerator.generate())
+                    let qrCodeUrl = "mdoc:" + encodedDeviceEngagement
+                        .toByteArray(startIndex: 0, endIndex: encodedDeviceEngagement.size)
+                        .toBase64Url()
+                    qrCode = generateQrCode(url: qrCodeUrl)!
+                    let transport = try! await ConnectionHelperKt.waitForConnection(
+                        advertisedTransports,
+                        eSenderKey: eDeviceKey.publicKey,
+                        coroutineScope: walletData!.presentmentModel.presentmentScope
+                    )
+                    walletData!.presentmentModel.setMechanism(
+                        mechanism: MdocPresentmentMechanism(
+                            transport: transport,
+                            eDeviceKey: eDeviceKey,
+                            encodedDeviceEngagement: encodedDeviceEngagement,
+                            handover: Simple.companion.NULL,
+                            engagementDuration: nil,
+                            allowMultipleRequests: false
+                        )
+                    )
+                    qrCode = nil
+                }
+            }) {
+                Text("Present mDL via QR")
+            }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+        }
     }
 
     private func handleConnecting() -> some View {
@@ -273,7 +377,7 @@ struct ContentView: View {
             dynamicMetadataResolver: { requester in
                 nil
             },
-            preferSignatureToKeyAgreement: true,
+            preferSignatureToKeyAgreement: false,
             domainMdocSignature: "mdoc",
             domainMdocKeyAgreement: nil,
             domainKeylessSdJwt: nil,
@@ -285,43 +389,41 @@ struct ContentView: View {
     private func handleProcessing() -> some View {
         return Text("Communicating with reader")
     }
-
+    
+    @State private var presentSheet = true
+    
     private func handleWaitingForConsent() -> some View {
         return VStack {
             let consentData = walletData!.presentmentModel.consentData
-            if (consentData.trustPoint == nil) {
-                Text("Unknown mdoc reader is requesting information")
-                    .font(.title)
-            } else {
-                let displayName = consentData.trustPoint?.metadata.displayName ?? "Unknown"
-                Text("Trusted mdoc reader **\(displayName)** is requesting information")
-                    .font(.title)
-            }
-            let selection = consentData.credentialPresentmentData.select(preselectedDocuments: [])
-            VStack {
-                let match = selection.matches.first!
-                ForEach(match.claims.map({ (key: RequestedClaim, value: Claim) in
-                    value
-                }), id: \.self) { claim in
-                    Text(claim.displayName)
-                        .font(.body)
-                        .fontWeight(.thin)
-                        .textScale(.secondary)
+            VStack {}
+                .sheet(isPresented: $presentSheet) {
+                    NavigationStack {
+                        Consent(
+                            credentialPresentmentData: consentData.credentialPresentmentData,
+                            requester: consentData.requester,
+                            trustPoint: consentData.trustPoint,
+                            onConfirm: {
+                                let selection = consentData.credentialPresentmentData.select(preselectedDocuments: [])
+                                walletData!.presentmentModel.consentObtained(selection: selection)
+                            }
+                        )
+                        .navigationTitle("Multipaz Wallet")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .automatic) {
+                                Button(action: {
+                                    Task {
+                                        walletData?.presentmentModel.reset()
+                                    }
+                                }) {
+                                    Image(systemName: "xmark")
+                                }
+                            }
+                        }
+                    }
+                    // TODO: would be nice to have this automatically adjust size
+                    .presentationDetents([.fraction(0.8)])
                 }
-            }
-            HStack {
-                Button(action: {
-                    walletData!.presentmentModel.reset()
-                }) {
-                    Text("Cancel")
-                }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
-
-                Button(action: {
-                    walletData!.presentmentModel.consentObtained(selection: selection)
-                }) {
-                    Text("Consent")
-                }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
-            }
         }
     }
     
