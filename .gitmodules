@@ -1,0 +1,4 @@
+[submodule "MultipazCodelab/LoyaltyReader"]
+	path = MultipazCodelab/LoyaltyReader
+	url = https://github.com/openwallet-foundation/multipaz-identity-reader.git
+	branch = loyalty
