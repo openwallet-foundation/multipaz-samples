@@ -1,25 +1,18 @@
 package org.multipaz.samples.wallet.cmp
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
 import io.ktor.client.HttpClient
@@ -31,15 +24,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.io.bytestring.ByteString
 import mpzcmpwallet.composeapp.generated.resources.Res
 import mpzcmpwallet.composeapp.generated.resources.compose_multiplatform
-import org.jetbrains.compose.resources.painterResource
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.permissions.rememberBluetoothEnabledState
-import org.multipaz.compose.permissions.rememberBluetoothPermissionState
-import org.multipaz.compose.presentment.MdocProximityQrPresentment
-import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
-import org.multipaz.compose.provisioning.Provisioning
-import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.crypto.X509Cert
 import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
@@ -49,13 +35,12 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
-import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.provisioning.Display
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.samples.wallet.cmp.navhost.AppNavHost
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
@@ -63,7 +48,6 @@ import org.multipaz.storage.ephemeral.EphemeralStorage
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.util.Platform
-import org.multipaz.util.UUID
 import org.multipaz.util.fromHexByteString
 import kotlin.time.ExperimentalTime
 
@@ -170,184 +154,42 @@ class App() {
 
     @Composable
     fun Content() {
-        val isInitialized = remember { mutableStateOf(false) }
-        if (!isInitialized.value) {
-            CoroutineScope(Dispatchers.Main).launch {
+        var isInitialized by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            if (!isInitialized) {
                 init()
-                isInitialized.value = true
+                isInitialized = true
             }
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Initializing...")
+        }
+
+        if (!isInitialized) {
+            MaterialTheme {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Initializing...")
+                }
             }
             return
         }
 
         val context = LocalPlatformContext.current
-        val imageLoader = remember { ImageLoader.Builder(context).components { /* network loader omitted */ }.build() }
-        val provisioningState = provisioningModel.state.collectAsState().value
-        val documentInfos = documentModel.documentInfos.collectAsState().value
+        val imageLoader = remember {
+            ImageLoader.Builder(context)
+                .components { /* network loader omitted */ }
+                .build()
+        }
 
         MaterialTheme {
-            val coroutineScope = rememberCoroutineScope { promptModel }
-            val blePermissionState = rememberBluetoothPermissionState()
-            val bleEnabledState = rememberBluetoothEnabledState()
-
             PromptDialogs(promptModel)
 
-            if (provisioningState != ProvisioningModel.Idle &&
-                provisioningState != ProvisioningModel.CredentialsIssued) {
-                ProvisioningScreen()
-            } else {
-                if (!blePermissionState.isGranted) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Button(onClick = { coroutineScope.launch { blePermissionState.launchPermissionRequest() } }) {
-                            Text("Request BLE permissions")
-                        }
-                    }
-                } else if (!bleEnabledState.isEnabled) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Button(onClick = { coroutineScope.launch { bleEnabledState.enable() } }) {
-                            Text("Enable BLE")
-                        }
-                    }
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(
-                            space = 20.dp,
-                            alignment = Alignment.CenterVertically
-                        ),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        MdocProximityQrPresentment(
-                            appName = appName,
-                            appIconPainter = painterResource(appIcon),
-                            presentmentModel = presentmentModel,
-                            presentmentSource = presentmentSource,
-                            promptModel = promptModel,
-                            documentTypeRepository = documentTypeRepository,
-                            imageLoader = imageLoader,
-                            allowMultipleRequests = false,
-                            showQrButton = { onQrButtonClicked -> ShowQrButton(onQrButtonClicked) },
-                            showQrCode = { uri -> ShowQrCode(uri) }
-                        )
-
-                        HorizontalDivider()
-
-                        Text("Number of documents in store: ${documentInfos.size}")
-                        if (documentInfos.isNotEmpty()) {
-                            val builder = StringBuilder("[")
-                            documentInfos.onEachIndexed { index, (_, documentInfo) ->
-                                if (index > 0) {
-                                    builder.append(", ")
-                                }
-                                builder.append("${documentInfo.credentialInfos.size}")
-                            }
-                            builder.append("]")
-                            Text("Number of credentials: $builder")
-                        }
-                        Button(onClick = {
-                            coroutineScope.launch {
-                                documentStore.listDocuments().forEach { id ->
-                                    documentStore.deleteDocument(id)
-                                }
-                            }
-                        }) {
-                            Text("Clear DocumentStore")
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun ShowQrButton(
-        onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit
-    ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Button(onClick = {
-                val connectionMethods = listOf(
-                    MdocConnectionMethodBle(
-                        supportsPeripheralServerMode = false,
-                        supportsCentralClientMode = true,
-                        peripheralServerModeUuid = null,
-                        centralClientModeUuid = UUID.randomUUID(),
-                    )
-                )
-                onQrButtonClicked(
-                    MdocProximityQrSettings(
-                        availableConnectionMethods = connectionMethods,
-                        createTransportOptions = MdocTransportOptions(bleUseL2CAP = true)
-                    )
-                )
-            }) {
-                Text("Present mDL via QR")
-            }
-        }
-    }
-
-    @Composable
-    private fun ShowQrCode(uri: String) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            val qrCodeBitmap = remember { generateQrCode(uri) }
-            Text(text = "Present QR code to mdoc reader")
-            Image(
-                modifier = Modifier.fillMaxWidth(),
-                bitmap = qrCodeBitmap,
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth
+            AppNavHost(
+                app = this,
+                imageLoader = imageLoader,
             )
-            Button(
-                onClick = {
-                    presentmentModel.reset()
-                }
-            ) {
-                Text("Cancel")
-            }
-        }
-    }
-
-    @Composable
-    private fun ProvisioningScreen() {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.weight(1.0f))
-            Provisioning(
-                provisioningModel = provisioningModel,
-                waitForRedirectLinkInvocation = { state ->
-                    provisioningSupport.waitForAppLinkInvocation(state)
-                }
-            )
-            Spacer(modifier = Modifier.weight(1.0f))
-            Button(onClick = {
-                provisioningModel.cancel()
-            }) {
-                Text("Cancel Provisioning")
-            }
-            Spacer(modifier = Modifier.weight(1.0f))
         }
     }
 
