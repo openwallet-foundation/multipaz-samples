@@ -18,7 +18,8 @@ coil = "3.3.0"
 ktor = "2.3.13"
 androidx-sqlite = "2.5.2"
 
-multipaz = "0.95.0" # latest version of Multipaz to use
+multipaz = "0.96.0" # latest version of Multipaz to use
+multipaz-vision = "0.95.0" # latest version of Multipaz Extras
 
 androidx-fragment = "1.8.6"
 
@@ -38,7 +39,7 @@ androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
 multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.ref = "multipaz" }
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
-multipaz-vision = { group = "org.multipaz", name = "multipaz-vision", version.ref = "multipaz" }
+multipaz-vision = { group = "org.multipaz", name = "multipaz-vision", version.ref = "multipaz-vision" }
 multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
 
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "androidx-fragment" }

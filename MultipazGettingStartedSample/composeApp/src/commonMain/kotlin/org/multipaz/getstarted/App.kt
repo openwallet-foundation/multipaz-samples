@@ -269,7 +269,7 @@ class App {
             } catch (e: TrustPointAlreadyExistsException) {
                 e.printStackTrace()
             }
-            presentmentModel = PresentmentModel().apply { setPromptModel(promptModel) }
+            presentmentModel = PresentmentModel().apply { setPromptModel(org.multipaz.util.Platform.promptModel) }
             presentmentSource = SimplePresentmentSource(
                 documentStore = documentStore,
                 documentTypeRepository = documentTypeRepository,
