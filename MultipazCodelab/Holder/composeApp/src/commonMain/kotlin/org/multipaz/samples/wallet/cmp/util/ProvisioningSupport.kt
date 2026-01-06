@@ -1,36 +1,18 @@
 package org.multipaz.samples.wallet.cmp.util
 
 import io.ktor.http.Url
-import io.ktor.util.encodeBase64
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
-import org.multipaz.asn1.OID
 import org.multipaz.crypto.Algorithm
-import org.multipaz.crypto.Crypto
-import org.multipaz.crypto.EcPrivateKey
-import org.multipaz.crypto.X509Cert
+import org.multipaz.crypto.AsymmetricKey
+import org.multipaz.provisioning.openid4vci.KeyIdAndAttestation
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
+import org.multipaz.provisioning.openid4vci.OpenID4VCIBackendUtil
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.securearea.KeyAttestation
 import org.multipaz.util.Logger
-import org.multipaz.util.toBase64Url
-import utopiasample.composeapp.generated.resources.Res
-import kotlin.random.Random
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 /**
  * Imitate OpenID4VCI wallet back-end for the test app and provide support for the app links.
@@ -40,56 +22,48 @@ import kotlin.time.ExperimentalTime
  * secret. For testing purposes the keys are embedded into the app itself - but such app can be
  * easily impersonated and therefore can never be trusted by a real-life provisioning server.
  */
-class ProvisioningSupport: OpenID4VCIBackend {
-    val TAG ="PRO:ProvisioningSupport"
+class ProvisioningSupport : OpenID4VCIBackend {
+    val TAG = "PRO:ProvisioningSupport"
+
     companion object Companion {
         const val APP_LINK_SERVER = "wholesale-test-app"
         const val APP_LINK_BASE_URL = "${APP_LINK_SERVER}://landing/"
 
         // Alternative HTTP App Links (more secure). See AndroidManifest.xml Option #2
-        /*const val APP_LINK_SERVER = "https://apps.multipaz.org"
-        const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/landing/"*/
+        // const val APP_LINK_SERVER = "https://apps.multipaz.org"
+        // const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/landing/"
 
-
-        private val localClientAssertionJwk = Json.Default.parseToJsonElement("""
+        private val clientAssertionJwk = """
             {
                 "kty": "EC",
                 "alg": "ES256",
-                "key_ops": [
-                    "sign"
-                ],
                 "kid": "895b72b9-0808-4fcc-bb19-960d14a9e28f",
                 "crv": "P-256",
                 "x": "nSmAFnZx-SqgTEyqqOSmZyLESdbiSUIYlRlLLoWy5uc",
                 "y": "FN1qcif7nyVX1MHN_YSbo7o7RgG2kPJUjg27YX6AKsQ",
                 "d": "TdQhxDqbAUpzMJN5XXQqLea7-6LvQu2GFKzj5QmFDCw"
             }            
-        """.trimIndent()).jsonObject
+        """.trimIndent()
 
-        private val localClientAssertionPrivateKey = EcPrivateKey.Companion.fromJwk(localClientAssertionJwk)
-        private val localClientAssertionKeyId = localClientAssertionJwk["kid"]!!.jsonPrimitive.content
-
-        private val attestationCertificate by lazy {
-            runBlocking {
-                X509Cert.Companion.fromPem(
-                    Res.readBytes("files/attestationCertificate.pem").decodeToString().trimIndent()
-                )
+        private val attestationJwk = """
+            {
+                "kty": "EC",
+                "alg": "ES256",
+                "crv": "P-256",
+                "x": "CoLFZ9sJfTqax-GarKIyw7_fX8-L446AoCTSHKJnZGs",
+                "y": "ALEJB1_YQMO_0qSFQb3urFTxRfANN8-MSeWLHYU7MVI",
+                "d": "nJXw7FqLff14yQLBEAwu70mu1gzlfOONh9UuealdsVM",
+                "x5c": [
+                    "MIIBtDCCATugAwIBAgIJAPosC/l8rotwMAoGCCqGSM49BAMCMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAeFw0yNTA5MzAwMjUxNDRaFw0zNTA5MjgwMjUxNDRaMDgxNjA0BgNVBAMMLXVybjp1dWlkOjRjNDY0NzJiLTdlYjItNDRiNi04NTNhLWY3ZGZlMTEzYzU3NTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAqCxWfbCX06msfhmqyiMsO/31/Pi+OOgKAk0hyiZ2RrALEJB1/YQMO/0qSFQb3urFTxRfANN8+MSeWLHYU7MVKjLjAsMB8GA1UdIwQYMBaAFPqAK5EjiQbxFAeWt//DCaWtC57aMAkGA1UdEwQCMAAwCgYIKoZIzj0EAwIDZwAwZAIwfDEviit5J188zK5qKjkzFWkPy3ljshUg650p2kNuQq7CiQvbKyVDIlCGgOhMZyy+AjBm6ehDicFMPVBEHLUEiXO4cHw7Ed6dFpPm/6GknWcADhax62KN1tIzExo6T1l06G4=",
+                    "MIIBxTCCAUugAwIBAgIJAOQTL9qcQopZMAoGCCqGSM49BAMDMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAeFw0yNDA5MjMyMjUxMzFaFw0zNDA5MjMyMjUxMzFaMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjB2MBAGByqGSM49AgEGBSuBBAAiA2IABN4D7fpNMAv4EtxyschbITpZ6iNH90rGapa6YEO/uhKnC6VpPt5RUrJyhbvwAs0edCPthRfIZwfwl5GSEOS0mKGCXzWdRv4GGX/Y0m7EYypox+tzfnRTmoVX3v6OxQiapKMhMB8wHQYDVR0OBBYEFPqAK5EjiQbxFAeWt//DCaWtC57aMAoGCCqGSM49BAMDA2gAMGUCMEO01fJKCy+iOTpaVp9LfO7jiXcXksn2BA22reiR9ahDRdGNCrH1E3Q2umQAssSQbQIxAIz1FTHbZPcEbA5uE5lCZlRG/DQxlZhk/rZrkPyXFhqEgfMnQ45IJ6f8Utlg+4Wiiw=="
+                ]
             }
-        }
+           """.trimIndent()
 
-        private val attestationPrivateKey =
-            runBlocking {
-                EcPrivateKey.Companion.fromPem(
-                    Res.readBytes("files/attestationPrivateKey.pem").decodeToString().trimIndent()
-                        .trimIndent(),
-                    attestationCertificate.ecPublicKey
-                )
-            }
+        private val clientAssertionKey = AsymmetricKey.parseExplicit(clientAssertionJwk)
+        private val attestationKey = AsymmetricKey.parseExplicit(attestationJwk)
+
         const val CLIENT_ID = "urn:uuid:418745b8-78a3-4810-88df-7898aff3ffb4"
-
-        private val attestationId =
-            attestationCertificate.subject.components[OID.COMMON_NAME.oid]?.value
-                ?: throw IllegalStateException("No common name (CN) in certificate's subject")
 
         val OPENID4VCI_CLIENT_PREFERENCES = OpenID4VCIClientPreferences(
             clientId = CLIENT_ID,
@@ -121,123 +95,35 @@ class ProvisioningSupport: OpenID4VCIBackend {
 
     override suspend fun getClientId(): String = CLIENT_ID
 
-    @OptIn(ExperimentalTime::class)
-    override suspend fun createJwtClientAssertion(authorizationServerIdentifier: String): String {
-        val alg = localClientAssertionPrivateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
-        val head = buildJsonObject {
-            put("typ", "JWT")
-            put("alg", alg)
-            put("kid", localClientAssertionKeyId)
-        }.toString().encodeToByteArray().toBase64Url()
-
-        val now = Clock.System.now()
-        val expiration = now + 5.minutes
-        val payload = buildJsonObject {
-            put("jti", Random.Default.nextBytes(18).toBase64Url())
-            put("iss", CLIENT_ID)
-            put("sub", CLIENT_ID) // RFC 7523 Section 3, item 2.B
-            put("exp", expiration.epochSeconds)
-            put("iat", now.epochSeconds)
-            put("aud", authorizationServerIdentifier)
-        }.toString().encodeToByteArray().toBase64Url()
-
-        val message = "$head.$payload"
-        val sig = Crypto.sign(
-            key = localClientAssertionPrivateKey,
-            signatureAlgorithm = localClientAssertionPrivateKey.curve.defaultSigningAlgorithm,
-            message = message.encodeToByteArray()
+    override suspend fun createJwtClientAssertion(authorizationServerIdentifier: String): String =
+        OpenID4VCIBackendUtil.createJwtClientAssertion(
+            signingKey = clientAssertionKey,
+            clientId = CLIENT_ID,
+            authorizationServerIdentifier = authorizationServerIdentifier,
         )
-        val signature = sig.toCoseEncoded().toBase64Url()
 
-        return "$message.$signature"
-    }
-
-    @OptIn(ExperimentalTime::class)
-    override suspend fun createJwtWalletAttestation(keyAttestation: KeyAttestation): String {
-        // Implements this draft:
-        // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-04
-
-        val signatureAlgorithm = attestationPrivateKey.curve.defaultSigningAlgorithmFullySpecified
-        val head = buildJsonObject {
-            put("typ", "oauth-client-attestation+jwt")
-            put("alg", signatureAlgorithm.joseAlgorithmIdentifier)
-            put("x5c", buildJsonArray {
-                add(attestationCertificate.encoded.toByteArray().encodeBase64())
-            })
-        }.toString().encodeToByteArray().toBase64Url()
-
-        val now = Clock.System.now()
-        val notBefore = now - 1.seconds
-        // Expiration here is only for the client assertion to be presented to the issuing server
-        // in the given timeframe (which happens without user interaction). It does not imply that
-        // the key becomes invalid at that point in time.
-        val expiration = now + 5.minutes
-        val payload = buildJsonObject {
-            put("iss", attestationId)
-            put("sub", CLIENT_ID)
-            put("exp", expiration.epochSeconds)
-            put("cnf", buildJsonObject {
-                put(
-                    "jwk",
-                    keyAttestation.publicKey.toJwk(buildJsonObject { put("kid", CLIENT_ID) })
-                )
-            })
-            put("nbf", notBefore.epochSeconds)
-            put("iat", now.epochSeconds)
-            put("wallet_name", "Multipaz Wallet")
-            put("wallet_link", "https://multipaz.org")
-        }.toString().encodeToByteArray().toBase64Url()
-
-        val message = "$head.$payload"
-        val sig = Crypto.sign(
-            key = attestationPrivateKey,
-            signatureAlgorithm = signatureAlgorithm,
-            message = message.encodeToByteArray()
+    override suspend fun createJwtWalletAttestation(keyAttestation: KeyAttestation): String =
+        OpenID4VCIBackendUtil.createWalletAttestation(
+            signingKey = attestationKey,
+            clientId = CLIENT_ID,
+            attestationIssuer = attestationKey.subject,
+            attestedKey = keyAttestation.publicKey,
+            nonce = null,
+            walletName = "Multipaz TestApp",
+            walletLink = "https://apps.multipaz.org"
         )
-        val signature = sig.toCoseEncoded().toBase64Url()
 
-        return "$message.$signature"
-    }
-
-    @OptIn(ExperimentalTime::class)
     override suspend fun createJwtKeyAttestation(
-        keyAttestations: List<KeyAttestation>,
+        keyIdAndAttestations: List<KeyIdAndAttestation>,
         challenge: String,
         userAuthentication: List<String>?,
         keyStorage: List<String>?
-    ): String {
-        val keyList = keyAttestations.map { it.publicKey }
-
-        val alg = attestationPrivateKey.curve.defaultSigningAlgorithm.joseAlgorithmIdentifier
-        val head = buildJsonObject {
-            // OpenID4VCI Appendix D.1 expects "key-attestation+jwt" as typ
-            put("typ", "key-attestation+jwt")
-            put("alg", alg)
-            put("x5c", buildJsonArray {
-                add(attestationCertificate.encoded.toByteArray().encodeBase64())
-            })
-        }.toString().encodeToByteArray().toBase64Url()
-
-        val now = Clock.System.now()
-        val notBefore = now - 1.seconds
-        val expiration = now + 5.minutes
-        val payload = buildJsonObject {
-            put("iss", attestationId)
-            put("attested_keys", JsonArray(keyList.map { it.toJwk() }))
-            put("nonce", challenge)
-            put("nbf", notBefore.epochSeconds)
-            put("exp", expiration.epochSeconds)
-            put("iat", now.epochSeconds)
-        }.toString().encodeToByteArray().toBase64Url()
-
-        val message = "$head.$payload"
-        val sig = Crypto.sign(
-            key = attestationPrivateKey,
-            signatureAlgorithm = attestationPrivateKey.curve.defaultSigningAlgorithm,
-            message = message.encodeToByteArray()
-        )
-        val signature = sig.toCoseEncoded().toBase64Url()
-
-        return "$message.$signature"
-    }
+    ): String = OpenID4VCIBackendUtil.createJwtKeyAttestation(
+        signingKey = attestationKey,
+        attestationIssuer = attestationKey.subject,
+        keysToAttest = keyIdAndAttestations,
+        challenge = challenge,
+        userAuthentication = userAuthentication,
+        keyStorage = keyStorage,
+    )
 }
