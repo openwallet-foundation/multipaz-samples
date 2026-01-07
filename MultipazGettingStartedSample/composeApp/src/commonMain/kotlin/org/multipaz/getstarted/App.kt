@@ -80,6 +80,7 @@ import kotlin.math.sqrt
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 class App {
 
@@ -145,7 +146,7 @@ class App {
             println("------- IACA PEM -------")
 
             // 1. Prepare Timestamps
-            val now = Clock.System.now()
+            val now = Instant.fromEpochSeconds(Clock.System.now().epochSeconds)
             val signedAt = now
             val validFrom = now
             val validUntil = now + 365.days
