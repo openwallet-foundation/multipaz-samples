@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -243,97 +244,143 @@ fun HomeScreen(
             }
         }
 
-        if (!cameraPermissionState.isGranted)
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        cameraPermissionState.launchPermissionRequest()
-                    }
-                }) {
-                Text("Grant Camera Permission for Selfie Check")
-            }
-        else if (faceCaptured.value == null) {
-            if (!showCamera)
-                Button(
-                    onClick = { showCamera = true }) {
-                    Text("Selfie Check")
-                }
-            else {
-                SelfieCheck(
-                    modifier = Modifier.fillMaxWidth(),
-                    onVerificationComplete = {
-                        showCamera = false
-                        if (selfieCheckViewModel.capturedFaceImage != null)
-                            faceCaptured.value =
-                                getFaceEmbeddings(
-                                    image = decodeImage(selfieCheckViewModel.capturedFaceImage!!.toByteArray()),
-                                    model = app.faceMatchLiteRtModel
-                                )
-
-                        selfieCheckViewModel.resetForNewCheck()
-                    },
-                    viewModel = selfieCheckViewModel,
-                    identityIssuer = identityIssuer
-                )
+        when {
+            !cameraPermissionState.isGranted -> {
                 Button(
                     onClick = {
-                        showCamera = false
-                        selfieCheckViewModel.resetForNewCheck()
-                    }) {
-                    Text("Close")
-                }
-            }
-        } else {
-            if (!showFaceMatching)
-                Button(
-                    onClick = {
-                        showFaceMatching = true
-                    }) {
-                    Text("Face Matching")
-                }
-            else {
-                Text("Similarity: ${(similarity * 100).roundToInt()}%")
-
-                Camera(
-                    modifier = Modifier
-                        .fillMaxSize(0.5f)
-                        .padding(64.dp),
-                    cameraSelection = CameraSelection.DEFAULT_FRONT_CAMERA,
-                    captureResolution = CameraCaptureResolution.MEDIUM,
-                    showCameraPreview = true,
-                ) { incomingVideoFrame: CameraFrame ->
-
-                    val faces = detectFaces(incomingVideoFrame)
-
-                    if (faces.isNullOrEmpty()) {
-                        similarity = 0f
-                    } else if (faceCaptured.value != null) {
-                        val faceImage =
-                            app.extractFaceBitmap(
-                                incomingVideoFrame,
-                                faces[0], // assuming only one face exists for simplicity
-                                app.faceMatchLiteRtModel.imageSquareSize
-                            )
-
-                        val faceInsetsForDetectedFace =
-                            getFaceEmbeddings(faceImage, app.faceMatchLiteRtModel)
-
-                        if (faceInsetsForDetectedFace != null) {
-                            similarity = faceCaptured.value!!.calculateSimilarity(
-                                faceInsetsForDetectedFace
-                            )
+                        coroutineScope.launch {
+                            cameraPermissionState.launchPermissionRequest()
                         }
                     }
-                }
-
-                Button(
-                    onClick = {
-                        showFaceMatching = false
-                        faceCaptured.value = null
-                    }) {
-                    Text("Close")
+                ) {
+                    Text("Grant Camera Permission for Selfie Check")
                 }
             }
+
+            faceCaptured.value == null -> {
+                SelfieCheckFlow(
+                    showCamera = showCamera,
+                    onShowCameraChange = { showCamera = it },
+                    selfieCheckViewModel = selfieCheckViewModel,
+                    identityIssuer = identityIssuer,
+                    onFaceCaptured = { embedding ->
+                        faceCaptured.value = embedding
+                    },
+                    app = app
+                )
+            }
+
+            else -> {
+                FaceMatchingFlow(
+                    showFaceMatching = showFaceMatching,
+                    onShowFaceMatchingChange = { showFaceMatching = it },
+                    similarity = similarity,
+                    onSimilarityChange = { similarity = it },
+                    faceCaptured = faceCaptured,
+                    app = app
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelfieCheckFlow(
+    showCamera: Boolean,
+    onShowCameraChange: (Boolean) -> Unit,
+    selfieCheckViewModel: SelfieCheckViewModel,
+    identityIssuer: String,
+    onFaceCaptured: (FaceEmbedding?) -> Unit,
+    app: App
+) {
+    if (!showCamera) {
+        Button(onClick = { onShowCameraChange(true) }) {
+            Text("Selfie Check")
+        }
+    } else {
+        SelfieCheck(
+            modifier = Modifier.fillMaxWidth(),
+            onVerificationComplete = {
+                onShowCameraChange(false)
+                if (selfieCheckViewModel.capturedFaceImage != null) {
+                    val embedding = getFaceEmbeddings(
+                        image = decodeImage(selfieCheckViewModel.capturedFaceImage!!.toByteArray()),
+                        model = app.faceMatchLiteRtModel
+                    )
+                    onFaceCaptured(embedding)
+                }
+                selfieCheckViewModel.resetForNewCheck()
+            },
+            viewModel = selfieCheckViewModel,
+            identityIssuer = identityIssuer
+        )
+
+        Button(
+            onClick = {
+                onShowCameraChange(false)
+                selfieCheckViewModel.resetForNewCheck()
+            }
+        ) {
+            Text("Close")
+        }
+    }
+}
+
+@Composable
+private fun FaceMatchingFlow(
+    showFaceMatching: Boolean,
+    onShowFaceMatchingChange: (Boolean) -> Unit,
+    similarity: Float,
+    onSimilarityChange: (Float) -> Unit,
+    faceCaptured: MutableState<FaceEmbedding?>,
+    app: App
+) {
+    if (!showFaceMatching) {
+        Button(onClick = { onShowFaceMatchingChange(true) }) {
+            Text("Face Matching")
+        }
+    } else {
+        Text("Similarity: ${(similarity * 100).roundToInt()}%")
+
+        Camera(
+            modifier = Modifier
+                .fillMaxSize(0.5f)
+                .padding(64.dp),
+            cameraSelection = CameraSelection.DEFAULT_FRONT_CAMERA,
+            captureResolution = CameraCaptureResolution.MEDIUM,
+            showCameraPreview = true,
+        ) { incomingVideoFrame: CameraFrame ->
+            val faces = detectFaces(incomingVideoFrame)
+
+            when {
+                faces.isNullOrEmpty() -> {
+                    onSimilarityChange(0f)
+                }
+
+                faceCaptured.value != null -> {
+                    val faceImage = app.extractFaceBitmap(
+                        incomingVideoFrame,
+                        faces[0], // assuming only one face exists for simplicity
+                        app.faceMatchLiteRtModel.imageSquareSize
+                    )
+
+                    val faceEmbedding = getFaceEmbeddings(faceImage, app.faceMatchLiteRtModel)
+
+                    if (faceEmbedding != null) {
+                        val newSimilarity = faceCaptured.value!!.calculateSimilarity(faceEmbedding)
+                        onSimilarityChange(newSimilarity)
+                    }
+                }
+            }
+        }
+
+        Button(
+            onClick = {
+                onShowFaceMatchingChange(false)
+                faceCaptured.value = null
+            }
+        ) {
+            Text("Close")
         }
     }
 }
