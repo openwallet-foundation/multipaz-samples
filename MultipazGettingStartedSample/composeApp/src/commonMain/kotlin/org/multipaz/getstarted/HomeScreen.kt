@@ -229,15 +229,15 @@ fun HomeScreen(
                             ?: "_"
 
                         val metadataString = Cbor.encode(metadata.toDataItem()).toBase64Url()
-                        
-                        val route = Destination.ShowResponseDestination.route +
-                                "/$vpTokenString" +
-                                "/$deviceResponseString" +
-                                "/$sessionTranscriptString" +
-                                "/$nonceString" +
-                                "/$eReaderKeyString" +
-                                "/$metadataString"
-                        navController.navigate(route)
+
+                        navController.navigate(Destination.ShowResponseDestination(
+                            vpResponse = vpTokenString,
+                            deviceResponse = deviceResponseString,
+                            sessionTranscript = sessionTranscriptString,
+                            nonce = nonceString,
+                            eReaderKey = eReaderKeyString,
+                            metadata = metadataString
+                        ))
                     }
                 )
             }
