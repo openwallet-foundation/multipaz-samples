@@ -126,11 +126,6 @@ class ProvisioningSupport: OpenID4VCIBackend {
     override suspend fun createJwtClientAssertion(authorizationServerIdentifier: String): String {
         val alg = localClientAssertionPrivateKey.curve.defaultSigningAlgorithmFullySpecified.joseAlgorithmIdentifier
         //TODO: implement head
-        val head = buildJsonObject {
-            put("typ", "JWT")
-            put("alg", alg)
-            put("kid", localClientAssertionKeyId)
-        }.toString().encodeToByteArray().toBase64Url()
 
         val now = Clock.System.now()
         val expiration = now + 5.minutes

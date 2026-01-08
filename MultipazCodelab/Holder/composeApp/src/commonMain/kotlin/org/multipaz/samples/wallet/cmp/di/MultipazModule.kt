@@ -69,6 +69,89 @@ val multipazModule = module {
         )
     }
 
+    single<TrustManager> {
+        val trustManager = TrustManagerLocal(storage = get(), identifier = "reader")
+
+        runBlocking {
+            suspend fun addCertificateIfNotExists(
+                certPath: String,
+                displayName: String,
+                privacyPolicyUrl: String
+            ) {
+                try {
+                    val certPem = Res.readBytes(certPath)
+                        .decodeToString()
+                        .trimIndent()
+                        .trim()
+
+                    trustManager.addX509Cert(
+                        certificate = X509Cert.fromPem(certPem),
+                        metadata = TrustMetadata(
+                            displayName = displayName,
+                            displayIcon = null,
+                            privacyPolicyUrl = privacyPolicyUrl
+                        )
+                    )
+                    Logger.i("TrustManager", "Successfully added certificate: $displayName")
+                } catch (e: TrustPointAlreadyExistsException) {
+                    Logger.e(
+                        "TrustManager",
+                        "Certificate already exists: $displayName",
+                        e)
+                } catch (e: Exception) {
+                    Logger.e(
+                        "TrustManager",
+                        "Failed to add certificate: $displayName - ${e.message}",
+                        e
+                    )
+                }
+            }
+
+            // Add all required certificates
+            addCertificateIfNotExists(
+                certPath = "files/test_app_reader_root_certificate.pem",
+                displayName = "OWF Multipaz Test App Reader",
+                privacyPolicyUrl = "https://apps.multipaz.org"
+            )
+
+            addCertificateIfNotExists(
+                certPath = "files/reader_root_certificate.pem",
+                displayName = "Multipaz Identity Reader (Trusted Devices)",
+                privacyPolicyUrl = "https://apps.multipaz.org"
+            )
+
+            addCertificateIfNotExists(
+                certPath = "files/reader_root_certificate_for_untrust_device.pem",
+                displayName = "Multipaz Identity Reader (UnTrusted Devices)",
+                privacyPolicyUrl = "https://apps.multipaz.org"
+            )
+
+            trustManager
+        }
+    }
+
+    single<PresentmentSource> {
+        runBlocking {
+            if (DigitalCredentials.Default.available) {
+                DigitalCredentials.Default.startExportingCredentials(
+                    documentStore = get(),
+                    documentTypeRepository = get()
+                )
+            }
+
+            SimplePresentmentSource(
+                documentStore = get(),
+                documentTypeRepository = get(),
+                readerTrustManager = get(),
+                preferSignatureToKeyAgreement = true,
+                // Match domains used when storing credentials via OpenID4VCI
+                domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
+                domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
+                domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+                domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
+            )
+        }
+    }
 
     single<ProvisioningSupport> {
         ProvisioningSupport()

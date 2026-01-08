@@ -12,6 +12,9 @@ struct ComposeView: UIViewControllerRepresentable {
 struct ContentView: View {
     var body: some View {
         ComposeView()
-            .ignoresSafeArea()
+                .ignoresSafeArea()
+                .onOpenURL(perform: { url in
+                    MainViewControllerKt.HandleUrl(url: url.absoluteString)
+                })
     }
 }
