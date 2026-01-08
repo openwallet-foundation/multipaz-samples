@@ -110,7 +110,7 @@ tasks.register<Copy>("prepareCocoaPodsFramework") {
     description = "Prepares the framework for CocoaPods by copying it to the expected location"
     group = "cocoapods"
 
-    // Build only for arm64 (physical devices) - Kotlin 2.2.0 has bug with Navigation on simulators
+    // Build only for arm64 (physical devices) - Credentials are stored in hardware-backed secure storage
     dependsOn(
         "linkDebugFrameworkIosArm64"
     )
