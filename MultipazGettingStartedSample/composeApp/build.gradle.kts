@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.tasks.Copy
@@ -8,6 +7,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -61,6 +61,7 @@ kotlin {
             implementation(libs.ktor.client.core)
             // CIO for JVM/Android; Darwin engine for iOS in iosMain
             implementation(libs.ktor.client.cio)
+            implementation(libs.kotlinx.serialization.json)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -108,12 +109,10 @@ dependencies {
 tasks.register<Copy>("prepareCocoaPodsFramework") {
     description = "Prepares the framework for CocoaPods by copying it to the expected location"
     group = "cocoapods"
-    
-    // Depend on all iOS framework linking tasks
+
+    // Build only for arm64 (physical devices) - Credentials are stored in hardware-backed secure storage
     dependsOn(
-        "linkDebugFrameworkIosArm64",
-        "linkDebugFrameworkIosSimulatorArm64",
-        "linkDebugFrameworkIosX64"
+        "linkDebugFrameworkIosArm64"
     )
     
     val frameworkDir = layout.buildDirectory.dir("cocoapods/framework")

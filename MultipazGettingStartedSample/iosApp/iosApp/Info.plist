@@ -2,12 +2,44 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-
-	<key>NSBluetoothAlwaysUsageDescription</key>
+    <key>NSBluetoothAlwaysUsageDescription</key>
     <string>Bluetooth permission is required for proximity presentations</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>This app uses FaceID to protect keys</string>
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>CFBundleURLName</key>
+            <string>org.multipaz.samples.wallet</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>get-started-app</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>CFBundleURLName</key>
+            <string>org.multipaz.openid.credential-offer</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>openid-credential-offer</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>CFBundleURLName</key>
+            <string>org.multipaz.openid.haip</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>haip</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
