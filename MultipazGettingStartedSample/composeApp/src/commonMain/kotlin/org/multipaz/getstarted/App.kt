@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
 import io.ktor.client.HttpClient
@@ -360,7 +361,7 @@ class App {
 
         LaunchedEffect(isProvisioning) {
             if (isProvisioning) {
-                navController.navigate(Destination.ProvisioningDestination.route)
+                navController.navigate(Destination.ProvisioningDestination)
             }
         }
 
@@ -385,10 +386,10 @@ class App {
 
             NavHost(
                 navController = navController,
-                startDestination = Destination.HomeDestination.route,
+                startDestination = Destination.HomeDestination,
                 modifier = Modifier.fillMaxSize().navigationBarsPadding(),
             ) {
-                composable(route = Destination.HomeDestination.route) {
+                composable<Destination.HomeDestination> {
                     HomeScreen(
                         app = this@App,
                         navController = navController,
@@ -403,28 +404,16 @@ class App {
                         }
                     )
                 }
-                composable(
-                    route = Destination.ShowResponseDestination.routeWithArgs,
-                    arguments = Destination.ShowResponseDestination.arguments
-                ) { backStackEntry ->
-                    val vpToken =
-                        backStackEntry.arguments
-                            ?.getString(Destination.ShowResponseDestination.VP_TOKEN)
-                            ?.let {
-                                if (it != "_") Json.decodeFromString<JsonObject>(
-                                    it.fromBase64Url().decodeToString()
-                                ) else null
-                            }
+                composable<Destination.ShowResponseDestination> { backStackEntry ->
+                    val destination = backStackEntry.toRoute<Destination.ShowResponseDestination>()
+                    val vpToken = destination.vpResponse?.let {
+                        if (it != "_") Json.decodeFromString<JsonObject>(
+                            it.fromBase64Url().decodeToString()
+                        ) else null
+                    }
                     val sessionTranscript =
-                        backStackEntry.arguments
-                            ?.getString(Destination.ShowResponseDestination.SESSION_TRANSCRIPT)
-                            ?.fromBase64Url()
-                            ?.let { Cbor.decode(it) }
-
-                    val nonce =
-                        backStackEntry.arguments
-                            ?.getString(Destination.ShowResponseDestination.NONCE)
-                            ?.let { if (it != "_") ByteString(it.fromBase64Url()) else null }
+                        Cbor.decode(destination.sessionTranscript.fromBase64Url())
+                    val nonce = destination.nonce?.let { ByteString(it.fromBase64Url()) }
                     ShowResponseScreen(
                         vpToken = vpToken,
                         sessionTranscript = sessionTranscript,
@@ -436,9 +425,7 @@ class App {
                     )
                 }
 
-                composable(
-                    route = Destination.ProvisioningDestination.route
-                ) {
+                composable<Destination.ProvisioningDestination> {
                     ProvisioningScreen(
                         provisioningModel = provisioningModel,
                         provisioningSupport = provisioningSupport,
