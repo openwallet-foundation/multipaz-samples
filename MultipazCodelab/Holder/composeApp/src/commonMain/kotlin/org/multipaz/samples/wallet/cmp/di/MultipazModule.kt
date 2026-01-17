@@ -2,8 +2,10 @@ package org.multipaz.samples.wallet.cmp.di
 
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.koin.dsl.module
+import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.X509Cert
 import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
@@ -18,7 +20,12 @@ import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.prompt.PromptModel
+import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
+import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
+import org.multipaz.rpc.handler.RpcAuthClientSession
+import org.multipaz.samples.wallet.cmp.util.OpenID4VCILocalBackend
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
+import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport.Companion.APP_LINK_BASE_URL
 import org.multipaz.samples.wallet.cmp.util.TestAppUtils
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
@@ -164,7 +171,29 @@ val multipazModule = module {
     }
 
     single<ProvisioningSupport> {
-        ProvisioningSupport()
+        ProvisioningSupport(
+            get(),
+            get(),
+            get(),
+            get()
+        )
+    }
+
+    single<OpenID4VCIBackend> {
+        OpenID4VCILocalBackend()
+    }
+
+    single<OpenID4VCIClientPreferences> {
+        OpenID4VCIClientPreferences(
+            clientId = runBlocking {
+                withContext(RpcAuthClientSession()) {
+                    get<OpenID4VCIBackend>().getClientId()
+                }
+            },
+            redirectUrl = APP_LINK_BASE_URL,
+            locales = listOf("en-US"),
+            signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512)
+        )
     }
 
     single<PresentmentModel> {
