@@ -123,7 +123,7 @@ private fun ProductCard(product: Product) {
                     .height(120.dp)
                     .clip(RoundedCornerShape(4.dp))
             )
-
+            
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(

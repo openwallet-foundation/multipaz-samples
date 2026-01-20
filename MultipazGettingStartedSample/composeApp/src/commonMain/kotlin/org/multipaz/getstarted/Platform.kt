@@ -1,7 +1,3 @@
 package org.multipaz.getstarted
-
-interface Platform {
-    val name: String
-}
-
-expect fun getPlatform(): Platform
+expect fun getAppToAppOrigin(): String
+expect fun isAndroid(): Boolean

@@ -97,9 +97,9 @@ kotlin {
                 implementation(libs.jetbrains.lifecycle.viewmodel.compose)
 
                 implementation(libs.multipaz)
-                implementation(libs.multipaz.models)
                 implementation(libs.multipaz.compose)
                 implementation(libs.multipaz.doctypes)
+                implementation(libs.multipaz.vision)
 
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.kotlinx.serialization.json)

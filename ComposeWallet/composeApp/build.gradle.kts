@@ -16,7 +16,12 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
+    compilerOptions {
+        allWarningsAsErrors = true
+        optIn.add("kotlin.time.ExperimentalTime")
+    }
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -27,13 +32,21 @@ kotlin {
             isStatic = true
         }
     }
+
+    applyDefaultHierarchyTemplate()
     
     sourceSets {
-        
+        val iosMain by getting {
+            dependencies {
+                implementation(libs.ktor.client.darwin)
+            }
+        }
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
+            implementation(libs.ktor.client.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -48,7 +61,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.multipaz)
             implementation(libs.multipaz.doctypes)
-            implementation(libs.multipaz.models)
+            implementation(libs.multipaz.dcapi)
             implementation(libs.multipaz.compose)
             implementation(libs.coil.compose)
         }

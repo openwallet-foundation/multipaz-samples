@@ -16,7 +16,12 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
+    compilerOptions {
+        allWarningsAsErrors = true
+        optIn.add("kotlin.time.ExperimentalTime")
+    }
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -47,7 +52,6 @@ kotlin {
             implementation(libs.kotlinx.io.bytestring)
             implementation(libs.kotlinx.datetime)
             implementation(libs.multipaz)
-            implementation(libs.multipaz.models)
             implementation(libs.multipaz.compose)
         }
     }
