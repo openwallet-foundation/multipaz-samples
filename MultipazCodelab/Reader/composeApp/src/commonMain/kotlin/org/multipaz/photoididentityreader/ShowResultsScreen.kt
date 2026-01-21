@@ -1,7 +1,8 @@
-package org.multipaz.photoididentityreader
+package org.multipaz.identityreader
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,16 +16,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,19 +48,40 @@ import io.github.alexzhirkevich.compottie.animateLottieCompositionAsState
 import io.github.alexzhirkevich.compottie.rememberLottieComposition
 import io.github.alexzhirkevich.compottie.rememberLottiePainter
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.TimeZone
+import kotlinx.io.bytestring.ByteString
 import multipazphotoididentityreader.composeapp.generated.resources.Res
 import org.multipaz.cbor.Cbor
 import org.multipaz.claim.MdocClaim
+import org.multipaz.compose.camera.Camera
+import org.multipaz.compose.camera.CameraCaptureResolution
+import org.multipaz.compose.camera.CameraFrame
+import org.multipaz.compose.camera.CameraSelection
+import org.multipaz.compose.cropRotateScaleImage
 import org.multipaz.compose.decodeImage
+import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.LoyaltyID
+import org.multipaz.documenttype.knowntypes.Loyalty
 import org.multipaz.documenttype.knowntypes.PhotoID
+import org.multipaz.facedetection.DetectedFace
+import org.multipaz.facedetection.FaceLandmarkType
+import org.multipaz.facedetection.detectFaces
+import org.multipaz.facematch.FaceMatchLiteRtModel
+import org.multipaz.facematch.getFaceEmbeddings
 import org.multipaz.mdoc.response.DeviceResponseParser
+import org.multipaz.photoididentityreader.AppBar
+import org.multipaz.photoididentityreader.ReaderModel
+import org.multipaz.photoididentityreader.ReaderQuery
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustPoint
 import org.multipaz.util.Logger
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.max
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -69,6 +94,7 @@ fun ShowResultsScreen(
     documentTypeRepository: DocumentTypeRepository,
     issuerTrustManager: TrustManager,
     onBackPressed: () -> Unit,
+    faceMatchLiteRtModel: FaceMatchLiteRtModel,
     onShowDetailedResults: (() -> Unit)?
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -127,6 +153,7 @@ fun ShowResultsScreen(
                         ShowResultsScreenSuccess(
                             readerQuery = readerQuery,
                             documents = documents.value!!,
+                            faceMatchLiteRtModel = faceMatchLiteRtModel,
                             onShowDetailedResults = onShowDetailedResults
                         )
                     }
@@ -164,7 +191,7 @@ private suspend fun parseResponse(
         encodedDeviceResponse = readerModel.result!!.encodedDeviceResponse!!.toByteArray(),
         encodedSessionTranscript = readerModel.result!!.encodedSessionTranscript.toByteArray()
     )
-    parser.setEphemeralReaderKey(readerModel.result!!.eReaderKey)
+    parser.setEphemeralReaderKey(AsymmetricKey.AnonymousExplicit(privateKey = readerModel.result!!.eReaderKey))
     val deviceResponse = parser.parse()
 
     val readerDocuments = mutableListOf<MdocDocument>()
@@ -315,7 +342,8 @@ private fun ShowResultsScreenFailed(
 private fun ShowResultsScreenSuccess(
     readerQuery: ReaderQuery,
     documents: List<MdocDocument>,
-    onShowDetailedResults: (() -> Unit)?
+    faceMatchLiteRtModel: FaceMatchLiteRtModel,
+    onShowDetailedResults: (() -> Unit)?,
 ) {
     val successComposition by rememberLottieComposition {
         LottieCompositionSpec.JsonString(
@@ -387,7 +415,8 @@ private fun ShowResultsScreenSuccess(
 */             ReaderQuery.VALID_MEMBERSHIP_CARD -> {
                 ShowMemberShipCard(
                     document = document,
-                    onShowDetailedResults = onShowDetailedResults
+                    onShowDetailedResults = onShowDetailedResults,
+                    faceMatchLiteRtModel = faceMatchLiteRtModel
                 )
             }
 
@@ -414,7 +443,7 @@ private fun ShowAgeOver(
     // val portraitBitmap = remember { getPortraitBitmapPhotoId(document) }
 
 //    val mdlNameSpace = document.namespaces.find { it.name == DrivingLicense.MDL_NAMESPACE }
-    val mdlNameSpace = document.namespaces.find { it.name == LoyaltyID.LOYALTY_ID_NAMESPACE }
+    val mdlNameSpace = document.namespaces.find { it.name == Loyalty.LOYALTY_NAMESPACE }
 
     //val mdlNameSpace = document.namespaces.find { it.name == PhotoID.ISO_23220_2_NAMESPACE }
 
@@ -555,7 +584,8 @@ private fun ShowIdentification(
 @Composable
 private fun ShowMemberShipCard(
     document: MdocDocument,
-    onShowDetailedResults: (() -> Unit)?
+    faceMatchLiteRtModel: FaceMatchLiteRtModel,
+    onShowDetailedResults: (() -> Unit)?,
 ) {
     val portraitBitmap = remember { getPortraitBitmapPhotoId(document) }
 
@@ -568,11 +598,19 @@ private fun ShowMemberShipCard(
         composition = composition,
     )
 
+    var showFaceVerification by remember { mutableStateOf(false) }
+    var showVerifiedDialog by remember { mutableStateOf(false) }
+
+    var similarity by remember { mutableStateOf(0f) }
+
     Image(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp)
             .padding(16.dp)
+            .clickable {
+                showFaceVerification = true
+            }
             .let {
                 if (onShowDetailedResults != null) {
                     it.combinedClickable(
@@ -584,6 +622,64 @@ private fun ShowMemberShipCard(
         bitmap = portraitBitmap!!,
         contentDescription = null
     )
+
+    if (showFaceVerification) {
+        Text("Similarity: ${(similarity * 100).roundToInt()}%")
+
+        Camera(
+            modifier = Modifier
+                .fillMaxSize(0.5f)
+                .padding(64.dp),
+            cameraSelection = CameraSelection.DEFAULT_BACK_CAMERA, // todo fix
+            captureResolution = CameraCaptureResolution.MEDIUM,
+            showCameraPreview = true,
+        ) { incomingVideoFrame: CameraFrame ->
+
+            val faces: List<DetectedFace>? = detectFaces(incomingVideoFrame)
+
+            if (faces.isNullOrEmpty()) {
+                similarity = 0f;
+            } else {
+                val faceImage =
+                    extractFaceBitmap(
+                        incomingVideoFrame,
+                        faces[0], // assuming only one face exists for simplicity
+                        faceMatchLiteRtModel.imageSquareSize
+                    )
+
+                val faceInsetsForDetectedFace =
+                    getFaceEmbeddings(faceImage, faceMatchLiteRtModel)
+                val portriatEmbedding = getFaceEmbeddings(portraitBitmap, faceMatchLiteRtModel)
+
+                if (faceInsetsForDetectedFace != null && portriatEmbedding != null) {
+                    similarity = faceInsetsForDetectedFace.calculateSimilarity(
+                        portriatEmbedding
+                    )
+
+                    similarity = max(similarity, 0f)
+
+                    if (similarity > 0.5f)
+                        showVerifiedDialog = true
+                }
+            }
+        }
+    }
+
+    if (showVerifiedDialog) {
+        AlertDialog(
+            onDismissRequest = { showVerifiedDialog = false },
+            title = { Text("Face Verified") },
+            text = { Text("Face verified successfully") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showVerifiedDialog = false
+                }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -682,13 +778,13 @@ private fun getPortraitBitmapPhotoId(document: MdocDocument): ImageBitmap? {
         }
     }
     
-    if (document.docType != LoyaltyID.LOYALTY_ID_DOCTYPE) {
-        Logger.i(TAG, "getPortraitBitmapPhotoId - Document type mismatch, expected: ${LoyaltyID.LOYALTY_ID_DOCTYPE}")
+    if (document.docType != Loyalty.LOYALTY_DOCTYPE) {
+        Logger.i(TAG, "getPortraitBitmapPhotoId - Document type mismatch, expected: ${Loyalty.LOYALTY_DOCTYPE}")
         return null
     }
-    val photoIDNamespace = document.namespaces.find { it.name == LoyaltyID.LOYALTY_ID_NAMESPACE }
+    val photoIDNamespace = document.namespaces.find { it.name == Loyalty.LOYALTY_NAMESPACE }
     if (photoIDNamespace == null) {
-        Logger.i(TAG, "getPortraitBitmapPhotoId - PhotoID namespace not found, expected: ${LoyaltyID.LOYALTY_ID_NAMESPACE}")
+        Logger.i(TAG, "getPortraitBitmapPhotoId - PhotoID namespace not found, expected: ${Loyalty.LOYALTY_NAMESPACE}")
         return null
     }
     val portraitClaim = photoIDNamespace.dataElements["portrait"]
@@ -737,4 +833,54 @@ private fun ShowResultDocument(
             }
         }
     }
+}
+
+/** Cut out the face square, rotate it to level eyes line, scale to the smaller size for face matching tasks. */
+private fun extractFaceBitmap(
+    frameData: CameraFrame,
+    face: DetectedFace,
+    targetSize: Int
+): ImageBitmap {
+    val leftEye = face.landmarks.find { it.type == FaceLandmarkType.LEFT_EYE }
+    val rightEye = face.landmarks.find { it.type == FaceLandmarkType.RIGHT_EYE }
+    val mouthPosition = face.landmarks.find { it.type == FaceLandmarkType.MOUTH_BOTTOM }
+
+    if (leftEye == null || rightEye == null || mouthPosition == null) {
+        return frameData.cameraImage.toImageBitmap()
+    }
+
+    // Heuristic multiplier to fit the face normalized to the eyes pupilar distance.
+    val faceCropFactor = 4f
+
+    // Heuristic multiplier to offset vertically so the face is better centered within the rectangular crop.
+    val faceVerticalOffsetFactor = 0.25f
+
+    var faceCenterX = (leftEye.position.x + rightEye.position.x) / 2
+    var faceCenterY = (leftEye.position.y + rightEye.position.y) / 2
+    val eyeOffsetX = leftEye.position.x - rightEye.position.x
+    val eyeOffsetY = leftEye.position.y - rightEye.position.y
+    val eyeDistance = sqrt(eyeOffsetX * eyeOffsetX + eyeOffsetY * eyeOffsetY)
+    val faceWidth = eyeDistance * faceCropFactor
+    val faceVerticalOffset = eyeDistance * faceVerticalOffsetFactor
+    if (frameData.isLandscape) {
+        /** Required for iOS capable of upside-down face detection. */
+        faceCenterY += faceVerticalOffset * (if (leftEye.position.y < mouthPosition.position.y) 1 else -1)
+    } else {
+        /** Required for iOS capable of upside-down face detection. */
+        faceCenterX -= faceVerticalOffset * (if (leftEye.position.x < mouthPosition.position.x) -1 else 1)
+    }
+    val eyesAngleRad = atan2(eyeOffsetY, eyeOffsetX)
+    val eyesAngleDeg = eyesAngleRad * 180.0 / PI // Convert radians to degrees
+    val totalRotationDegrees = 180 - eyesAngleDeg
+
+    // Call platform dependent bitmap transformation.
+    return cropRotateScaleImage(
+        frameData = frameData, // Platform-specific image data.
+        cx = faceCenterX.toDouble(), // Point between eyes
+        cy = faceCenterY.toDouble(), // Point between eyes
+        angleDegrees = totalRotationDegrees, //includes the camera rotation and eyes rotation.
+        outputWidthPx = faceWidth.toInt(), // Expected face width for cropping *before* final scaling.
+        outputHeightPx = faceWidth.toInt(),// Expected face height for cropping *before* final scaling.
+        targetWidthPx = targetSize, // Final square image size (for database saving and face matching tasks).
+    )
 }

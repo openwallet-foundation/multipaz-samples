@@ -36,8 +36,8 @@ struct WalletData {
             let validFrom = now
             let validUntil = now.plus(duration: 365*86400*1000*1000*1000)
             let iacaKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-            let iacaCert = MdocUtil.shared.generateIacaCertificate(
-                iacaKey: iacaKey,
+            let iacaCert = try! await MdocUtil.shared.generateIacaCertificate(
+                iacaKey: AsymmetricKey.AnonymousExplicit(privateKey: iacaKey, algorithm: Algorithm.esp256),
                 subject: X500Name.companion.fromName(name: "CN=Test IACA Key"),
                 serial: ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
                 validFrom: validFrom,
@@ -46,9 +46,12 @@ struct WalletData {
                 crlUrl: "https://issuer.example.com/crl"
             )
             let dsKey = Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-            let dsCert = MdocUtil.shared.generateDsCertificate(
-                iacaCert: iacaCert,
-                iacaKey: iacaKey,
+            let dsCert = try! await MdocUtil.shared.generateDsCertificate(
+                iacaKey: AsymmetricKey.X509CertifiedExplicit(
+                    certChain: X509CertChain(certificates: [iacaCert]),
+                    privateKey: dsKey,
+                    algorithm: Algorithm.esp256
+                ),
                 dsKey: dsKey.publicKey,
                 subject: X500Name.companion.fromName(name: "CN=Test DS Key"),
                 serial:  ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
@@ -68,15 +71,22 @@ struct WalletData {
                 createKeySettings: CreateKeySettings(
                     algorithm: Algorithm.esp256,
                     nonce: ByteStringBuilder(initialCapacity: 3).appendString(string: "123").toByteString(),
-                    userAuthenticationRequired: true
+                    userAuthenticationRequired: true,
+                    userAuthenticationTimeout: 0,
+                    validFrom: nil,
+                    validUntil: nil
                 ),
-                dsKey: dsKey,
-                dsCertChain: X509CertChain(certificates: [dsCert]),
+                dsKey: AsymmetricKey.X509CertifiedExplicit(
+                    certChain: X509CertChain(certificates: [dsCert]),
+                    privateKey: dsKey,
+                    algorithm: Algorithm.esp256
+                ),
                 signedAt: signedAt,
                 validFrom: validFrom,
                 validUntil: validUntil,
                 expectedUpdate: nil,
-                domain: "mdoc")
+                domain: "mdoc"
+            )
         }
         let ephemeralStorage = EphemeralStorage(clock: KotlinClockCompanion().getSystem())
         readerTrustManager = TrustManagerLocal(storage: ephemeralStorage, identifier: "default", partitionId: "default_default")
@@ -103,7 +113,9 @@ struct WalletData {
             metadata: TrustMetadata(
                 displayName: "Multipaz Identity Reader",
                 displayIcon: nil,
+                displayIconUrl: nil,
                 privacyPolicyUrl: nil,
+                disclaimer: nil,
                 testOnly: true,
                 extensions: [:]
             )
@@ -132,7 +144,9 @@ struct WalletData {
             metadata: TrustMetadata(
                 displayName: "Multipaz Identity Reader (Untrusted Devices)",
                 displayIcon: nil,
+                displayIconUrl: nil,
                 privacyPolicyUrl: nil,
+                disclaimer: nil,
                 testOnly: true,
                 extensions: [:]
             )
@@ -161,9 +175,6 @@ struct ContentView: View {
 
             case .processing:
                 handleProcessing()
-                
-            case .waitingForDocumentSelection:
-                handleWaitingForDocumentSelection()
                 
             case .waitingForConsent:
                 handleWaitingForConsent()
@@ -202,7 +213,7 @@ struct ContentView: View {
                     connectionMethods,
                     role: MdocRole.mdoc,
                     transportFactory: MdocTransportFactoryDefault.shared,
-                    options: MdocTransportOptions(bleUseL2CAP: true)
+                    options: MdocTransportOptions(bleUseL2CAP: false, bleUseL2CAPInEngagement: true)
                 )
                 let engagementGenerator = EngagementGenerator(
                     eSenderKey: eDeviceKey.publicKey,
@@ -258,6 +269,10 @@ struct ContentView: View {
             documentTypeRepository: walletData!.documentTypeRepository,
             readerTrustManager: walletData!.readerTrustManager,
             zkSystemRepository: nil,
+            skipConsentPrompt: false,
+            dynamicMetadataResolver: { requester in
+                nil
+            },
             preferSignatureToKeyAgreement: true,
             domainMdocSignature: "mdoc",
             domainMdocKeyAgreement: nil,
@@ -271,16 +286,6 @@ struct ContentView: View {
         return Text("Communicating with reader")
     }
 
-    private func handleWaitingForDocumentSelection() -> some View {
-        // In this sample we just pick the first document, more sophisticated
-        // wallets present a document picker for the user
-        //
-        walletData!.presentmentModel.documentSelected(
-            document: walletData!.presentmentModel.availableDocuments.first
-        )
-        return EmptyView()
-    }
-
     private func handleWaitingForConsent() -> some View {
         return VStack {
             let consentData = walletData!.presentmentModel.consentData
@@ -292,13 +297,16 @@ struct ContentView: View {
                 Text("Trusted mdoc reader **\(displayName)** is requesting information")
                     .font(.title)
             }
+            let selection = consentData.credentialPresentmentData.select(preselectedDocuments: [])
             VStack {
-                ForEach(consentData.request.requestedClaims, id: \.self) { requestedClaim in
-                    Text(requestedClaim.displayName)
+                let match = selection.matches.first!
+                ForEach(match.claims.map({ (key: RequestedClaim, value: Claim) in
+                    value
+                }), id: \.self) { claim in
+                    Text(claim.displayName)
                         .font(.body)
                         .fontWeight(.thin)
                         .textScale(.secondary)
-
                 }
             }
             HStack {
@@ -309,7 +317,7 @@ struct ContentView: View {
                 }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
 
                 Button(action: {
-                    walletData!.presentmentModel.consentReviewed(consentObtained: true)
+                    walletData!.presentmentModel.consentObtained(selection: selection)
                 }) {
                     Text("Consent")
                 }.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)

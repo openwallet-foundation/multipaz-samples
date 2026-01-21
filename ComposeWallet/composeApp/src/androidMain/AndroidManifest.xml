@@ -20,6 +20,7 @@
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
         android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <!-- For NFC engagement -->
     <uses-feature
@@ -38,12 +39,46 @@
         <activity
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:launchMode="singleTop"
             android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- 1. HTTPS App Links (default) - Requires .well-known/assetlinks.json -->
+            <!-- Examples: https://apps.multipaz.org/landing/ -->
+            <!-- Must match ProvisioningSupport.APP_LINK_SERVER -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!--
+                Do not include other schemes, only https. If domain is changed here, it
+                also MUST be changed in ProvisioningSupport class.
+                -->
+                <data
+                    android:scheme="https"
+                    android:host="apps.multipaz.org"
+                    android:pathPattern="/redirect/org.multipaz.samples.wallet.cmp"/>
+            </intent-filter>
+
+            <!-- 2. OpenID4VCI Credential Offers -->
+            <!-- Examples: openid-credential-offer://, haip-vci:// -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!--  OpenId Credential Offer scheme (OID4VCI) -->
+                <data android:scheme="openid-credential-offer"/>
+                <!--  High Assurance Interoperability Profile -->
+                <data android:scheme="haip-vci"/>
+                <!-- Accept all hosts for any of the defined schemes above -->
+                <data android:host="*"/>
+            </intent-filter>
+
         </activity>
 
         <activity

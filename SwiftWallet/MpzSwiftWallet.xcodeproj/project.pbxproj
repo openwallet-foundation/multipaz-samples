@@ -586,7 +586,7 @@
 			repositoryURL = "https://github.com/openwallet-foundation/multipaz";
 			requirement = {
 				kind = exactVersion;
-				version = 0.93.0;
+				version = 0.95.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

@@ -25,8 +25,6 @@ fun UtopiaSampleApp(
     provisioningSupport: ProvisioningSupport = koinInject()
 ) {
     MaterialTheme {
-        val stableProvisioningModel = remember(provisioningModel) { provisioningModel }
-        val stableProvisioningSupport = remember(provisioningSupport) { provisioningSupport }
         val navController = rememberNavController()
 
         NavHost(
@@ -47,23 +45,14 @@ fun UtopiaSampleApp(
 
         // Use the working pattern from identity-credential project
         LaunchedEffect(true) {
-            Logger.i(TAG, "LaunchedEffect: Credential processing loop started")
             while (true) {
-                Logger.i(TAG, "LaunchedEffect: Waiting for credential offer...")
                 val credentialOffer = credentialOffers.receive()
-                Logger.i(TAG, "LaunchedEffect: Received credential offer: $credentialOffer")
-                Logger.i(TAG, "LaunchedEffect: Launching OpenID4VCI provisioning...")
-                stableProvisioningModel.launchOpenID4VCIProvisioning(
+                provisioningModel.launchOpenID4VCIProvisioning(
                     offerUri = credentialOffer,
-                    clientPreferences = ProvisioningSupport.OPENID4VCI_CLIENT_PREFERENCES,
-                    backend = stableProvisioningSupport
-                )
-                Logger.i(
-                    TAG,
-                    "LaunchedEffect: Provisioning launched, navigating to provisioning"
+                    clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
+                    backend = provisioningSupport.getOpenID4VCIBackend()
                 )
                 navController.navigate("provisioning")
-                Logger.i(TAG, "LaunchedEffect: Navigation completed")
             }
         }
     }

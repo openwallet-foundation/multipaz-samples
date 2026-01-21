@@ -37,7 +37,7 @@ fun MainViewController() = ComposeUIViewController(
 ) {
     var isInitialized by remember { mutableStateOf(false) }
     val credentialOffers: Channel<String> = Channel()
-
+    
     // Store the channel globally for HandleUrl to access
     LaunchedEffect(credentialOffers) {
         globalCredentialOffers = credentialOffers
