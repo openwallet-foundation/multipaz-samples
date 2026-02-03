@@ -14,9 +14,9 @@ sealed interface Destination {
     data class ShowResponseDestination(
         val vpResponse: String?,
         val deviceResponse: String?,
-        val sessionTranscript: String,
+        val sessionTranscript: String?,
         val nonce: String?,
-        val eReaderKey: String,
-        val metadata: String
+        val eReaderKey: String?,
+        val metadata: String?
     ) : Destination
 }
