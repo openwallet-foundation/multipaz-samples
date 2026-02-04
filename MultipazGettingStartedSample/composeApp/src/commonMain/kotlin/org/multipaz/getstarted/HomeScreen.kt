@@ -62,6 +62,7 @@ import org.multipaz.facematch.getFaceEmbeddings
 import org.multipaz.getstarted.App.Companion.SAMPLE_DOCUMENT_DISPLAY_NAME
 import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
 import org.multipaz.getstarted.w3cdc.W3CDCCredentialsRequestButton
+import org.multipaz.getstarted.w3cdc.buildShowResponseDestination
 import org.multipaz.getstarted.w3cdc.toDataItem
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
@@ -197,51 +198,29 @@ fun HomeScreen(
             }
         }
 
-        AnimatedVisibility(documents.isNotEmpty()) {
-            // W3C Digital Credentials API is only available on Android
-            if (isAndroid()) {
-                W3CDCCredentialsRequestButton(
-                    promptModel = App.promptModel,
-                    storageTable = app.storageTable,
-                    showResponse = { vpToken: JsonObject?,
-                                     deviceResponse: DataItem?,
-                                     sessionTranscript: DataItem,
-                                     nonce: ByteString?,
-                                     eReaderKey: EcPrivateKey?,
-                                     metadata: ShowResponseMetadata ->
-                        val vpTokenString =  vpToken
-                            ?.let { Json.encodeToString(it) }
-                            ?.encodeToByteArray()
-                            ?.toBase64Url() ?: "_"
-
-                        val deviceResponseString =
-                            deviceResponse
-                                ?.let { Cbor.encode(it).toBase64Url() }
-                                ?: "_"
-
-                        val sessionTranscriptString = Cbor.encode(sessionTranscript).toBase64Url()
-
-                        val nonceString = nonce
-                            ?.let { nonce.toByteArray().toBase64Url() }
-                            ?: "_"
-
-                        val eReaderKeyString =  eReaderKey
-                            ?.let { Cbor.encode(eReaderKey.toCoseKey().toDataItem()).toBase64Url() }
-                            ?: "_"
-
-                        val metadataString = Cbor.encode(metadata.toDataItem()).toBase64Url()
-
-                        navController.navigate(Destination.ShowResponseDestination(
-                            vpResponse = vpTokenString,
-                            deviceResponse = deviceResponseString,
-                            sessionTranscript = sessionTranscriptString,
-                            nonce = nonceString,
-                            eReaderKey = eReaderKeyString,
-                            metadata = metadataString
-                        ))
-                    }
-                )
-            }
+        // W3C Digital Credentials API is only available on Android
+        if (isAndroid() && documents.isNotEmpty()) {
+            W3CDCCredentialsRequestButton(
+                promptModel = App.promptModel,
+                storageTable = app.storageTable,
+                showResponse = { vpToken: JsonObject?,
+                                 deviceResponse: DataItem?,
+                                 sessionTranscript: DataItem,
+                                 nonce: ByteString?,
+                                 eReaderKey: EcPrivateKey?,
+                                 metadata: ShowResponseMetadata ->
+                    navController.navigate(
+                        buildShowResponseDestination(
+                            vpToken = vpToken,
+                            deviceResponse = deviceResponse,
+                            sessionTranscript = sessionTranscript,
+                            nonce = nonce,
+                            eReaderKey = eReaderKey,
+                            metadata = metadata,
+                        )
+                    )
+                }
+            )
         }
 
         when {

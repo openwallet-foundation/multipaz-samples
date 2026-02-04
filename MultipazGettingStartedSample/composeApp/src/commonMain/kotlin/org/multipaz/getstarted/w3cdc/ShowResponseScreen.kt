@@ -1,4 +1,4 @@
-package org.multipaz.getstarted
+package org.multipaz.getstarted.w3cdc
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -36,14 +36,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.io.bytestring.ByteString
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
 import org.multipaz.compose.decodeImage
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.getstarted.w3cdc.DocumentValue
-import org.multipaz.getstarted.w3cdc.TAG
+import org.multipaz.getstarted.Destination
 import org.multipaz.util.Logger
+import org.multipaz.util.fromBase64Url
 import org.multipaz.verification.MdocVerifiedPresentation
 import org.multipaz.verification.VerificationUtil.verifyOpenID4VPResponse
 import kotlin.time.Clock
@@ -53,12 +55,21 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTime::class)
 @Composable
 fun ShowResponseScreen(
-    vpToken: JsonObject?,
-    sessionTranscript: DataItem?,
-    nonce: ByteString?,
+    response: Destination.ShowResponseDestination,
     documentTypeRepository: DocumentTypeRepository?,
     goBack: () -> Unit
 ) {
+    val vpToken = response.vpResponse?.let { vpResponse ->
+        Json.decodeFromString<JsonObject>(
+            vpResponse.fromBase64Url().decodeToString()
+        )
+    }
+
+    val sessionTranscript = response.sessionTranscript?.let {
+        Cbor.decode(it.fromBase64Url())
+    }
+
+    val nonce = response.nonce?.let { ByteString(it.fromBase64Url()) }
 
     val verificationResult =
         remember { mutableStateOf<VerificationResult>(VerificationResult.Loading) }
