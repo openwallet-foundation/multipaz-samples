@@ -5,11 +5,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import org.multipaz.crypto.Algorithm
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
-import org.multipaz.rpc.handler.RpcAuthClientSession
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 
@@ -28,9 +25,8 @@ class ProvisioningSupport(
     val backend: OpenID4VCIBackend,
     val preferences: OpenID4VCIClientPreferences,
 ) {
-    val TAG = "PRO:ProvisioningSupport"
-
     companion object Companion {
+        const val TAG = "PRO:ProvisioningSupport"
         const val APP_LINK_SERVER = "wholesale-test-app"
         const val APP_LINK_BASE_URL = "${APP_LINK_SERVER}://landing/"
 

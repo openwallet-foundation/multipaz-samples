@@ -12,7 +12,6 @@ import org.multipaz.samples.wallet.cmp.util.Constants.APP_NAME
 import org.multipaz.samples.wallet.cmp.util.Constants.appIcon
 
 class NfcActivity : MdocNfcPresentmentActivity() {
-
     private val promptModel: PromptModel by inject()
     private val documentTypeRepository: DocumentTypeRepository by inject()
     private val presentmentSource: PresentmentSource by inject()
@@ -25,8 +24,9 @@ class NfcActivity : MdocNfcPresentmentActivity() {
             applicationTheme = @Composable { content -> MaterialTheme { content() } },
             documentTypeRepository = documentTypeRepository,
             presentmentSource = presentmentSource,
-            imageLoader = ImageLoader.Builder(applicationContext)
-                .components { /* network loader omitted */ }.build(),
+            imageLoader =
+                ImageLoader.Builder(applicationContext)
+                    .components { /* network loader omitted */ }.build(),
         )
     }
 }

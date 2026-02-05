@@ -18,8 +18,8 @@ import org.multipaz.documenttype.knowntypes.Loyalty
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
-import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.prompt.PromptModel
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.rpc.handler.RpcAuthClientSession
@@ -38,168 +38,173 @@ import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import utopiasample.composeapp.generated.resources.Res
 
-val multipazModule = module {
-    single<Storage> { Platform.nonBackedUpStorage }
-    single<SecureArea> { runBlocking { Platform.getSecureArea() } }
-    single<SecureAreaRepository> {
-        val secureArea: SecureArea = get()
-        SecureAreaRepository
-            .Builder()
-            .add(secureArea).build()
-    }
-    single<DocumentTypeRepository> {
-        DocumentTypeRepository().apply {
-            addDocumentType(DrivingLicense.getDocumentType())
-            addDocumentType(Loyalty.getDocumentType())
+val multipazModule =
+    module {
+        single<Storage> { Platform.nonBackedUpStorage }
+        single<SecureArea> { runBlocking { Platform.getSecureArea() } }
+        single<SecureAreaRepository> {
+            val secureArea: SecureArea = get()
+            SecureAreaRepository
+                .Builder()
+                .add(secureArea).build()
         }
-    }
-    single<DocumentStore> {
-        buildDocumentStore(
-            storage = get(),
-            secureAreaRepository = get(),
-        ) {}
-    }
-    single<PromptModel> {
-        Platform.promptModel
-    }
-    single<HttpClient> {
-        HttpClient {
-            followRedirects = false
+        single<DocumentTypeRepository> {
+            DocumentTypeRepository().apply {
+                addDocumentType(DrivingLicense.getDocumentType())
+                addDocumentType(Loyalty.getDocumentType())
+            }
         }
-    }
-    single<ProvisioningModel> {
-        ProvisioningModel(
-            documentStore = get(),
-            secureArea = get(),
-            httpClient = get(),
-            promptModel = get(),
-            documentMetadataInitializer = { metadata, credentialDisplay, issuerDisplay ->
-                (metadata as DocumentMetadata).setMetadata(
-                    displayName = credentialDisplay.text,
-                    typeDisplayName = credentialDisplay.text,
-                    cardArt = credentialDisplay.logo
-                        ?: ByteString(Res.readBytes("drawable/profile.png")),
-                    issuerLogo = issuerDisplay.logo,
-                    other = null
-                )
-            }
-        )
-    }
-
-    single<TrustManager> {
-        val trustManager = TrustManagerLocal(storage = get(), identifier = "reader")
-
-        runBlocking {
-            suspend fun addCertificateIfNotExists(
-                certPath: String,
-                displayName: String,
-                privacyPolicyUrl: String
-            ) {
-                try {
-                    val certPem = Res.readBytes(certPath)
-                        .decodeToString()
-                        .trimIndent()
-                        .trim()
-
-                    trustManager.addX509Cert(
-                        certificate = X509Cert.fromPem(certPem),
-                        metadata = TrustMetadata(
-                            displayName = displayName,
-                            displayIcon = null,
-                            privacyPolicyUrl = privacyPolicyUrl
-                        )
-                    )
-                    Logger.i("TrustManager", "Successfully added certificate: $displayName")
-                } catch (e: TrustPointAlreadyExistsException) {
-                    Logger.e(
-                        "TrustManager",
-                        "Certificate already exists: $displayName",
-                        e)
-                } catch (e: Exception) {
-                    Logger.e(
-                        "TrustManager",
-                        "Failed to add certificate: $displayName - ${e.message}",
-                        e
-                    )
-                }
-            }
-
-            // Add all required certificates
-            addCertificateIfNotExists(
-                certPath = "files/test_app_reader_root_certificate.pem",
-                displayName = "OWF Multipaz Test App Reader",
-                privacyPolicyUrl = "https://apps.multipaz.org"
-            )
-
-            addCertificateIfNotExists(
-                certPath = "files/reader_root_certificate.pem",
-                displayName = "Multipaz Identity Reader (Trusted Devices)",
-                privacyPolicyUrl = "https://apps.multipaz.org"
-            )
-
-            addCertificateIfNotExists(
-                certPath = "files/reader_root_certificate_for_untrust_device.pem",
-                displayName = "Multipaz Identity Reader (UnTrusted Devices)",
-                privacyPolicyUrl = "https://apps.multipaz.org"
-            )
-
-            trustManager
+        single<DocumentStore> {
+            buildDocumentStore(
+                storage = get(),
+                secureAreaRepository = get(),
+            ) {}
         }
-    }
-
-    single<PresentmentSource> {
-        runBlocking {
-            if (DigitalCredentials.Default.available) {
-                DigitalCredentials.Default.startExportingCredentials(
-                    documentStore = get(),
-                    documentTypeRepository = get()
-                )
+        single<PromptModel> {
+            Platform.promptModel
+        }
+        single<HttpClient> {
+            HttpClient {
+                followRedirects = false
             }
-
-            SimplePresentmentSource(
+        }
+        single<ProvisioningModel> {
+            ProvisioningModel(
                 documentStore = get(),
-                documentTypeRepository = get(),
-                readerTrustManager = get(),
-                preferSignatureToKeyAgreement = true,
-                // Match domains used when storing credentials via OpenID4VCI
-                domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-                domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-                domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-                domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
+                secureArea = get(),
+                httpClient = get(),
+                promptModel = get(),
+                documentMetadataInitializer = { metadata, credentialDisplay, issuerDisplay ->
+                    (metadata as DocumentMetadata).setMetadata(
+                        displayName = credentialDisplay.text,
+                        typeDisplayName = credentialDisplay.text,
+                        cardArt =
+                            credentialDisplay.logo
+                                ?: ByteString(Res.readBytes("drawable/profile.png")),
+                        issuerLogo = issuerDisplay.logo,
+                        other = null,
+                    )
+                },
             )
         }
-    }
 
-    single<ProvisioningSupport> {
-        ProvisioningSupport(
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
+        single<TrustManager> {
+            val trustManager = TrustManagerLocal(storage = get(), identifier = "reader")
 
-    single<OpenID4VCIBackend> {
-        OpenID4VCILocalBackend()
-    }
+            runBlocking {
+                suspend fun addCertificateIfNotExists(
+                    certPath: String,
+                    displayName: String,
+                    privacyPolicyUrl: String,
+                ) {
+                    try {
+                        val certPem =
+                            Res.readBytes(certPath)
+                                .decodeToString()
+                                .trimIndent()
+                                .trim()
 
-    single<OpenID4VCIClientPreferences> {
-        OpenID4VCIClientPreferences(
-            clientId = runBlocking {
-                withContext(RpcAuthClientSession()) {
-                    get<OpenID4VCIBackend>().getClientId()
+                        trustManager.addX509Cert(
+                            certificate = X509Cert.fromPem(certPem),
+                            metadata =
+                                TrustMetadata(
+                                    displayName = displayName,
+                                    displayIcon = null,
+                                    privacyPolicyUrl = privacyPolicyUrl,
+                                ),
+                        )
+                        Logger.i("TrustManager", "Successfully added certificate: $displayName")
+                    } catch (e: TrustPointAlreadyExistsException) {
+                        Logger.e(
+                            "TrustManager",
+                            "Certificate already exists: $displayName",
+                            e,
+                        )
+                    } catch (e: Exception) {
+                        Logger.e(
+                            "TrustManager",
+                            "Failed to add certificate: $displayName - ${e.message}",
+                            e,
+                        )
+                    }
                 }
-            },
-            redirectUrl = APP_LINK_BASE_URL,
-            locales = listOf("en-US"),
-            signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512)
-        )
-    }
 
-    single<PresentmentModel> {
-        PresentmentModel().apply {
-            setPromptModel(get())
+                // Add all required certificates
+                addCertificateIfNotExists(
+                    certPath = "files/test_app_reader_root_certificate.pem",
+                    displayName = "OWF Multipaz Test App Reader",
+                    privacyPolicyUrl = "https://apps.multipaz.org",
+                )
+
+                addCertificateIfNotExists(
+                    certPath = "files/reader_root_certificate.pem",
+                    displayName = "Multipaz Identity Reader (Trusted Devices)",
+                    privacyPolicyUrl = "https://apps.multipaz.org",
+                )
+
+                addCertificateIfNotExists(
+                    certPath = "files/reader_root_certificate_for_untrust_device.pem",
+                    displayName = "Multipaz Identity Reader (UnTrusted Devices)",
+                    privacyPolicyUrl = "https://apps.multipaz.org",
+                )
+
+                trustManager
+            }
+        }
+
+        single<PresentmentSource> {
+            runBlocking {
+                if (DigitalCredentials.Default.available) {
+                    DigitalCredentials.Default.startExportingCredentials(
+                        documentStore = get(),
+                        documentTypeRepository = get(),
+                    )
+                }
+
+                SimplePresentmentSource(
+                    documentStore = get(),
+                    documentTypeRepository = get(),
+                    readerTrustManager = get(),
+                    preferSignatureToKeyAgreement = true,
+                    // Match domains used when storing credentials via OpenID4VCI
+                    domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
+                    domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
+                    domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+                    domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH,
+                )
+            }
+        }
+
+        single<ProvisioningSupport> {
+            ProvisioningSupport(
+                get(),
+                get(),
+                get(),
+                get(),
+            )
+        }
+
+        single<OpenID4VCIBackend> {
+            OpenID4VCILocalBackend()
+        }
+
+        single<OpenID4VCIClientPreferences> {
+            OpenID4VCIClientPreferences(
+                clientId =
+                    runBlocking {
+                        withContext(RpcAuthClientSession()) {
+                            get<OpenID4VCIBackend>().getClientId()
+                        }
+                    },
+                redirectUrl = APP_LINK_BASE_URL,
+                locales = listOf("en-US"),
+                signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512),
+            )
+        }
+
+        single<PresentmentModel> {
+            PresentmentModel().apply {
+                setPromptModel(get())
+            }
         }
     }
-}
-
