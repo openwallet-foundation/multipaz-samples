@@ -24,20 +24,20 @@ fun handleUrl(
     url: String,
     credentialOffers: Channel<String>,
     provisioningModel: ProvisioningModel,
-    provisioningSupport: ProvisioningSupport
+    provisioningSupport: ProvisioningSupport,
 ) {
     Logger.i(TAG, "handleUrl called with: $url")
     Logger.i(TAG, "handleUrl provisioningModel state: ${provisioningModel.state.value}")
-    
-    if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME)
-        || url.startsWith(HAIP_URL_SCHEME)
+
+    if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME) ||
+        url.startsWith(HAIP_URL_SCHEME)
     ) {
         val queryIndex = url.indexOf('?')
         if (queryIndex >= 0) {
             Logger.i(TAG, "Starting OpenID4VCI provisioning with: $url")
             Logger.i(
                 TAG,
-                "OID4VCI_CREDENTIAL_OFFER_URL_SCHEME provisioningModel: $provisioningModel"
+                "OID4VCI_CREDENTIAL_OFFER_URL_SCHEME provisioningModel: $provisioningModel",
             )
             Logger.i(TAG, "handleUrl: Sending credential offer to channel...")
             CoroutineScope(Dispatchers.Default).launch {
@@ -47,7 +47,7 @@ fun handleUrl(
             }
             Logger.i(
                 TAG,
-                "handleUrl: Credential offer sent to channel, LaunchedEffect should process it"
+                "handleUrl: Credential offer sent to channel, LaunchedEffect should process it",
             )
         }
     } else if (url.startsWith(ProvisioningSupport.APP_LINK_BASE_URL)) {
@@ -65,5 +65,3 @@ fun handleUrl(
         }
     }
 }
-
-

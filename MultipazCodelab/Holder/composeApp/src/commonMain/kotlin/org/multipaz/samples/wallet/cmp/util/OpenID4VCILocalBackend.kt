@@ -24,25 +24,27 @@ class OpenID4VCILocalBackend : OpenID4VCIBackend {
             attestedKey = keyAttestation.publicKey,
             nonce = null,
             walletName = "Multipaz TestApp",
-            walletLink = "https://apps.multipaz.org"
+            walletLink = "https://apps.multipaz.org",
         )
 
     override suspend fun createJwtKeyAttestation(
         keyIdAndAttestations: List<KeyIdAndAttestation>,
         challenge: String,
         userAuthentication: List<String>?,
-        keyStorage: List<String>?
-    ): String = OpenID4VCIBackendUtil.createJwtKeyAttestation(
-        signingKey = attestationKey,
-        attestationIssuer = attestationKey.subject,
-        keysToAttest = keyIdAndAttestations,
-        challenge = challenge,
-        userAuthentication = userAuthentication,
-        keyStorage = keyStorage,
-    )
+        keyStorage: List<String>?,
+    ): String =
+        OpenID4VCIBackendUtil.createJwtKeyAttestation(
+            signingKey = attestationKey,
+            attestationIssuer = attestationKey.subject,
+            keysToAttest = keyIdAndAttestations,
+            challenge = challenge,
+            userAuthentication = userAuthentication,
+            keyStorage = keyStorage,
+        )
 
     companion object {
-        private val clientAssertionJwk = """
+        private val clientAssertionJwk =
+            """
             {
                 "kty": "EC",
                 "alg": "ES256",
@@ -52,9 +54,10 @@ class OpenID4VCILocalBackend : OpenID4VCIBackend {
                 "y": "FN1qcif7nyVX1MHN_YSbo7o7RgG2kPJUjg27YX6AKsQ",
                 "d": "TdQhxDqbAUpzMJN5XXQqLea7-6LvQu2GFKzj5QmFDCw"
             }            
-        """.trimIndent()
+            """.trimIndent()
 
-        private val attestationJwk = """
+        private val attestationJwk =
+            """
             {
                 "kty": "EC",
                 "alg": "ES256",
@@ -67,7 +70,7 @@ class OpenID4VCILocalBackend : OpenID4VCIBackend {
                     "MIIBxTCCAUugAwIBAgIJAOQTL9qcQopZMAoGCCqGSM49BAMDMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAeFw0yNDA5MjMyMjUxMzFaFw0zNDA5MjMyMjUxMzFaMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjB2MBAGByqGSM49AgEGBSuBBAAiA2IABN4D7fpNMAv4EtxyschbITpZ6iNH90rGapa6YEO/uhKnC6VpPt5RUrJyhbvwAs0edCPthRfIZwfwl5GSEOS0mKGCXzWdRv4GGX/Y0m7EYypox+tzfnRTmoVX3v6OxQiapKMhMB8wHQYDVR0OBBYEFPqAK5EjiQbxFAeWt//DCaWtC57aMAoGCCqGSM49BAMDA2gAMGUCMEO01fJKCy+iOTpaVp9LfO7jiXcXksn2BA22reiR9ahDRdGNCrH1E3Q2umQAssSQbQIxAIz1FTHbZPcEbA5uE5lCZlRG/DQxlZhk/rZrkPyXFhqEgfMnQ45IJ6f8Utlg+4Wiiw=="
                 ]
             }
-           """.trimIndent()
+            """.trimIndent()
 
         private val clientAssertionKey = AsymmetricKey.parseExplicit(clientAssertionJwk)
         private val attestationKey = AsymmetricKey.parseExplicit(attestationJwk)

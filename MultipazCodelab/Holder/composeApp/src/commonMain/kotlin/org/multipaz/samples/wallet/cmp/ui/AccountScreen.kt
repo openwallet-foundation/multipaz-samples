@@ -69,7 +69,7 @@ fun AccountScreen(
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         PromptDialogs(promptModel)
         Spacer(modifier = Modifier.height(30.dp))
@@ -86,7 +86,7 @@ fun AccountScreen(
                     coroutineScope.launch {
                         blePermissionState.launchPermissionRequest()
                     }
-                }
+                },
             ) {
                 Text("Request BLE permissions")
             }
@@ -96,9 +96,10 @@ fun AccountScreen(
             }
         } else {
             val context = LocalPlatformContext.current
-            val imageLoader = remember {
-                ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
-            }
+            val imageLoader =
+                remember {
+                    ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
+                }
 
             val noCredentialDialog = remember { mutableStateOf(false) }
             MdocProximityQrPresentment(
@@ -113,15 +114,15 @@ fun AccountScreen(
                 showQrButton = { onQrButtonClicked ->
                     ShowQrButton(
                         hasCredentials,
-                        onQrButtonClicked
+                        onQrButtonClicked,
                     )
                 },
                 showQrCode = { uri ->
                     ShowQrCode(
                         uri = uri,
-                        presentmentModel = presentmentModel
+                        presentmentModel = presentmentModel,
                     )
-                }
+                },
             )
             if (noCredentialDialog.value) {
                 AlertDialog(
@@ -132,7 +133,7 @@ fun AccountScreen(
                         TextButton(onClick = { noCredentialDialog.value = false }) {
                             Text("OK")
                         }
-                    }
+                    },
                 )
             }
         }
@@ -144,21 +145,21 @@ private fun CredentialStatusIndicator(hasCredentials: Boolean?) {
     Row(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.Center,
     ) {
         when (hasCredentials) {
             true -> {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Credential Available",
-                    tint = Color(0xFF4CAF50), // Green color
-                    modifier = Modifier.size(20.dp)
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Credential is available",
-                    color = Color(0xFF4CAF50), // Green color
-                    fontSize = 14.sp
+                    color = Color(0xFF4CAF50),
+                    fontSize = 14.sp,
                 )
             }
 
@@ -166,22 +167,22 @@ private fun CredentialStatusIndicator(hasCredentials: Boolean?) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "No Credential",
-                    tint = Color(0xFFF44336), // Red color
-                    modifier = Modifier.size(20.dp)
+                    tint = Color(0xFFF44336),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Credential not available",
-                    color = Color(0xFFF44336), // Red color
-                    fontSize = 14.sp
+                    color = Color(0xFFF44336),
+                    fontSize = 14.sp,
                 )
             }
 
             null -> {
                 Text(
                     text = "Checking credential status...",
-                    color = Color(0xFF666666), // Gray color
-                    fontSize = 14.sp
+                    color = Color(0xFF666666),
+                    fontSize = 14.sp,
                 )
             }
         }
@@ -191,54 +192,56 @@ private fun CredentialStatusIndicator(hasCredentials: Boolean?) {
 @Composable
 private fun ShowQrButton(
     hasCredentials: Boolean?,
-    onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit
+    onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         when (hasCredentials) {
             true -> {
                 Button(onClick = {
-                    val connectionMethods = listOf(
-                        MdocConnectionMethodBle(
-                            supportsPeripheralServerMode = false,
-                            supportsCentralClientMode = true,
-                            peripheralServerModeUuid = null,
-                            centralClientModeUuid = UUID.randomUUID(),
+                    val connectionMethods =
+                        listOf(
+                            MdocConnectionMethodBle(
+                                supportsPeripheralServerMode = false,
+                                supportsCentralClientMode = true,
+                                peripheralServerModeUuid = null,
+                                centralClientModeUuid = UUID.randomUUID(),
+                            ),
                         )
-                    )
                     onQrButtonClicked(
                         MdocProximityQrSettings(
                             availableConnectionMethods = connectionMethods,
-                            createTransportOptions = MdocTransportOptions(bleUseL2CAP = true)
-                        )
+                            createTransportOptions = MdocTransportOptions(bleUseL2CAP = true),
+                        ),
                     )
                 }) {
                     Text("Present mDL via QR")
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "The mDL is also available\n" +
+                    text =
+                        "The mDL is also available\n" +
                             "via NFC engagement and W3C DC API\n" +
                             "(Android-only right now)",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
             }
 
             false -> {
                 Text(
                     text = "No usable credentials available.\nPlease add a credential first.",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = {
                         Logger.i(TAG, "Opening issuer website: https://issuer.multipaz.org")
                         uriHandler.openUri("https://issuer.multipaz.org")
-                    }
+                    },
                 ) {
                     Text("Get Credentials from Issuer")
                 }
@@ -254,7 +257,7 @@ private fun ShowQrButton(
 @Composable
 private fun ShowQrCode(
     uri: String,
-    presentmentModel: PresentmentModel
+    presentmentModel: PresentmentModel,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -267,12 +270,12 @@ private fun ShowQrCode(
             modifier = Modifier.fillMaxWidth(),
             bitmap = qrCodeBitmap,
             contentDescription = null,
-            contentScale = ContentScale.FillWidth
+            contentScale = ContentScale.FillWidth,
         )
         Button(
             onClick = {
                 presentmentModel.reset()
-            }
+            },
         ) {
             Text("Cancel")
         }
