@@ -13,6 +13,7 @@ import org.multipaz.context.initializeApplication
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.samples.wallet.cmp.util.handleUrl
+import org.multipaz.util.Logger
 
 class MainActivity : FragmentActivity() {
     private val provisioningModel: ProvisioningModel by inject()

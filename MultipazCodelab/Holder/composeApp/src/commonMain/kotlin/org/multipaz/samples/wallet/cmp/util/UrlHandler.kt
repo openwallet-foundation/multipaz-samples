@@ -24,7 +24,9 @@ fun handleUrl(
     url: String,
     credentialOffers: Channel<String>,
     provisioningModel: ProvisioningModel,
-    provisioningSupport: ProvisioningSupport,
+    provisioningSupport: ProvisioningSupport
 ) {
     // TODO: Implement URL handling and validation
 }
+
+

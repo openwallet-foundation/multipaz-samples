@@ -13,9 +13,11 @@ import org.multipaz.samples.wallet.cmp.util.Constants.appIcon
 import utopiasample.composeapp.generated.resources.Res
 
 class CredmanActivity : CredentialManagerPresentmentActivity() {
+
     private val promptModel: PromptModel by inject()
     private val documentTypeRepository: DocumentTypeRepository by inject()
     private val presentmentSource: PresentmentSource by inject()
+
 
     override suspend fun getSettings(): Settings {
         return Settings(

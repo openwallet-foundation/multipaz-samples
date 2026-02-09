@@ -3,6 +3,7 @@ package org.multipaz.samples.wallet.cmp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -13,6 +14,7 @@ import org.multipaz.samples.wallet.cmp.ui.HomeScreen
 import org.multipaz.samples.wallet.cmp.ui.ProvisioningTestScreen
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.util.Logger
+
 
 private const val TAG = "Navigation"
 

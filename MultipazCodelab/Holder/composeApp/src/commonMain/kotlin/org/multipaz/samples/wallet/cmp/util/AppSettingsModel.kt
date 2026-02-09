@@ -16,12 +16,12 @@ import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
 import org.multipaz.storage.StorageTableSpec
-import kotlin.Boolean
 import kotlin.time.ExperimentalTime
 
 class AppSettingsModel private constructor(
     private val readOnly: Boolean,
 ) {
+
     private lateinit var settingsTable: StorageTable
 
     companion object Companion {
@@ -66,28 +66,15 @@ class AppSettingsModel private constructor(
         key: String,
         defaultValue: T,
     ) {
-        val value =
-            settingsTable.get(key)?.let {
-                val dataItem = Cbor.decode(it.toByteArray())
-                when (T::class) {
-                    Boolean::class -> {
-                        dataItem.asBoolean as T
-                    }
-                    String::class -> {
-                        dataItem.asTstr as T
-                    }
-                    List::class -> {
-                        dataItem.asArray.map { item -> (item as Tstr).value } as T
-                    }
-                    Set::class -> {
-                        dataItem.asArray.map { item -> (item as Tstr).value }.toSet() as T
-                    }
-                    EcCurve::class -> {
-                        EcCurve.entries.find { it.name == dataItem.asTstr } as T
-                    }
-                    else -> {
-                        throw IllegalStateException("Type not supported")
-                    }
+        val value = settingsTable.get(key)?.let {
+            val dataItem = Cbor.decode(it.toByteArray())
+            when (T::class) {
+                Boolean::class -> { dataItem.asBoolean as T }
+                String::class -> { dataItem.asTstr as T }
+                List::class -> { dataItem.asArray.map { item -> (item as Tstr).value } as T }
+                Set::class -> { dataItem.asArray.map { item -> (item as Tstr).value }.toSet() as T }
+                EcCurve::class -> { EcCurve.entries.find { it.name == dataItem.asTstr } as T }
+                else -> { throw IllegalStateException("Type not supported") }
                 }
             } ?: defaultValue
         variable.value = value
@@ -95,11 +82,10 @@ class AppSettingsModel private constructor(
         if (!readOnly) {
             CoroutineScope(Dispatchers.Default).launch {
                 variable.asStateFlow().collect { newValue ->
-                    val dataItem =
-                        when (T::class) {
-                            Boolean::class -> {
-                                (newValue as Boolean).toDataItem()
-                            }
+                    val dataItem = when (T::class) {
+                        Boolean::class -> {
+                            (newValue as Boolean).toDataItem()
+                        }
 
                             String::class -> {
                                 (newValue as String).toDataItem()

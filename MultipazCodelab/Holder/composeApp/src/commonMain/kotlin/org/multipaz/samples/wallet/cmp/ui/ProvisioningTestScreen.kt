@@ -19,6 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.util.Logger
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import org.koin.compose.koinInject
 import org.multipaz.provisioning.AuthorizationChallenge
 import org.multipaz.provisioning.AuthorizationResponse
@@ -50,11 +55,11 @@ fun ProvisioningTestScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start,
         ) {
+
             Text(
-                modifier =
-                    Modifier
-                        .padding(16.dp)
-                        .clickable { onNavigateToMain() },
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clickable { onNavigateToMain() },
                 text = "← Back",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary,
@@ -77,10 +82,9 @@ fun ProvisioningTestScreen(
 
             is ProvisioningModel.Error -> {
                 Text(
-                    modifier =
-                        Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(8.dp),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(8.dp),
                     style = MaterialTheme.typography.titleLarge,
                     text = "Error: ${provisioningState.err.message}",
                 )
@@ -92,7 +96,7 @@ fun ProvisioningTestScreen(
             }
 
             else -> {
-                // TODO: update text depends on provisioningState
+                //TODO: update text depends on provisioningState
             }
         }
     }
@@ -138,10 +142,9 @@ fun EvidenceRequestWebView(
     )
 
     // Stabilize the evidenceRequest to prevent unnecessary re-compositions
-    val stableEvidenceRequest =
-        remember(evidenceRequest.url, evidenceRequest.state) {
-            evidenceRequest
-        }
+    val stableEvidenceRequest = remember(evidenceRequest.url, evidenceRequest.state) {
+        evidenceRequest
+    }
 
     // NB: these scopes will be cancelled when navigating outside of this screen.
     LaunchedEffect(stableEvidenceRequest.url) {
@@ -185,3 +188,4 @@ fun EvidenceRequestWebView(
         }
     }
 }
+

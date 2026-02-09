@@ -394,7 +394,10 @@ private suspend fun doDcRequestFlow(
         metadata: ShowResponseMetadata
     ) -> Unit
 ) {
+
+
     require(request.mdocRequest != null) { "No ISO mdoc format in request" }
+
 
     // Generate random nonce for request/response correlation
     // This prevents replay attacks and binds request to response
@@ -409,6 +412,7 @@ private suspend fun doDcRequestFlow(
 
     // Client ID is required for signed requests per OpenID4VP spec
     val clientId = "web-origin:$origin"
+
 
     val protocolDisplayName = "OpenID4VP 1.0"
     val exchangeProtocolNames = listOf("openid4vp-v1-signed")

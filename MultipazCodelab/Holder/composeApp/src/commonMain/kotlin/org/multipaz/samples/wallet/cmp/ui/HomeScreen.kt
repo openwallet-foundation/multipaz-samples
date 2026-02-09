@@ -75,10 +75,9 @@ fun HomeScreen(documentStore: DocumentStore = koinInject()) {
         ) {
             when (selectedTabRow) {
                 0 -> ExploreScreen()
-                1 ->
-                    AccountScreen(
-                        hasCredentials = hasCredentials,
-                    )
+                1 -> AccountScreen(
+                    hasCredentials = hasCredentials,
+                )
             }
         }
     }

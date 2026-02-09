@@ -21,6 +21,7 @@ import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.di.initKoin
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
+import org.multipaz.samples.wallet.cmp.util.handleUrl
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
 
@@ -74,7 +75,9 @@ fun MainViewController() =
             return@ComposeUIViewController
         }
 
-        UtopiaSampleApp(
+
+    UtopiaSampleApp(
+        credentialOffers = credentialOffers
             credentialOffers = credentialOffers,
         )
     }
