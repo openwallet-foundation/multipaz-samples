@@ -28,7 +28,7 @@ class MainActivity : FragmentActivity() {
             UtopiaSampleApp(
                 credentialOffers = credentialOffers,
                 provisioningModel = provisioningModel,
-                provisioningSupport = provisioningSupport
+                provisioningSupport = provisioningSupport,
             )
         }
         handleIntent(intent)
@@ -44,7 +44,7 @@ class MainActivity : FragmentActivity() {
             val url = intent.dataString
             if (url != null) {
                 lifecycle.coroutineScope.launch {
-                   handleUrl(url)
+                    handleUrl(url)
                 }
             }
         }
@@ -58,7 +58,7 @@ class MainActivity : FragmentActivity() {
             url = url,
             credentialOffers = credentialOffers,
             provisioningModel = provisioningModel,
-            provisioningSupport = provisioningSupport
+            provisioningSupport = provisioningSupport,
         )
     }
 

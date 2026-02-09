@@ -1,9 +1,12 @@
 package org.multipaz.samples.wallet.cmp.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,23 +27,25 @@ import androidx.compose.foundation.layout.height
 import org.koin.compose.koinInject
 import org.multipaz.provisioning.AuthorizationChallenge
 import org.multipaz.provisioning.AuthorizationResponse
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
+import org.multipaz.util.Logger
 
 @Composable
 fun ProvisioningTestScreen(
     provisioningModel: ProvisioningModel = koinInject(),
     provisioningSupport: ProvisioningSupport = koinInject(),
-    onNavigateToMain: () -> Unit
+    onNavigateToMain: () -> Unit,
 ) {
     Logger.i(
-        EvidenceRequestWebView,
-        "ProvisioningTestScreen rendered with state: ${provisioningModel.state.value}"
+        EVIDENCE_REQUEST_WEB_VIEW,
+        "ProvisioningTestScreen rendered with state: ${provisioningModel.state.value}",
     )
 
     val provisioningState = provisioningModel.state.collectAsState(ProvisioningModel.Idle).value
     Logger.i(
-        EvidenceRequestWebView,
-        "ProvisioningTestScreen: collected state is: $provisioningState"
+        EVIDENCE_REQUEST_WEB_VIEW,
+        "ProvisioningTestScreen: collected state is: $provisioningState",
     )
 
     Column {
@@ -48,7 +53,7 @@ fun ProvisioningTestScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.Start,
         ) {
 
             Text(
@@ -57,20 +62,21 @@ fun ProvisioningTestScreen(
                     .clickable { onNavigateToMain() },
                 text = "← Back",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
             )
         }
 
         when (provisioningState) {
             is ProvisioningModel.Authorizing -> {
                 Logger.i(
-                    EvidenceRequestWebView,
-                    "ProvisioningTestScreen: Rendering Authorize with challenges: ${provisioningState.authorizationChallenges}"
+                    EVIDENCE_REQUEST_WEB_VIEW,
+                    "ProvisioningTestScreen: Rendering Authorize with challenges: " +
+                        "${provisioningState.authorizationChallenges}",
                 )
                 Authorize(
                     provisioningModel,
                     provisioningState.authorizationChallenges,
-                    provisioningSupport
+                    provisioningSupport,
                 )
             }
 
@@ -80,12 +86,12 @@ fun ProvisioningTestScreen(
                         .align(Alignment.CenterHorizontally)
                         .padding(8.dp),
                     style = MaterialTheme.typography.titleLarge,
-                    text = "Error: ${provisioningState.err.message}"
+                    text = "Error: ${provisioningState.err.message}",
                 )
                 Text(
                     modifier = Modifier.padding(4.dp),
                     style = MaterialTheme.typography.bodyMedium,
-                    text = "For details: adb logcat -s ProvisioningModel"
+                    text = "For details: adb logcat -s ProvisioningModel",
                 )
             }
 
@@ -100,9 +106,9 @@ fun ProvisioningTestScreen(
 private fun Authorize(
     provisioningModel: ProvisioningModel,
     challenges: List<AuthorizationChallenge>,
-    provisioningSupport: ProvisioningSupport
+    provisioningSupport: ProvisioningSupport,
 ) {
-    Logger.i(EvidenceRequestWebView, "Authorize function called with ${challenges.size} challenges")
+    Logger.i(EVIDENCE_REQUEST_WEB_VIEW, "Authorize function called with ${challenges.size} challenges")
     when (val challenge = challenges.first()) {
         is AuthorizationChallenge.OAuth -> {
             Logger.i(
@@ -116,23 +122,23 @@ private fun Authorize(
     }
 }
 
-const val EvidenceRequestWebView = "PRO:EvidenceRequestWebView"
+const val EVIDENCE_REQUEST_WEB_VIEW = "PRO:EvidenceRequestWebView"
 
 @Composable
 fun EvidenceRequestWebView(
     evidenceRequest: AuthorizationChallenge.OAuth,
     provisioningModel: ProvisioningModel,
-    provisioningSupport: ProvisioningSupport
+    provisioningSupport: ProvisioningSupport,
 ) {
     // Add this logging to see when the component is created/re-created
-    Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView Composable created/re-created")
+    Logger.i(EVIDENCE_REQUEST_WEB_VIEW, "EvidenceRequestWebView Composable created/re-created")
     Logger.i(
-        EvidenceRequestWebView,
-        "EvidenceRequestWebView: evidenceRequest.url = ${evidenceRequest.url}"
+        EVIDENCE_REQUEST_WEB_VIEW,
+        "EvidenceRequestWebView: evidenceRequest.url = ${evidenceRequest.url}",
     )
     Logger.i(
-        EvidenceRequestWebView,
-        "EvidenceRequestWebView: evidenceRequest.state = ${evidenceRequest.state}"
+        EVIDENCE_REQUEST_WEB_VIEW,
+        "EvidenceRequestWebView: evidenceRequest.state = ${evidenceRequest.state}",
     )
 
     // Stabilize the evidenceRequest to prevent unnecessary re-compositions
@@ -142,15 +148,18 @@ fun EvidenceRequestWebView(
 
     // NB: these scopes will be cancelled when navigating outside of this screen.
     LaunchedEffect(stableEvidenceRequest.url) {
-        Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView LaunchedEffect START")
+        Logger.i(EVIDENCE_REQUEST_WEB_VIEW, "EvidenceRequestWebView LaunchedEffect START")
         Logger.i(
-            EvidenceRequestWebView,
-            "EvidenceRequestWebView: Waiting for app link invocation with state: ${stableEvidenceRequest.state}"
+            EVIDENCE_REQUEST_WEB_VIEW,
+            "EvidenceRequestWebView: Waiting for app link invocation with state: ${stableEvidenceRequest.state}",
         )
         val invokedUrl = provisioningSupport.waitForAppLinkInvocation(stableEvidenceRequest.state)
         Logger.i(
-            EvidenceRequestWebView,
-            "EvidenceRequestWebView LaunchedEffect invokedUrl: $invokedUrl"
+            EVIDENCE_REQUEST_WEB_VIEW,
+            "EvidenceRequestWebView LaunchedEffect invokedUrl: $invokedUrl",
+        )
+        provisioningModel.provideAuthorizationResponse(
+            AuthorizationResponse.OAuth(stableEvidenceRequest.id, invokedUrl),
         )
         //TODO: add provideAuthorizationResponse
     }
@@ -158,23 +167,23 @@ fun EvidenceRequestWebView(
     LaunchedEffect(stableEvidenceRequest.url) {
         // Launch the browser
         Logger.i(
-            EvidenceRequestWebView,
-            "EvidenceRequestWebView: About to open browser with URL: ${stableEvidenceRequest.url}"
+            EVIDENCE_REQUEST_WEB_VIEW,
+            "EvidenceRequestWebView: About to open browser with URL: ${stableEvidenceRequest.url}",
         )
         uriHandler.openUri(stableEvidenceRequest.url)
-        Logger.i(EvidenceRequestWebView, "EvidenceRequestWebView: Browser opened successfully")
+        Logger.i(EVIDENCE_REQUEST_WEB_VIEW, "EvidenceRequestWebView: Browser opened successfully")
         // Poll as a fallback
     }
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Center,
         ) {
             Text(
                 text = "Launching browser, continue there",
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(8.dp),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
     }

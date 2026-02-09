@@ -1,12 +1,10 @@
 package org.multipaz.samples.wallet.cmp.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,7 +24,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,15 +40,12 @@ import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
-import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.util.Constants.APP_NAME
 import org.multipaz.samples.wallet.cmp.util.Constants.appIcon
 import org.multipaz.util.Logger
-import org.multipaz.util.UUID
 
 private const val TAG = "AccountScreen"
 
@@ -69,7 +63,7 @@ fun AccountScreen(
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         PromptDialogs(promptModel)
         Spacer(modifier = Modifier.height(30.dp))
@@ -86,7 +80,7 @@ fun AccountScreen(
                     coroutineScope.launch {
                         blePermissionState.launchPermissionRequest()
                     }
-                }
+                },
             ) {
                 Text("Request BLE permissions")
             }
@@ -96,9 +90,10 @@ fun AccountScreen(
             }
         } else {
             val context = LocalPlatformContext.current
-            val imageLoader = remember {
-                ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
-            }
+            val imageLoader =
+                remember {
+                    ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
+                }
 
             val noCredentialDialog = remember { mutableStateOf(false) }
             MdocProximityQrPresentment(
@@ -113,15 +108,15 @@ fun AccountScreen(
                 showQrButton = { onQrButtonClicked ->
                     ShowQrButton(
                         hasCredentials,
-                        onQrButtonClicked
+                        onQrButtonClicked,
                     )
                 },
                 showQrCode = { uri ->
                     ShowQrCode(
                         uri = uri,
-                        presentmentModel = presentmentModel
+                        presentmentModel = presentmentModel,
                     )
-                }
+                },
             )
             if (noCredentialDialog.value) {
                 AlertDialog(
@@ -132,7 +127,7 @@ fun AccountScreen(
                         TextButton(onClick = { noCredentialDialog.value = false }) {
                             Text("OK")
                         }
-                    }
+                    },
                 )
             }
         }
@@ -144,21 +139,21 @@ private fun CredentialStatusIndicator(hasCredentials: Boolean?) {
     Row(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.Center,
     ) {
         when (hasCredentials) {
             true -> {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Credential Available",
-                    tint = Color(0xFF4CAF50), // Green color
-                    modifier = Modifier.size(20.dp)
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Credential is available",
-                    color = Color(0xFF4CAF50), // Green color
-                    fontSize = 14.sp
+                    color = Color(0xFF4CAF50),
+                    fontSize = 14.sp,
                 )
             }
 
@@ -166,22 +161,22 @@ private fun CredentialStatusIndicator(hasCredentials: Boolean?) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "No Credential",
-                    tint = Color(0xFFF44336), // Red color
-                    modifier = Modifier.size(20.dp)
+                    tint = Color(0xFFF44336),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Credential not available",
-                    color = Color(0xFFF44336), // Red color
-                    fontSize = 14.sp
+                    color = Color(0xFFF44336),
+                    fontSize = 14.sp,
                 )
             }
 
             null -> {
                 Text(
                     text = "Checking credential status...",
-                    color = Color(0xFF666666), // Gray color
-                    fontSize = 14.sp
+                    color = Color(0xFF666666),
+                    fontSize = 14.sp,
                 )
             }
         }
@@ -191,13 +186,13 @@ private fun CredentialStatusIndicator(hasCredentials: Boolean?) {
 @Composable
 private fun ShowQrButton(
     hasCredentials: Boolean?,
-    onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit
+    onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         when (hasCredentials) {
             true -> {
@@ -207,14 +202,14 @@ private fun ShowQrButton(
             false -> {
                 Text(
                     text = "No usable credentials available.\nPlease add a credential first.",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = {
                         Logger.i(TAG, "Opening issuer website: https://issuer.multipaz.org")
                         uriHandler.openUri("https://issuer.multipaz.org")
-                    }
+                    },
                 ) {
                     Text("Get Credentials from Issuer")
                 }
@@ -230,7 +225,7 @@ private fun ShowQrButton(
 @Composable
 private fun ShowQrCode(
     uri: String,
-    presentmentModel: PresentmentModel
+    presentmentModel: PresentmentModel,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -243,7 +238,7 @@ private fun ShowQrCode(
         Button(
             onClick = {
                 presentmentModel.reset()
-            }
+            },
         ) {
             Text("Cancel")
         }

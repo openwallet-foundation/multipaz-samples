@@ -12,10 +12,10 @@ import org.multipaz.samples.wallet.cmp.util.Constants.APP_NAME
 import org.multipaz.samples.wallet.cmp.util.Constants.appIcon
 import utopiasample.composeapp.generated.resources.Res
 
-class CredmanActivity: CredentialManagerPresentmentActivity() {
+class CredmanActivity : CredentialManagerPresentmentActivity() {
 
-    private val promptModel : PromptModel by inject()
-    private val documentTypeRepository : DocumentTypeRepository by inject()
+    private val promptModel: PromptModel by inject()
+    private val documentTypeRepository: DocumentTypeRepository by inject()
     private val presentmentSource: PresentmentSource by inject()
 
 
@@ -28,7 +28,7 @@ class CredmanActivity: CredentialManagerPresentmentActivity() {
             documentTypeRepository = documentTypeRepository,
             presentmentSource = presentmentSource,
             imageLoader = ImageLoader.Builder(applicationContext).components { /* network loader omitted */ }.build(),
-            privilegedAllowList = Res.readBytes("files/privilegedUserAgents.json").decodeToString()
+            privilegedAllowList = Res.readBytes("files/privilegedUserAgents.json").decodeToString(),
         )
     }
 }

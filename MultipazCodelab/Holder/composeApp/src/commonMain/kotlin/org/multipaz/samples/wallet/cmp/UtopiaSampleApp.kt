@@ -22,14 +22,14 @@ private const val TAG = "Navigation"
 fun UtopiaSampleApp(
     credentialOffers: Channel<String>,
     provisioningModel: ProvisioningModel = koinInject(),
-    provisioningSupport: ProvisioningSupport = koinInject()
+    provisioningSupport: ProvisioningSupport = koinInject(),
 ) {
     MaterialTheme {
         val navController = rememberNavController()
 
         NavHost(
             navController = navController,
-            startDestination = "main"
+            startDestination = "main",
         ) {
             composable("main") {
                 Logger.i(TAG, "NavHost: Rendering 'main' route")
@@ -38,7 +38,7 @@ fun UtopiaSampleApp(
             composable("provisioning") {
                 Logger.i(TAG, "NavHost: Rendering 'provisioning' route")
                 ProvisioningTestScreen(
-                    onNavigateToMain = { navController.navigate("main") }
+                    onNavigateToMain = { navController.navigate("main") },
                 )
             }
         }
@@ -50,7 +50,7 @@ fun UtopiaSampleApp(
                 provisioningModel.launchOpenID4VCIProvisioning(
                     offerUri = credentialOffer,
                     clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
-                    backend = provisioningSupport.getOpenID4VCIBackend()
+                    backend = provisioningSupport.getOpenID4VCIBackend(),
                 )
                 navController.navigate("provisioning")
             }

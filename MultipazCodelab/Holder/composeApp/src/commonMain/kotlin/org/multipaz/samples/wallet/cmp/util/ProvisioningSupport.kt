@@ -31,6 +31,7 @@ class ProvisioningSupport(
     val TAG = "PRO:ProvisioningSupport"
 
     companion object Companion {
+        const val TAG = "PRO:ProvisioningSupport"
         const val APP_LINK_SERVER = "wholesale-test-app"
         const val APP_LINK_BASE_URL = "${APP_LINK_SERVER}://landing/"
 

@@ -20,6 +20,7 @@ import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.prompt.PromptModel
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.rpc.handler.RpcAuthClientSession
@@ -76,8 +77,8 @@ val multipazModule = module {
         )
     }
 
-    single<TrustManager> {
-        val trustManager = TrustManagerLocal(storage = get(), identifier = "reader")
+        single<TrustManager> {
+            val trustManager = TrustManagerLocal(storage = get(), identifier = "reader")
 
         runBlocking {
             suspend fun addCertificateIfNotExists(
@@ -133,63 +134,64 @@ val multipazModule = module {
                 privacyPolicyUrl = "https://apps.multipaz.org"
             )
 
-            trustManager
+                trustManager
+            }
         }
-    }
 
-    single<PresentmentSource> {
-        runBlocking {
-            if (DigitalCredentials.Default.available) {
-                DigitalCredentials.Default.startExportingCredentials(
+        single<PresentmentSource> {
+            runBlocking {
+                if (DigitalCredentials.Default.available) {
+                    DigitalCredentials.Default.startExportingCredentials(
+                        documentStore = get(),
+                        documentTypeRepository = get(),
+                    )
+                }
+
+                SimplePresentmentSource(
                     documentStore = get(),
-                    documentTypeRepository = get()
+                    documentTypeRepository = get(),
+                    readerTrustManager = get(),
+                    preferSignatureToKeyAgreement = true,
+                    // Match domains used when storing credentials via OpenID4VCI
+                    domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
+                    domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
+                    domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+                    domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH,
                 )
             }
+        }
 
-            SimplePresentmentSource(
-                documentStore = get(),
-                documentTypeRepository = get(),
-                readerTrustManager = get(),
-                preferSignatureToKeyAgreement = true,
-                // Match domains used when storing credentials via OpenID4VCI
-                domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-                domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-                domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-                domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
+        single<ProvisioningSupport> {
+            ProvisioningSupport(
+                get(),
+                get(),
+                get(),
+                get(),
             )
         }
-    }
 
-    single<ProvisioningSupport> {
-        ProvisioningSupport(
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
+        single<OpenID4VCIBackend> {
+            OpenID4VCILocalBackend()
+        }
 
-    single<OpenID4VCIBackend> {
-        OpenID4VCILocalBackend()
-    }
+        single<OpenID4VCIClientPreferences> {
+            OpenID4VCIClientPreferences(
+                clientId =
+                    runBlocking {
+                        withContext(RpcAuthClientSession()) {
+                            get<OpenID4VCIBackend>().getClientId()
+                        }
+                    },
+                redirectUrl = APP_LINK_BASE_URL,
+                locales = listOf("en-US"),
+                signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512),
+            )
+        }
 
-    single<OpenID4VCIClientPreferences> {
-        OpenID4VCIClientPreferences(
-            clientId = runBlocking {
-                withContext(RpcAuthClientSession()) {
-                    get<OpenID4VCIBackend>().getClientId()
-                }
-            },
-            redirectUrl = APP_LINK_BASE_URL,
-            locales = listOf("en-US"),
-            signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512)
-        )
-    }
-
-    single<PresentmentModel> {
-        PresentmentModel().apply {
-            setPromptModel(get())
+        single<PresentmentModel> {
+            PresentmentModel().apply {
+                setPromptModel(get())
+            }
         }
     }
-}
 
