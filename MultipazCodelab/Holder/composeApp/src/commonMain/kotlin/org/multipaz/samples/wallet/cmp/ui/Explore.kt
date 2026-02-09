@@ -106,9 +106,10 @@ fun ExploreScreen() {
 @Composable
 private fun ProductCard(product: Product) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(8.dp),
     ) {

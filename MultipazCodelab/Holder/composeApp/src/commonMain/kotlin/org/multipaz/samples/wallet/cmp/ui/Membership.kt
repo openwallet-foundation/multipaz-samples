@@ -20,7 +20,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -39,9 +38,10 @@ fun MembershipCard() {
     ) {
         // Top blue card with membership details
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
             color = Color(0xFF1976D2),
             shape = RoundedCornerShape(12.dp),
         ) {
@@ -92,6 +92,5 @@ fun MembershipCard() {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
     }
 }

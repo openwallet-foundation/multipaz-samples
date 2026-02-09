@@ -234,7 +234,7 @@ private fun ShowQrCode(
     ) {
         val qrCodeBitmap = remember { generateQrCode(uri) }
         Text(text = "Present QR code to mdoc reader")
-        //TODO: show QR code
+        // TODO: show QR code
         Button(
             onClick = {
                 presentmentModel.reset()

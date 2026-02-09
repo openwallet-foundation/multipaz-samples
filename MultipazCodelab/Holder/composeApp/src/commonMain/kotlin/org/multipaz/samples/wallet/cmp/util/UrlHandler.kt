@@ -1,11 +1,7 @@
 package org.multipaz.samples.wallet.cmp.util
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
 import org.multipaz.provisioning.ProvisioningModel
-import org.multipaz.util.Logger
 
 private const val TAG = "UrlHandler"
 private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
@@ -24,9 +20,7 @@ fun handleUrl(
     url: String,
     credentialOffers: Channel<String>,
     provisioningModel: ProvisioningModel,
-    provisioningSupport: ProvisioningSupport
+    provisioningSupport: ProvisioningSupport,
 ) {
     // TODO: Implement URL handling and validation
 }
-
-

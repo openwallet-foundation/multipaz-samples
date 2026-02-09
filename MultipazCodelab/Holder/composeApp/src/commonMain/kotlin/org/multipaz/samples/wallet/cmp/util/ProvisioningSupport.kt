@@ -5,11 +5,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import org.multipaz.crypto.Algorithm
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
-import org.multipaz.rpc.handler.RpcAuthClientSession
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 

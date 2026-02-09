@@ -75,9 +75,7 @@ fun MainViewController() =
             return@ComposeUIViewController
         }
 
-
-    UtopiaSampleApp(
-        credentialOffers = credentialOffers
+        UtopiaSampleApp(
             credentialOffers = credentialOffers,
         )
     }
