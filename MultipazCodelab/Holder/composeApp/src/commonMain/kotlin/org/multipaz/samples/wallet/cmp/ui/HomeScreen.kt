@@ -31,9 +31,7 @@ import org.multipaz.util.Logger
 private const val TAG = "AccountScreen"
 
 @Composable
-fun HomeScreen(
-    documentStore: DocumentStore = koinInject(),
-) {
+fun HomeScreen(documentStore: DocumentStore = koinInject()) {
     var selectedTabRow by remember { mutableStateOf(1) }
     val tabs = listOf("Explore", "Account")
     var hasCredentials by remember { mutableStateOf<Boolean?>(null) }
@@ -50,9 +48,10 @@ fun HomeScreen(
             TabRow(
                 selectedTabIndex = selectedTabRow,
                 divider = {},
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .background(Color.White)
+                modifier =
+                    Modifier
+                        .navigationBarsPadding()
+                        .background(Color.White),
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -63,22 +62,23 @@ fun HomeScreen(
                             Icon(
                                 imageVector = if (index == 0) Icons.Default.Explore else Icons.Default.AccountCircle,
                                 contentDescription = title,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
-                        }
+                        },
                     )
                 }
             }
-        }
+        },
     ) { paddingValues ->
         Box(
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
         ) {
             when (selectedTabRow) {
                 0 -> ExploreScreen()
-                1 -> AccountScreen(
-                    hasCredentials = hasCredentials,
-                )
+                1 ->
+                    AccountScreen(
+                        hasCredentials = hasCredentials,
+                    )
             }
         }
     }
