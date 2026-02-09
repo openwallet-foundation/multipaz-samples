@@ -41,9 +41,7 @@ class ProvisioningSupport(
 
     suspend fun processAppLinkInvocation(url: String) {
         val state = Url(url).parameters["state"] ?: ""
-        lock.withLock {
-            pendingLinksByState.remove(state)?.send(url)
-        }
+        // TODO: process app link invocation
     }
 
     suspend fun waitForAppLinkInvocation(state: String): String {

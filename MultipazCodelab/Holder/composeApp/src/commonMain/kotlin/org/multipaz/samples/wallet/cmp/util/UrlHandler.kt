@@ -26,42 +26,5 @@ fun handleUrl(
     provisioningModel: ProvisioningModel,
     provisioningSupport: ProvisioningSupport,
 ) {
-    Logger.i(TAG, "handleUrl called with: $url")
-    Logger.i(TAG, "handleUrl provisioningModel state: ${provisioningModel.state.value}")
-
-    if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME) ||
-        url.startsWith(HAIP_URL_SCHEME)
-    ) {
-        val queryIndex = url.indexOf('?')
-        if (queryIndex >= 0) {
-            Logger.i(TAG, "Starting OpenID4VCI provisioning with: $url")
-            Logger.i(
-                TAG,
-                "OID4VCI_CREDENTIAL_OFFER_URL_SCHEME provisioningModel: $provisioningModel",
-            )
-            Logger.i(TAG, "handleUrl: Sending credential offer to channel...")
-            CoroutineScope(Dispatchers.Default).launch {
-                Logger.i(TAG, "handleUrl: About to send to credentialOffers channel")
-                credentialOffers.send(url)
-                Logger.i(TAG, "handleUrl: Successfully sent to credentialOffers channel")
-            }
-            Logger.i(
-                TAG,
-                "handleUrl: Credential offer sent to channel, LaunchedEffect should process it",
-            )
-        }
-    } else if (url.startsWith(ProvisioningSupport.APP_LINK_BASE_URL)) {
-        Logger.i(TAG, "APP_LINK_BASE_URL provisioningModel: $provisioningModel")
-        Logger.i(TAG, "Processing app link invocation: $url")
-
-        CoroutineScope(Dispatchers.Default).launch {
-            try {
-                Logger.i(TAG, "handleUrl: About to process app link invocation")
-                provisioningSupport.processAppLinkInvocation(url)
-                Logger.i(TAG, "handleUrl: App link invocation processed successfully")
-            } catch (e: Exception) {
-                Logger.e(TAG, "Error processing app link: ${e.message}", e)
-            }
-        }
-    }
+    // TODO: Implement URL handling and validation
 }

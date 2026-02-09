@@ -202,33 +202,7 @@ private fun ShowQrButton(
     ) {
         when (hasCredentials) {
             true -> {
-                Button(onClick = {
-                    val connectionMethods =
-                        listOf(
-                            MdocConnectionMethodBle(
-                                supportsPeripheralServerMode = false,
-                                supportsCentralClientMode = true,
-                                peripheralServerModeUuid = null,
-                                centralClientModeUuid = UUID.randomUUID(),
-                            ),
-                        )
-                    onQrButtonClicked(
-                        MdocProximityQrSettings(
-                            availableConnectionMethods = connectionMethods,
-                            createTransportOptions = MdocTransportOptions(bleUseL2CAP = true),
-                        ),
-                    )
-                }) {
-                    Text("Present mDL via QR")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text =
-                        "The mDL is also available\n" +
-                            "via NFC engagement and W3C DC API\n" +
-                            "(Android-only right now)",
-                    textAlign = TextAlign.Center,
-                )
+                // TODO: show qr button when credentials are available
             }
 
             false -> {
@@ -266,12 +240,7 @@ private fun ShowQrCode(
     ) {
         val qrCodeBitmap = remember { generateQrCode(uri) }
         Text(text = "Present QR code to mdoc reader")
-        Image(
-            modifier = Modifier.fillMaxWidth(),
-            bitmap = qrCodeBitmap,
-            contentDescription = null,
-            contentScale = ContentScale.FillWidth,
-        )
+        // TODO: show QR code
         Button(
             onClick = {
                 presentmentModel.reset()

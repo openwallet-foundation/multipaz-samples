@@ -40,26 +40,11 @@ import utopiasample.composeapp.generated.resources.Res
 
 val multipazModule =
     module {
-        single<Storage> { Platform.nonBackedUpStorage }
-        single<SecureArea> { runBlocking { Platform.getSecureArea() } }
-        single<SecureAreaRepository> {
-            val secureArea: SecureArea = get()
-            SecureAreaRepository
-                .Builder()
-                .add(secureArea).build()
-        }
-        single<DocumentTypeRepository> {
-            DocumentTypeRepository().apply {
-                addDocumentType(DrivingLicense.getDocumentType())
-                addDocumentType(Loyalty.getDocumentType())
-            }
-        }
-        single<DocumentStore> {
-            buildDocumentStore(
-                storage = get(),
-                secureAreaRepository = get(),
-            ) {}
-        }
+        // TODO: define Storage in Koin module
+        // TODO: define SecureArea in Koin module
+        // TODO: define SecureAreaRepository in Koin module
+        // TODO: define DocumentStore in Koin module
+        // TODO: define DocumentTypeRepository in Koin module
         single<PromptModel> {
             Platform.promptModel
         }
@@ -68,6 +53,11 @@ val multipazModule =
                 followRedirects = false
             }
         }
+
+        // TODO: define TrustManager in Koin module
+
+        // TODO: define PresentmentSource in Koin module
+
         single<ProvisioningModel> {
             ProvisioningModel(
                 documentStore = get(),

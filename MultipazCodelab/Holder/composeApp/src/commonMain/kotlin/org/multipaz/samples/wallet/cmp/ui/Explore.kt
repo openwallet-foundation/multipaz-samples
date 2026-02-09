@@ -62,7 +62,6 @@ fun ExploreScreen() {
             Product("Laundry Detergent", "$4,49", Res.drawable.laundry_detergent),
             Product("Mixed Nuts", "$5,99", Res.drawable.mixed_nuts),
             Product("Organic Bananas", "$2,99", Res.drawable.organic_bananas),
-            // Using cereal as placeholder for yogurt
             Product("Greek Yogurt", "$4,79", Res.drawable.cereal),
             Product("Whole Grain Bread", "$3,29", Res.drawable.whole_grain_bread),
             Product("Fresh Milk", "$3,89", Res.drawable.fresh_milk),

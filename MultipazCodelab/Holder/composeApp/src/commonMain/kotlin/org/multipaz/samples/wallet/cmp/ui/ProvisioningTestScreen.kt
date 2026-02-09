@@ -92,26 +92,7 @@ fun ProvisioningTestScreen(
             }
 
             else -> {
-                val text =
-                    when (provisioningState) {
-                        ProvisioningModel.Idle -> "Initializing..."
-                        ProvisioningModel.Initial -> "Starting provisioning..."
-                        ProvisioningModel.Connected -> "Connected to the back-end"
-                        ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
-                        ProvisioningModel.Authorized -> "Authorized"
-                        ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
-                        ProvisioningModel.CredentialsIssued -> "Credentials issued"
-                        is ProvisioningModel.Error -> throw IllegalStateException()
-                        is ProvisioningModel.Authorizing -> throw IllegalStateException()
-                    }
-                Text(
-                    modifier =
-                        Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(8.dp),
-                    style = MaterialTheme.typography.titleLarge,
-                    text = text,
-                )
+                // TODO: update text depends on provisioningState
             }
         }
     }
@@ -130,11 +111,7 @@ private fun Authorize(
                 EVIDENCE_REQUEST_WEB_VIEW,
                 "Authorize: Rendering EvidenceRequestWebView for OAuth challenge",
             )
-            EvidenceRequestWebView(
-                evidenceRequest = challenge,
-                provisioningModel = provisioningModel,
-                provisioningSupport = provisioningSupport,
-            )
+            // TODO: init  EvidenceRequestWebView
         }
 
         is AuthorizationChallenge.SecretText -> TODO()
@@ -181,6 +158,7 @@ fun EvidenceRequestWebView(
         provisioningModel.provideAuthorizationResponse(
             AuthorizationResponse.OAuth(stableEvidenceRequest.id, invokedUrl),
         )
+        // TODO: add provideAuthorizationResponse
     }
     val uriHandler = LocalUriHandler.current
     LaunchedEffect(stableEvidenceRequest.url) {
