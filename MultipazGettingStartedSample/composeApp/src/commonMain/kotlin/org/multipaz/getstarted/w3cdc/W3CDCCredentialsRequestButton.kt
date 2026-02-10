@@ -30,6 +30,21 @@ import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.documenttype.DocumentCannedRequest
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.getstarted.getAppToAppOrigin
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.CERT_CRL_URL
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.CERT_SERIAL_NUMBER_BITS
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.CERT_SUBJECT_COMMON_NAME
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.CERT_VALID_FROM_DATE
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.CERT_VALID_UNTIL_DATE
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.METADATA_ENGAGEMENT_TYPE
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.METADATA_TRANSFER_PROTOCOL_PREFIX
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.NONCE_SIZE_BYTES
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.READER_KEY_CURVE
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.READER_ROOT_KEY_CURVE
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.RESPONSE_ENCRYPTION_CURVE
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_CERT
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_PRIVATE_KEY
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_ROOT_CERT
+import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_ROOT_PRIVATE_KEY
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
@@ -44,63 +59,6 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 const val TAG = "W3CDCCredentialsRequestButton"
-
-// Storage Configuration
-// ---------------------
-// Storage key names for persisting different cryptographic materials.
-// These keys are used to store and retrieve the reader's private keys and certificates 
-// across app sessions in the provided StorageTable.
-// 
-// The actual storage table is passed as a parameter to W3CDCCredentialsRequestButton.
-// You can change these key names if needed, but ensure consistency across app sessions.
-
-// Storage key names for persisting different cryptographic materials
-private const val STORAGE_KEY_READER_ROOT_PRIVATE_KEY = "readerRootKey"
-private const val STORAGE_KEY_READER_ROOT_CERT = "readerRootCert"
-private const val STORAGE_KEY_READER_PRIVATE_KEY = "readerKey"
-private const val STORAGE_KEY_READER_CERT = "readerCert"
-
-// Certificate Configuration
-// --------------------------
-// Certificate validity dates (10-year validity period)
-// These define how long the generated certificates are valid.
-// For production, adjust these dates to match your security policies.
-private const val CERT_VALID_FROM_DATE = "2024-12-01"
-private const val CERT_VALID_UNTIL_DATE = "2034-12-01"
-
-// The Common Name (CN) that appears in X.509 certificates
-// This identifies your reader/verifier application.
-// For production, change this to your organization's name (e.g., "CN=Acme Corp Verifier").
-private const val CERT_SUBJECT_COMMON_NAME = "CN=OWF Multipaz Getting Started Reader Cert"
-
-// The CRL (Certificate Revocation List) URL for certificate validation
-// This URL is used to check if certificates have been revoked.
-// Update this to your own CRL endpoint in production.
-private const val CERT_CRL_URL =
-    "https://github.com/openwallet-foundation-labs/identity-credential/crl"
-
-// Cryptographic Configuration
-// ---------------------------
-// The number of bits for certificate serial numbers (128 bits = 16 bytes)
-// This is a standard value for X.509 certificate serial numbers.
-private const val CERT_SERIAL_NUMBER_BITS = 128
-
-// The elliptic curve used for reader key generation (P-256 is industry standard)
-private val READER_KEY_CURVE = EcCurve.P256
-
-// The elliptic curve used for the bundled reader root key (P-384 provides higher security)
-private val READER_ROOT_KEY_CURVE = EcCurve.P384
-
-// Nonce size in bytes for request/response correlation
-// 16 bytes (128 bits) provides sufficient entropy for security.
-private const val NONCE_SIZE_BYTES = 16
-
-// Response encryption configuration
-private val RESPONSE_ENCRYPTION_CURVE = EcCurve.P256
-
-// Descriptive labels used in response metadata for logging and analytics
-private const val METADATA_ENGAGEMENT_TYPE = "OS-provided CredentialManager API"
-private const val METADATA_TRANSFER_PROTOCOL_PREFIX = "W3C Digital Credentials"
 
 /**
  * W3C Digital Credentials Request Button
@@ -123,7 +81,6 @@ private const val METADATA_TRANSFER_PROTOCOL_PREFIX = "W3C Digital Credentials"
  * This is typically used by "verifier" apps that need to request and verify
  * credentials (like driver's licenses, health cards, etc.) from a user's device.
  */
-
 @OptIn(ExperimentalTime::class)
 @Composable
 fun W3CDCCredentialsRequestButton(
@@ -437,10 +394,7 @@ private suspend fun doDcRequestFlow(
         metadata: ShowResponseMetadata
     ) -> Unit
 ) {
-
-
     require(request.mdocRequest != null) { "No ISO mdoc format in request" }
-
 
     // Generate random nonce for request/response correlation
     // This prevents replay attacks and binds request to response
@@ -455,7 +409,6 @@ private suspend fun doDcRequestFlow(
 
     // Client ID is required for signed requests per OpenID4VP spec
     val clientId = "web-origin:$origin"
-
 
     val protocolDisplayName = "OpenID4VP 1.0"
     val exchangeProtocolNames = listOf("openid4vp-v1-signed")

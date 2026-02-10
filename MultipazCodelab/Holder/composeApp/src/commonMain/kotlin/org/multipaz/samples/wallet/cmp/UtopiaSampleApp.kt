@@ -3,7 +3,6 @@ package org.multipaz.samples.wallet.cmp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -15,21 +14,20 @@ import org.multipaz.samples.wallet.cmp.ui.ProvisioningTestScreen
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.util.Logger
 
-
 private const val TAG = "Navigation"
 
 @Composable
 fun UtopiaSampleApp(
     credentialOffers: Channel<String>,
     provisioningModel: ProvisioningModel = koinInject(),
-    provisioningSupport: ProvisioningSupport = koinInject()
+    provisioningSupport: ProvisioningSupport = koinInject(),
 ) {
     MaterialTheme {
         val navController = rememberNavController()
 
         NavHost(
             navController = navController,
-            startDestination = "main"
+            startDestination = "main",
         ) {
             composable("main") {
                 Logger.i(TAG, "NavHost: Rendering 'main' route")
@@ -38,7 +36,7 @@ fun UtopiaSampleApp(
             composable("provisioning") {
                 Logger.i(TAG, "NavHost: Rendering 'provisioning' route")
                 ProvisioningTestScreen(
-                    onNavigateToMain = { navController.navigate("main") }
+                    onNavigateToMain = { navController.navigate("main") },
                 )
             }
         }
@@ -50,7 +48,7 @@ fun UtopiaSampleApp(
                 provisioningModel.launchOpenID4VCIProvisioning(
                     offerUri = credentialOffer,
                     clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
-                    backend = provisioningSupport.getOpenID4VCIBackend()
+                    backend = provisioningSupport.getOpenID4VCIBackend(),
                 )
                 navController.navigate("provisioning")
             }

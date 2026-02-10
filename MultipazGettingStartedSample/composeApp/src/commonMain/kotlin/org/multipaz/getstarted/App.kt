@@ -30,13 +30,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import multipazgettingstartedsample.composeapp.generated.resources.Res
 import multipazgettingstartedsample.composeapp.generated.resources.compose_multiplatform
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.multipaz.asn1.ASN1Integer
-import org.multipaz.cbor.Cbor
 import org.multipaz.compose.camera.CameraFrame
 import org.multipaz.compose.cropRotateScaleImage
 import org.multipaz.compose.prompt.PromptDialogs
@@ -59,6 +56,7 @@ import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.facedetection.DetectedFace
 import org.multipaz.facedetection.FaceLandmarkType
 import org.multipaz.facematch.FaceMatchLiteRtModel
+import org.multipaz.getstarted.w3cdc.ShowResponseScreen
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
@@ -74,7 +72,6 @@ import org.multipaz.storage.StorageTableSpec
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
-import org.multipaz.util.fromBase64Url
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -404,20 +401,13 @@ class App {
                         }
                     )
                 }
+
                 composable<Destination.ShowResponseDestination> { backStackEntry ->
-                    val destination = backStackEntry.toRoute<Destination.ShowResponseDestination>()
-                    val vpToken = destination.vpResponse?.let {
-                        if (it != "_") Json.decodeFromString<JsonObject>(
-                            it.fromBase64Url().decodeToString()
-                        ) else null
-                    }
-                    val sessionTranscript =
-                        Cbor.decode(destination.sessionTranscript.fromBase64Url())
-                    val nonce = destination.nonce?.let { ByteString(it.fromBase64Url()) }
+                    val response =
+                        backStackEntry.toRoute<Destination.ShowResponseDestination>()
+
                     ShowResponseScreen(
-                        vpToken = vpToken,
-                        sessionTranscript = sessionTranscript,
-                        nonce = nonce,
+                        response = response,
                         documentTypeRepository = documentTypeRepository,
                         goBack = {
                             navController.popBackStack()
