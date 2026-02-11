@@ -22,6 +22,10 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import mpzcmpwallet.composeapp.generated.resources.Res
+import mpzcmpwallet.composeapp.generated.resources.add_document_hint
+import mpzcmpwallet.composeapp.generated.resources.no_documents_added
+import org.jetbrains.compose.resources.stringResource
 import org.multipaz.compose.carousels.DocumentCarousel
 import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.compose.document.DocumentModel
@@ -88,14 +92,14 @@ private fun EmptyWalletState() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "No documents added yet",
+                    text = stringResource(Res.string.no_documents_added),
                     style = MaterialTheme.typography.titleMedium
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Add a document from issuer.multipaz.org",
+                    text = stringResource(Res.string.add_document_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = LocalContentColor.current.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center

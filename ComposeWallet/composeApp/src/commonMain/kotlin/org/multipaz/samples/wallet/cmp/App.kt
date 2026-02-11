@@ -24,6 +24,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.io.bytestring.ByteString
 import mpzcmpwallet.composeapp.generated.resources.Res
 import mpzcmpwallet.composeapp.generated.resources.compose_multiplatform
+import mpzcmpwallet.composeapp.generated.resources.initializing
+import org.jetbrains.compose.resources.stringResource
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.crypto.X509Cert
@@ -34,7 +36,18 @@ import org.multipaz.document.DocumentMetadata
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.documenttype.knowntypes.AgeVerification
 import org.multipaz.documenttype.knowntypes.DrivingLicense
+import org.multipaz.documenttype.knowntypes.EUCertificateOfResidence
+import org.multipaz.documenttype.knowntypes.EUPersonalID
+import org.multipaz.documenttype.knowntypes.GermanPersonalID
+import org.multipaz.documenttype.knowntypes.IDPass
+import org.multipaz.documenttype.knowntypes.Loyalty
+import org.multipaz.documenttype.knowntypes.PhotoID
+import org.multipaz.documenttype.knowntypes.UtopiaMovieTicket
+import org.multipaz.documenttype.knowntypes.UtopiaNaturalization
+import org.multipaz.documenttype.knowntypes.VaccinationDocument
+import org.multipaz.documenttype.knowntypes.VehicleRegistration
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
@@ -86,6 +99,17 @@ class App() {
             secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
             documentTypeRepository = DocumentTypeRepository().apply {
                 addDocumentType(DrivingLicense.getDocumentType())
+                addDocumentType(EUPersonalID.getDocumentType())
+                addDocumentType(PhotoID.getDocumentType())
+                addDocumentType(AgeVerification.getDocumentType())
+                addDocumentType(EUCertificateOfResidence.getDocumentType())
+                addDocumentType(GermanPersonalID.getDocumentType())
+                addDocumentType(IDPass.getDocumentType())
+                addDocumentType(Loyalty.getDocumentType())
+                addDocumentType(VehicleRegistration.getDocumentType())
+                addDocumentType(VaccinationDocument.getDocumentType())
+                addDocumentType(UtopiaMovieTicket.getDocumentType())
+                addDocumentType(UtopiaNaturalization.getDocumentType())
             }
             documentStore = buildDocumentStore(storage = storage, secureAreaRepository = secureAreaRepository) {}
             documentModel = DocumentModel(documentStore = documentStore)
@@ -170,7 +194,7 @@ class App() {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Initializing...")
+                    Text(stringResource(Res.string.initializing))
                 }
             }
             return
