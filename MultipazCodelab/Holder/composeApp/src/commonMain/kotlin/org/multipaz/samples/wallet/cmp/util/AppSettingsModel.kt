@@ -155,11 +155,12 @@ class AppSettingsModel private constructor(
         bind(
             variable = presentmentNegotiatedHandoverPreferredOrder,
             key = "presentmentNegotiatedHandoverPreferredOrder",
-            defaultValue = listOf(
-                "ble:central_client_mode:",
-                "ble:peripheral_server_mode:",
-                "nfc:",
-            ),
+            defaultValue =
+                listOf(
+                    "ble:central_client_mode:",
+                    "ble:peripheral_server_mode:",
+                    "nfc:",
+                ),
         )
         bind(presentmentShowConsentPrompt, "presentmentShowConsentPrompt", true)
         bind(presentmentRequireAuthentication, "presentmentRequireAuthentication", true)
