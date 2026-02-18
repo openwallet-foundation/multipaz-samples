@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="remove">Remove</string>
+    <string name="ok">OK</string>
+    <string name="initializing">Initializing...</string>
+    <string name="present">Present</string>
+    <string name="more_options">More options</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+
+    <!-- WalletScreen -->
+    <string name="no_documents_added">No documents added yet</string>
+    <string name="add_document_hint">Add a document from issuer.multipaz.org</string>
+
+    <!-- DocumentViewerScreen -->
+    <string name="hold_to_reader">Hold to reader</string>
+    <string name="bluetooth_required">Bluetooth required</string>
+    <string name="bluetooth_settings_message">To present your ID, enable Bluetooth permissions and Bluetooth access in Settings.</string>
+
+    <!-- DocumentDetailsScreen -->
+    <string name="view_and_manage_activity">View and manage activity</string>
+    <string name="activity_history_off">Activity history is off</string>
+    <string name="type_info">%1$s info</string>
+    <string name="how_to_use_id">How to use your ID</string>
+    <string name="type_website">%1$s website</string>
+    <string name="youre_in_control">You\u2019re in control</string>
+    <string name="id_info_share_message">ID info will only be shared when you decide to share it</string>
+    <string name="id_issuer_message">Your ID issuer decides what info is on your digital ID and may send you notifications. Contact them with any questions.</string>
+    <string name="remove_digital_id_title">Remove digital ID?</string>
+    <string name="remove_digital_id_message">Your ID will be removed from your wallet and if you want to add it again, you\u2019ll need to start the process from the beginning.</string>
+
+    <!-- DocumentClaimsScreen -->
+    <string name="id_usage_description">To use your ID, tap your phone to a reader or scan your QR code. This screen can\u2019t be shown to verify your identity. </string>
+    <string name="learn_more">Learn more</string>
+    <string name="certificate_info">Certificate info</string>
+    <string name="cert_signed_date">Certificate signed date</string>
+    <string name="cert_valid_from">Certificate valid from</string>
+    <string name="cert_valid_until">Certificate valid until</string>
+    <string name="cert_expected_update">Certificate expected update</string>
+
+    <!-- QrPresentmentDialog -->
+    <string name="present_mdl">Present mDL</string>
+    <string name="show_qr_code">Show QR code</string>
+    <string name="present_qr_to_reader">Present QR code to mdoc reader</string>
+
+    <!-- ProvisioningScreen -->
+    <string name="cancel_provisioning">Cancel Provisioning</string>
+</resources>

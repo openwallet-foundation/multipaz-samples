@@ -22,8 +22,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.ImageLoader
 import mpzcmpwallet.composeapp.generated.resources.Res
+import mpzcmpwallet.composeapp.generated.resources.cancel
 import mpzcmpwallet.composeapp.generated.resources.compose_multiplatform
+import mpzcmpwallet.composeapp.generated.resources.present_mdl
+import mpzcmpwallet.composeapp.generated.resources.present_qr_to_reader
+import mpzcmpwallet.composeapp.generated.resources.show_qr_code
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.qrcode.generateQrCode
@@ -94,7 +99,7 @@ private fun ShowQrButton(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Present mDL",
+            text = stringResource(Res.string.present_mdl),
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(Modifier.height(16.dp))
@@ -118,7 +123,7 @@ private fun ShowQrButton(
                 )
             }
         ) {
-            Text("Show QR code")
+            Text(stringResource(Res.string.show_qr_code))
         }
     }
 }
@@ -135,7 +140,7 @@ private fun ShowQrCode(
     ) {
         val qrCodeBitmap = remember { generateQrCode(uri) }
         Text(
-            text = "Present QR code to mdoc reader",
+            text = stringResource(Res.string.present_qr_to_reader),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.SemiBold
             )
@@ -157,7 +162,7 @@ private fun ShowQrCode(
                     onDismiss()
             }
         ) {
-            Text("Cancel")
+            Text(stringResource(Res.string.cancel))
         }
     }
 }

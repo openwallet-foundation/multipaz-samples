@@ -1,14 +1,27 @@
 package org.multipaz.samples.wallet.cmp
 
-import org.multipaz.compose.document.DocumentInfo
+import kotlinx.serialization.Serializable
 
+@Serializable
 sealed interface AppRoute {
+    @Serializable
     data object Wallet : AppRoute
+
+    @Serializable
     data object Provisioning : AppRoute
 }
 
+@Serializable
 sealed interface WalletRoute {
-    data object Wallet : WalletRoute
-    data class WalletDetails(val documentInfo: DocumentInfo) : WalletRoute
-}
+    @Serializable
+    data object WalletList : WalletRoute
 
+    @Serializable
+    data class WalletDetails(val documentId: String) : WalletRoute
+
+    @Serializable
+    data class DocumentDetails(val documentId: String) : WalletRoute
+
+    @Serializable
+    data class PersonalIdInfo(val documentId: String) : WalletRoute
+}

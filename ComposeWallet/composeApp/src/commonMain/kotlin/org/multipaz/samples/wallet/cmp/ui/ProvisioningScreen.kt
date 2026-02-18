@@ -11,6 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import mpzcmpwallet.composeapp.generated.resources.Res
+import mpzcmpwallet.composeapp.generated.resources.cancel_provisioning
+import org.jetbrains.compose.resources.stringResource
 import org.multipaz.compose.provisioning.Provisioning
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.ProvisioningSupport
@@ -36,7 +39,7 @@ fun ProvisioningScreen(
         Spacer(Modifier.padding(12.dp))
 
         Button(onClick = onCancel) {
-            Text("Cancel Provisioning")
+            Text(stringResource(Res.string.cancel_provisioning))
         }
     }
 }
