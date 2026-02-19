@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
     <!-- Common -->
+    <string name="app_name">Multipaz Wallet</string>
     <string name="back">Back</string>
     <string name="cancel">Cancel</string>
     <string name="remove">Remove</string>
@@ -14,6 +15,7 @@
     <!-- WalletScreen -->
     <string name="no_documents_added">No documents added yet</string>
     <string name="add_document_hint">Add a document from issuer.multipaz.org</string>
+    <string name="carousel_drag_to_reader">Drag to reorder</string>
 
     <!-- DocumentViewerScreen -->
     <string name="hold_to_reader">Hold to reader</string>
@@ -36,15 +38,16 @@
     <string name="id_usage_description">To use your ID, tap your phone to a reader or scan your QR code. This screen can\u2019t be shown to verify your identity. </string>
     <string name="learn_more">Learn more</string>
     <string name="certificate_info">Certificate info</string>
-    <string name="cert_signed_date">Certificate signed date</string>
-    <string name="cert_valid_from">Certificate valid from</string>
-    <string name="cert_valid_until">Certificate valid until</string>
-    <string name="cert_expected_update">Certificate expected update</string>
+    <string name="cert_signed_date">Signed at</string>
+    <string name="cert_valid_from">Valid from</string>
+    <string name="cert_valid_until">Valid until</string>
+    <string name="cert_expected_update">Expected update</string>
+    <string name="not_set">Not set</string>
 
     <!-- QrPresentmentDialog -->
     <string name="present_mdl">Present mDL</string>
     <string name="show_qr_code">Show QR code</string>
-    <string name="present_qr_to_reader">Present QR code to mdoc reader</string>
+    <string name="present_qr_to_reader">Present QR code to verifier</string>
 
     <!-- ProvisioningScreen -->
     <string name="cancel_provisioning">Cancel Provisioning</string>

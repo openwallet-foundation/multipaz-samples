@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
@@ -60,16 +61,25 @@ import mpzcmpwallet.composeapp.generated.resources.learn_more
 import mpzcmpwallet.composeapp.generated.resources.type_info
 import org.jetbrains.compose.resources.stringResource
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.io.bytestring.decodeToString
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import mpzcmpwallet.composeapp.generated.resources.not_set
 import kotlin.time.Instant
 import org.multipaz.cbor.Bstr
 import org.multipaz.claim.Claim
+import org.multipaz.claim.JsonClaim
 import org.multipaz.claim.MdocClaim
 import org.multipaz.compose.claim.RenderClaimValue
+import org.multipaz.compose.datetime.formattedDate
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.documenttype.DocumentAttribute
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.credential.MdocCredential
+import org.multipaz.sdjwt.SdJwt
+import org.multipaz.sdjwt.SdJwt.Companion
+import org.multipaz.sdjwt.credential.SdJwtVcCredential
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,13 +89,15 @@ fun DocumentClaimsScreen(
     documentTypeRepository: DocumentTypeRepository,
     onBack: () -> Unit,
 ) {
-    val documentInfo = documentModel.documentInfos.collectAsState().value[documentId]
+    val documentInfo = documentModel.documentInfos.collectAsState().value.find {
+        it.document.identifier == documentId
+    }
     var claims by remember { mutableStateOf<List<Claim>>(emptyList()) }
     var certSignedDate by remember { mutableStateOf<Instant?>(null) }
     var certValidFrom by remember { mutableStateOf<Instant?>(null) }
     var certValidUntil by remember { mutableStateOf<Instant?>(null) }
     var certExpectedUpdate by remember { mutableStateOf<Instant?>(null) }
-    var certInfoExpanded by remember { mutableStateOf(true) }
+    var certInfoExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(documentId) {
         val document = documentInfo?.document ?: return@LaunchedEffect
@@ -98,13 +110,17 @@ fun DocumentClaimsScreen(
             certValidFrom = mso.validFrom
             certValidUntil = mso.validUntil
             certExpectedUpdate = mso.expectedUpdate
+        } else if (credential is SdJwtVcCredential) {
+            val sdJwt = SdJwt.fromCompactSerialization(credential.issuerProvidedData.decodeToString())
+            certSignedDate = sdJwt.issuedAt
+            certValidFrom = sdJwt.validFrom
+            certValidUntil = sdJwt.validUntil
         }
     }
 
-    val typeDisplayName = documentInfo?.document?.metadata?.typeDisplayName.orEmpty()
+    val typeDisplayName = documentInfo?.document?.typeDisplayName.orEmpty()
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { },
@@ -113,9 +129,6 @@ fun DocumentClaimsScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
             )
         }
     ) { padding ->
@@ -161,56 +174,33 @@ fun DocumentClaimsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            val allPictureClaims = claims.filter { it.isPictureClaim() }
-            var picturesRendered = false
+            // TODO: Need better renderers for complex claims like Driving Privileges
+            //   for mDL and object claims in JSON based credentials. This should probably
+            //   be done in the multipaz core library
 
-            var i = 0
-            while (i < claims.size) {
-                val claim = claims[i]
-                val isPicture = claim.isPictureClaim()
-                val isComplexType = claim.attribute?.type == DocumentAttributeType.ComplexType
-
-                if (isPicture) {
-                    if (!picturesRendered) {
-                        Row(
-                            horizontalArrangement = Arrangement.Start
-                        ) {
-                            allPictureClaims.forEach { picClaim ->
-                                RenderClaimValue(
-                                    claim = picClaim.withPictureAttribute(),
-                                    imageSize = 120.dp,
-                                    modifier = Modifier.width(150.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(24.dp))
-                        picturesRendered = true
+            val jsonIgnoredClaims = setOf("iss", "vct", "iat", "nbf", "exp", "cnf", "status")
+            claims.forEach { claim ->
+                if (claim is JsonClaim) {
+                    val name = claim.claimPath[0].jsonPrimitive.content
+                    if (jsonIgnoredClaims.contains(name)) {
+                        return@forEach
                     }
-                } else if (isComplexType) {
-                    Text(
-                        text = claim.displayName,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                } else {
-                    Text(
-                        text = claim.displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    RenderClaimValue(claim = claim)
-                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                i++
+                Text(
+                    text = claim.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                RenderClaimValue(claim = claim)
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
             if (certSignedDate != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
@@ -237,7 +227,7 @@ fun DocumentClaimsScreen(
                         AnimatedVisibility(visible = certInfoExpanded) {
                             Column(
                                 modifier = Modifier.padding(
-                                    start = 16.dp,
+                                    start = 32.dp,
                                     end = 16.dp,
                                     bottom = 16.dp
                                 )
@@ -259,19 +249,13 @@ fun DocumentClaimsScreen(
 
 @Composable
 private fun CertificateInfoItem(label: String, instant: Instant?) {
-    if (instant == null) return
-    val dt = instant.toLocalDateTime(TimeZone.UTC)
-    val months = listOf(
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    )
-    val formatted = "${months[dt.month.ordinal]} ${dt.day}, ${dt.year}"
     Text(
         text = label,
         style = MaterialTheme.typography.titleMedium
     )
     Text(
-        text = formatted,
+        text = instant?.let { formattedDate(it) }
+            ?: AnnotatedString(stringResource(Res.string.not_set)),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )

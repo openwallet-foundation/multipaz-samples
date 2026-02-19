@@ -68,8 +68,9 @@ fun DocumentDetailsScreen(
     onPersonalIdInfoClick: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    val documentInfo = documentModel.documentInfos
-        .collectAsState().value[documentId]
+    val documentInfo = documentModel.documentInfos.collectAsState().value.find {
+        it.document.identifier == documentId
+    }
     var showRemoveDialog by remember { mutableStateOf(false) }
 
     if (showRemoveDialog) {
@@ -116,8 +117,8 @@ fun DocumentDetailsScreen(
         }
     ) { padding ->
         documentInfo?.let { info ->
-            val displayName = info.document.metadata.displayName.orEmpty()
-            val typeDisplayName = info.document.metadata.typeDisplayName.orEmpty()
+            val displayName = info.document.displayName.orEmpty()
+            val typeDisplayName = info.document.typeDisplayName.orEmpty()
 
             Column(
                 modifier = Modifier
