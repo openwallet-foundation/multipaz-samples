@@ -56,9 +56,11 @@ import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
+import org.multipaz.document.Document
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.prompt.PromptModel
 import org.multipaz.util.Logger
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,10 +68,8 @@ import org.multipaz.util.Logger
 fun DocumentViewerScreen(
     documentId: String,
     documentModel: DocumentModel,
-    presentmentModel: PresentmentModel,
+    promptModel: PromptModel,
     presentmentSource: PresentmentSource,
-    documentTypeRepository: DocumentTypeRepository,
-    imageLoader: ImageLoader,
     onBack: () -> Unit,
     onMenuClick: () -> Unit,
 ) {
@@ -80,8 +80,9 @@ fun DocumentViewerScreen(
     var showQrDialog by remember { mutableStateOf(false) }
     var showBleInfoDialog by remember { mutableStateOf(false) }
     var firstAttemptToEnableBle by remember { mutableStateOf(false) }
-    val documentInfo = documentModel.documentInfos
-        .collectAsState().value[documentId]
+    val documentInfo = documentModel.documentInfos.collectAsState().value.find {
+        it.document.identifier == documentId
+    }
 
     LaunchedEffect(
         pendingQrRequest,
@@ -106,42 +107,49 @@ fun DocumentViewerScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-
-                            coroutineScope.launch {
-                                when {
-                                    !blePermissionState.isGranted -> {
-                                        if (firstAttemptToEnableBle) {
-                                            showBleInfoDialog = true
-                                            if(pendingQrRequest) {
-                                                pendingQrRequest = false
+                    if (documentInfo?.canPresentWithProximity() == true) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    when {
+                                        !blePermissionState.isGranted -> {
+                                            if (firstAttemptToEnableBle) {
+                                                showBleInfoDialog = true
+                                                if (pendingQrRequest) {
+                                                    pendingQrRequest = false
+                                                }
+                                            } else {
+                                                pendingQrRequest = true
+                                                blePermissionState.launchPermissionRequest()
+                                                firstAttemptToEnableBle = true
                                             }
-                                        } else {
+
+                                        }
+
+                                        !bleEnabledState.isEnabled -> {
                                             pendingQrRequest = true
-                                            blePermissionState.launchPermissionRequest()
+                                            bleEnabledState.enable()
                                             firstAttemptToEnableBle = true
                                         }
 
-                                    }
-
-                                    !bleEnabledState.isEnabled -> {
-                                        pendingQrRequest = true
-                                        bleEnabledState.enable()
-                                        firstAttemptToEnableBle = true
-                                    }
-
-                                    else -> {
-                                        showQrDialog = true
+                                        else -> {
+                                            showQrDialog = true
+                                        }
                                     }
                                 }
                             }
+                        ) {
+                            Icon(
+                                Icons.Filled.QrCode,
+                                contentDescription = stringResource(Res.string.present)
+                            )
                         }
-                    ) {
-                        Icon(Icons.Filled.QrCode, contentDescription = stringResource(Res.string.present))
                     }
                     IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.more_options))
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(Res.string.more_options)
+                        )
                     }
                 }
             )
@@ -179,7 +187,6 @@ fun DocumentViewerScreen(
                         ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -191,12 +198,9 @@ fun DocumentViewerScreen(
 
     if (showQrDialog) {
         QrPresentmentDialog(
-            presentmentModel = presentmentModel,
             presentmentSource = presentmentSource,
-            documentTypeRepository = documentTypeRepository,
-            imageLoader = imageLoader,
+            promptModel = promptModel,
             onDismiss = {
-                presentmentModel.reset()
                 showQrDialog = false
             }
         )
@@ -252,6 +256,14 @@ fun BleSettingsDialog(
     )
 }
 
+private fun DocumentInfo.canPresentWithProximity(): Boolean {
+    credentialInfos.forEach {
+        if (it.credential is MdocCredential) {
+            return true
+        }
+    }
+    return false
+}
 
 
 

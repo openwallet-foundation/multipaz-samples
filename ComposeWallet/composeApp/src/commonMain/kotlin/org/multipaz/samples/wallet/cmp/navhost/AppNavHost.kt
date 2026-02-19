@@ -45,11 +45,10 @@ fun AppNavHost(
         composable<AppRoute.Wallet> {
             WalletNavHost(
                 documentModel = app.documentModel,
-                presentmentModel = app.presentmentModel,
+                settingsModel = app.settingsModel,
+                promptModel = App.promptModel,
                 presentmentSource = app.presentmentSource,
-                documentTypeRepository = app.documentTypeRepository,
                 documentStore = app.documentStore,
-                imageLoader = imageLoader,
             )
         }
 

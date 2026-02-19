@@ -18,21 +18,19 @@ import coil3.compose.LocalPlatformContext
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.io.bytestring.ByteString
 import mpzcmpwallet.composeapp.generated.resources.Res
-import mpzcmpwallet.composeapp.generated.resources.compose_multiplatform
 import mpzcmpwallet.composeapp.generated.resources.initializing
 import org.jetbrains.compose.resources.stringResource
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.crypto.X509Cert
-import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
-import org.multipaz.document.AbstractDocumentMetadata
-import org.multipaz.document.DocumentMetadata
+import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -48,10 +46,9 @@ import org.multipaz.documenttype.knowntypes.UtopiaMovieTicket
 import org.multipaz.documenttype.knowntypes.UtopiaNaturalization
 import org.multipaz.documenttype.knowntypes.VaccinationDocument
 import org.multipaz.documenttype.knowntypes.VehicleRegistration
-import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
-import org.multipaz.provisioning.Display
+import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.navhost.AppNavHost
 import org.multipaz.securearea.SecureArea
@@ -60,6 +57,7 @@ import org.multipaz.storage.Storage
 import org.multipaz.storage.ephemeral.EphemeralStorage
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
+import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import org.multipaz.util.fromHexByteString
 import kotlin.time.ExperimentalTime
@@ -77,16 +75,13 @@ class App() {
     lateinit var documentStore: DocumentStore
     lateinit var documentModel: DocumentModel
     lateinit var readerTrustManager: TrustManagerLocal
-    lateinit var presentmentModel: PresentmentModel
     lateinit var presentmentSource: PresentmentSource
     lateinit var provisioningModel: ProvisioningModel
     lateinit var provisioningSupport: ProvisioningSupport
+    lateinit var settingsModel: SettingsModel
 
     private val initLock = Mutex()
     private var initialized = false
-
-    val appName = "MpzCmpWallet"
-    val appIcon = Res.drawable.compose_multiplatform
 
     @OptIn(ExperimentalTime::class)
     suspend fun init() {
@@ -112,8 +107,10 @@ class App() {
                 addDocumentType(UtopiaNaturalization.getDocumentType())
             }
             documentStore = buildDocumentStore(storage = storage, secureAreaRepository = secureAreaRepository) {}
-            documentModel = DocumentModel(documentStore = documentStore)
-            presentmentModel = PresentmentModel().apply { setPromptModel(App.promptModel) }
+            documentModel = DocumentModel(
+                documentStore = documentStore,
+                documentTypeRepository = documentTypeRepository
+            )
             readerTrustManager = TrustManagerLocal(
                 storage = EphemeralStorage()
             ).apply {
@@ -122,7 +119,7 @@ class App() {
                         certificate = X509Cert
                             ("30820251308201d7a0030201020210a692991c8d623cddbdd0928403bf4ea7300a06082a8648ce3d040303302b3129302706035504030c204f5746204d756c746970617a20546573744170702052656164657220526f6f74301e170d3234313230313030303030305a170d3334313230313030303030305a302b3129302706035504030c204f5746204d756c746970617a20546573744170702052656164657220526f6f743076301006072a8648ce3d020106052b8104002203620004f900f27bbd26d8ed2594f5cc8d58f1559cf79b993a6a04fec2287e2fbf5bee3caa525f7db1b7949e9c5a2c3f9c981dc72b7b70900edf995252a1b05cfbd0838648779b1ea7f98a07e51ba569259385605f332463b1f54e0e4a2c1cb0839db3d5a381bf3081bc300e0603551d0f0101ff04040302010630120603551d130101ff040830060101ff02010030560603551d1f044f304d304ba049a047864568747470733a2f2f6769746875622e636f6d2f6f70656e77616c6c65742d666f756e646174696f6e2d6c6162732f6964656e746974792d63726564656e7469616c2f63726c301d0603551d0e04160414ab651be056c29053f1dd7f6ce487be68de60c9f5301f0603551d23041830168014ab651be056c29053f1dd7f6ce487be68de60c9f5300a06082a8648ce3d0403030368003065023100d37d594bc8d71b5942600a4b8fc3655c287ea2cd4592ff728f783b08b55c7e4b832881a52dc4f314b113d4833655558602302ad5cd044047340ec529e031280ceee3e3147f8833f23bf215a1341145654b6179b4045842453ab9d15e3ee715765a22".fromHexByteString()),
                         metadata = TrustMetadata(
-                            displayName = "OWF Multipaz TestApp",
+                            displayName = "Multipaz TestApp",
                             displayIconUrl = "https://www.multipaz.org/multipaz-logo-200x200.png",
                         )
                 )
@@ -144,33 +141,121 @@ class App() {
                         displayIconUrl = "https://www.multipaz.org/multipaz-logo-200x200.png",
                     )
                 )
+                // verifier.multipaz.org
+                addX509Cert(
+                    certificate = X509Cert.fromPem(
+                        """
+                            -----BEGIN CERTIFICATE-----
+                            MIICrjCCAjSgAwIBAgIQPBwq4BiWYFZE6A+NyGDT8jAKBggqhkjOPQQDAzBMMT0wOwYDVQQDDDRW
+                            ZXJpZmllciBSb290IGF0IGh0dHBzOi8vaXNzdWVyLm11bHRpcGF6Lm9yZy9yZWNvcmRzMQswCQYD
+                            VQQGDAJVUzAeFw0yNjAxMDUxNjM0MzNaFw00MTAxMDExNjM0MzNaMEwxPTA7BgNVBAMMNFZlcmlm
+                            aWVyIFJvb3QgYXQgaHR0cHM6Ly9pc3N1ZXIubXVsdGlwYXoub3JnL3JlY29yZHMxCzAJBgNVBAYM
+                            AlVTMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEY3+0sjs0mzzXVlxSfAsimOl9pviPCMONvjT7a7ZR
+                            5FuQATIYnHPK8Qu/YJtwG7LWMPgsUR6H9fwyfLMqHZ309z+MJyDgKcn5tmlCyT0rslJzqWQeC1oB
+                            /tXsFcc9Y5dto4HaMIHXMA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEBMC4GA1Ud
+                            EgQnMCWGI2h0dHBzOi8vaXNzdWVyLm11bHRpcGF6Lm9yZy9yZWNvcmRzMEEGA1UdHwQ6MDgwNqA0
+                            oDKGMGh0dHBzOi8vaXNzdWVyLm11bHRpcGF6Lm9yZy9yZWNvcmRzL2NybC92ZXJpZmllcjAdBgNV
+                            HQ4EFgQUkdd4v76+FW8lvSXKJ+I/z0D+JCUwHwYDVR0jBBgwFoAUkdd4v76+FW8lvSXKJ+I/z0D+
+                            JCUwCgYIKoZIzj0EAwMDaAAwZQIwWJx6Dn0NRjKCXiRKesqOKlA+CI5MhTDP9uj5T857U8alpOsD
+                            Ho923n0DcjK5o/GeAjEAkEUFodNSrClSunFQAN+63KMqZmyNyS/pBi7k3CH1gTzC/kC9uU4yADKe
+                            MTZj3/iH
+                            -----END CERTIFICATE-----
+                        """.trimIndent()
+                    ),
+                    metadata = TrustMetadata(
+                        displayName = "Multipaz Online Verifier",
+                        displayIconUrl = "https://www.multipaz.org/multipaz-logo-200x200.png",
+                    )
+                )
+                // ws.davidz25.net
+                addX509Cert(
+                    certificate = X509Cert.fromPem(
+                        """
+                            -----BEGIN CERTIFICATE-----
+                            MIICfjCCAgSgAwIBAgIQJcmMK89tPNDdH7WpEBuqQDAKBggqhkjOPQQDAzBAMTEwLwYDVQQDDChW
+                            ZXJpZmllciBSb290IGF0IGh0dHBzOi8vd3MuZGF2aWR6MjUubmV0MQswCQYDVQQGDAJVUzAeFw0y
+                            NjAxMjgxMzExMDhaFw00MTAxMjQxMzExMDhaMEAxMTAvBgNVBAMMKFZlcmlmaWVyIFJvb3QgYXQg
+                            aHR0cHM6Ly93cy5kYXZpZHoyNS5uZXQxCzAJBgNVBAYMAlVTMHYwEAYHKoZIzj0CAQYFK4EEACID
+                            YgAEuSk/1XRVNYel5yV3RgxtUNlUE85dLTjyKItqz1RUNyOZ7ZHzH4oadb6WnCcLbl5Px+f6i8yt
+                            cyh4diTQWG2gtuSRxo05PfeZR2rBy0ToZvoVgI9j8nDbfyRGEMrSTHf4o4HCMIG/MA4GA1UdDwEB
+                            /wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEBMCIGA1UdEgQbMBmGF2h0dHBzOi8vd3MuZGF2aWR6
+                            MjUubmV0MDUGA1UdHwQuMCwwKqAooCaGJGh0dHBzOi8vd3MuZGF2aWR6MjUubmV0L2NybC92ZXJp
+                            ZmllcjAdBgNVHQ4EFgQU1TlDuv6QRGOCxyVsiV4KfUT0yvMwHwYDVR0jBBgwFoAU1TlDuv6QRGOC
+                            xyVsiV4KfUT0yvMwCgYIKoZIzj0EAwMDaAAwZQIwUSENplERttXfOr7yHxbdIhcHdlVEaXLUDbPy
+                            XcXW1hbL168wE0ykh6v0grJcD/P1AjEA23KTndS1cXfSi5jLDyB+OZY6O5EpVhxjxwZDwucfo2L1
+                            zPTt/emPh8XuL625gPbY
+                            -----END CERTIFICATE-----
+                        """.trimIndent()
+                    ),
+                    metadata = TrustMetadata(
+                        displayName = "David's Multipaz Verifier",
+                        displayIconUrl = "https://www.multipaz.org/multipaz-logo-200x200.png",
+                    )
+                )
             }
             presentmentSource = SimplePresentmentSource(
                 documentStore = documentStore,
                 documentTypeRepository = documentTypeRepository,
-                readerTrustManager = readerTrustManager,
+                resolveTrustFn = { requester ->
+                    requester.certChain?.let { certChain ->
+                        val trustResult = readerTrustManager.verify(certChain.certificates)
+                        if (trustResult.isTrusted) {
+                            return@SimplePresentmentSource trustResult.trustPoints.first().metadata
+                        }
+                    }
+                    return@SimplePresentmentSource null
+                },
                 preferSignatureToKeyAgreement = true,
                 domainMdocSignature = "mdoc_user_auth",
                 domainKeyBoundSdJwt = "sdjwt_user_auth",
                 domainKeylessSdJwt = "sdjwt_keyless"
             )
-            if (DigitalCredentials.Default.available) {
-                DigitalCredentials.Default.startExportingCredentials(
-                    documentStore = documentStore,
-                    documentTypeRepository = documentTypeRepository
-                )
+
+            val digitalCredentials = DigitalCredentials.getDefault()
+            if (digitalCredentials.registerAvailable) {
+                try {
+                    digitalCredentials.register(
+                        documentStore = documentStore,
+                        documentTypeRepository = documentTypeRepository,
+                    )
+                } catch (e: Throwable) {
+                    Logger.w(TAG, "Error registering with W3C DC API", e)
+                }
+
+                // Re-register if document store changes...
+                CoroutineScope(Dispatchers.Default).launch {
+                    documentStore.eventFlow
+                        .onEach { event ->
+                            Logger.i(
+                                TAG,
+                                "DocumentStore event ${event::class.simpleName} ${event.documentId}"
+                            )
+                            try {
+                                digitalCredentials.register(
+                                    documentStore = documentStore,
+                                    documentTypeRepository = documentTypeRepository,
+                                )
+                            } catch (e: Throwable) {
+                                Logger.w(TAG, "Error registering with W3C DC API", e)
+                            }
+                        }
+                        .launchIn(this)
+                }
             }
             provisioningModel = ProvisioningModel(
-                documentStore = documentStore,
-                secureArea = secureArea,
+                documentProvisioningHandler = DocumentProvisioningHandler(
+                    documentStore = documentStore,
+                    secureArea = secureArea
+                ),
                 httpClient = HttpClient(platformHttpClientEngineFactory()) {
                     followRedirects = false
                 },
                 promptModel = promptModel,
-                documentMetadataInitializer = App::initializeDocumentMetadata
+                authorizationSecureArea = secureArea
             )
             provisioningSupport = ProvisioningSupport()
             provisioningSupport.init()
+            settingsModel = SettingsModel.create(storage)
 
             initialized = true
         }
@@ -242,6 +327,8 @@ class App() {
     }
 
     companion object {
+        private const val TAG = "App"
+
         val promptModel = Platform.promptModel
         
         private var app: App? = null
@@ -250,21 +337,6 @@ class App() {
                 app = App()
             }
             return app!!
-        }
-
-        private suspend fun initializeDocumentMetadata(
-            metadata: AbstractDocumentMetadata,
-            credentialDisplay: Display,
-            issuerDisplay: Display
-        ) {
-            (metadata as DocumentMetadata).setMetadata(
-                displayName = credentialDisplay.text,  // TODO: customize after provisioning?
-                typeDisplayName = credentialDisplay.text,
-                cardArt = credentialDisplay.logo
-                    ?: ByteString(Res.readBytes("drawable/card_generic.png")),
-                issuerLogo = issuerDisplay.logo,
-                other = null
-            )
         }
     }
 }

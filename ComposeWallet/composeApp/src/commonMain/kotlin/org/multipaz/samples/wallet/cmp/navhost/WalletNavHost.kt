@@ -6,13 +6,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import coil3.ImageLoader
 import kotlinx.coroutines.launch
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.document.DocumentStore
-import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.prompt.PromptModel
+import org.multipaz.samples.wallet.cmp.SettingsModel
 import org.multipaz.samples.wallet.cmp.WalletRoute
 import org.multipaz.samples.wallet.cmp.ui.DocumentDetailsScreen
 import org.multipaz.samples.wallet.cmp.ui.DocumentClaimsScreen
@@ -22,11 +21,10 @@ import org.multipaz.samples.wallet.cmp.ui.WalletScreen
 @Composable
 fun WalletNavHost(
     documentModel: DocumentModel,
-    presentmentModel: PresentmentModel,
+    settingsModel: SettingsModel,
+    promptModel: PromptModel,
     presentmentSource: PresentmentSource,
-    documentTypeRepository: DocumentTypeRepository,
     documentStore: DocumentStore,
-    imageLoader: ImageLoader,
 ) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
@@ -38,6 +36,7 @@ fun WalletNavHost(
         composable<WalletRoute.WalletList> {
             WalletScreen(
                 documentModel = documentModel,
+                settingsModel = settingsModel,
                 onDocumentSelected = { documentInfo ->
                     navController.navigate(
                         WalletRoute.WalletDetails(
@@ -53,10 +52,8 @@ fun WalletNavHost(
             DocumentViewerScreen(
                 documentId = route.documentId,
                 documentModel = documentModel,
-                presentmentModel = presentmentModel,
+                promptModel = promptModel,
                 presentmentSource = presentmentSource,
-                documentTypeRepository = documentTypeRepository,
-                imageLoader = imageLoader,
                 onBack = { navController.popBackStack() },
                 onMenuClick = {
                     navController.navigate(
@@ -71,7 +68,7 @@ fun WalletNavHost(
             DocumentClaimsScreen(
                 documentId = route.documentId,
                 documentModel = documentModel,
-                documentTypeRepository = documentTypeRepository,
+                documentTypeRepository = presentmentSource.documentTypeRepository,
                 onBack = { navController.popBackStack() }
             )
         }
