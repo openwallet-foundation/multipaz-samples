@@ -23,7 +23,7 @@ class ProvisioningSupport() {
     companion object {
         const val TAG = "ProvisioningSupport"
         const val APP_LINK_SERVER = "https://apps.multipaz.org"
-        const val APP_LINK_BASE_URL = "$APP_LINK_SERVER/redirect/org.multipaz.samples.wallet.cmp"
+        val APP_LINK_BASE_URL = "$APP_LINK_SERVER${AppPlatform.redirectPath}"
     }
 
     private val lock = Mutex()

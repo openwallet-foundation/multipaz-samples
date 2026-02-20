@@ -67,6 +67,7 @@ kotlin {
             implementation(libs.multipaz.dcapi)
             implementation(libs.multipaz.compose)
             implementation(libs.coil.compose)
+            implementation(libs.coil.ktor3)
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
         }
