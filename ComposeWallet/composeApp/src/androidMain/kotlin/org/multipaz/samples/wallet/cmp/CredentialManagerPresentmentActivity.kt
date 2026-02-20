@@ -3,7 +3,7 @@ package org.multipaz.samples.wallet.cmp
 import mpzcmpwallet.composeapp.generated.resources.Res
 import org.multipaz.compose.digitalcredentials.CredentialManagerPresentmentActivity
 
-class CredmanActivity: CredentialManagerPresentmentActivity() {
+class CredentialManagerPresentmentActivity: CredentialManagerPresentmentActivity() {
     override suspend fun getSettings(): Settings {
         val app = App.getInstance()
         app.init()
