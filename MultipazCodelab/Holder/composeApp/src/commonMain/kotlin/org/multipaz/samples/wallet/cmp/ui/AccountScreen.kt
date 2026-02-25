@@ -20,6 +20,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,10 +33,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.ImageLoader
-import coil3.compose.LocalPlatformContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
@@ -42,16 +42,18 @@ import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.compose.qrcode.generateQrCode
-import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodNfc
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.prompt.PromptModel
+import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 import org.multipaz.samples.wallet.cmp.util.Constants.APP_NAME
-import org.multipaz.samples.wallet.cmp.util.Constants.appIcon
 import org.multipaz.util.Logger
 import org.multipaz.util.UUID
+import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "AccountScreen"
 
@@ -60,7 +62,7 @@ fun AccountScreen(
     promptModel: PromptModel = koinInject(),
     presentmentModel: PresentmentModel = koinInject(),
     presentmentSource: PresentmentSource = koinInject(),
-    documentTypeRepository: DocumentTypeRepository = koinInject(),
+    settingsModel: AppSettingsModel = koinInject(),
     hasCredentials: Boolean?,
 ) {
     val coroutineScope = rememberCoroutineScope { promptModel }
@@ -95,35 +97,69 @@ fun AccountScreen(
                 Text("Enable BLE")
             }
         } else {
-            val context = LocalPlatformContext.current
-            val imageLoader =
-                remember {
-                    ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
-                }
-
             val noCredentialDialog = remember { mutableStateOf(false) }
+
+            // Collect settings as state
+            val bleCentralClientEnabled = settingsModel.presentmentBleCentralClientModeEnabled.collectAsState().value
+            val blePeripheralServerEnabled = settingsModel.presentmentBlePeripheralServerModeEnabled.collectAsState().value
+            val nfcDataTransferEnabled = settingsModel.presentmentNfcDataTransferEnabled.collectAsState().value
+            val bleL2CapEnabled = settingsModel.presentmentBleL2CapEnabled.collectAsState().value
+            val bleL2CapInEngagementEnabled = settingsModel.presentmentBleL2CapInEngagementEnabled.collectAsState().value
+            val sessionEncryptionCurve = settingsModel.presentmentSessionEncryptionCurve.collectAsState().value
+
             MdocProximityQrPresentment(
-                appName = APP_NAME,
-                appIconPainter = painterResource(appIcon),
-                presentmentModel = presentmentModel,
-                presentmentSource = presentmentSource,
+                modifier = Modifier,
+                source = presentmentSource,
                 promptModel = promptModel,
-                documentTypeRepository = documentTypeRepository,
-                imageLoader = imageLoader,
-                allowMultipleRequests = false,
-                showQrButton = { onQrButtonClicked ->
+                prepareSettings = { generateQrCode ->
                     ShowQrButton(
-                        hasCredentials,
-                        onQrButtonClicked,
+                        hasCredentials = hasCredentials,
+                        bleCentralClientEnabled = bleCentralClientEnabled,
+                        blePeripheralServerEnabled = blePeripheralServerEnabled,
+                        nfcDataTransferEnabled = nfcDataTransferEnabled,
+                        bleL2CapEnabled = bleL2CapEnabled,
+                        bleL2CapInEngagementEnabled = bleL2CapInEngagementEnabled,
+                        onGenerateQrCode = generateQrCode,
                     )
                 },
-                showQrCode = { uri ->
+                showQrCode = { uri, reset ->
                     ShowQrCode(
                         uri = uri,
-                        presentmentModel = presentmentModel,
+                        onReset = reset,
                     )
                 },
+                showTransacting = { reset ->
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text("Transacting")
+                        Button(onClick = { reset() }) {
+                            Text("Cancel")
+                        }
+                    }
+                },
+                showCompleted = { error, reset ->
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        if (error != null) {
+                            Text("Something went wrong: $error")
+                        } else {
+                            Text("The data was shared")
+                        }
+                    }
+                    LaunchedEffect(Unit) {
+                        delay(1.5.seconds)
+                        reset()
+                    }
+                },
+                eDeviceKeyCurve = sessionEncryptionCurve,
             )
+
             if (noCredentialDialog.value) {
                 AlertDialog(
                     onDismissRequest = { noCredentialDialog.value = false },
@@ -192,7 +228,12 @@ private fun CredentialStatusIndicator(hasCredentials: Boolean?) {
 @Composable
 private fun ShowQrButton(
     hasCredentials: Boolean?,
-    onQrButtonClicked: (settings: MdocProximityQrSettings) -> Unit,
+    bleCentralClientEnabled: Boolean,
+    blePeripheralServerEnabled: Boolean,
+    nfcDataTransferEnabled: Boolean,
+    bleL2CapEnabled: Boolean,
+    bleL2CapInEngagementEnabled: Boolean,
+    onGenerateQrCode: (MdocProximityQrSettings) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -203,20 +244,44 @@ private fun ShowQrButton(
         when (hasCredentials) {
             true -> {
                 Button(onClick = {
-                    val connectionMethods =
-                        listOf(
+                    val connectionMethods = mutableListOf<MdocConnectionMethod>()
+                    val bleUuid = UUID.randomUUID()
+                    if (bleCentralClientEnabled) {
+                        connectionMethods.add(
                             MdocConnectionMethodBle(
                                 supportsPeripheralServerMode = false,
                                 supportsCentralClientMode = true,
                                 peripheralServerModeUuid = null,
-                                centralClientModeUuid = UUID.randomUUID(),
-                            ),
+                                centralClientModeUuid = bleUuid,
+                            )
                         )
-                    onQrButtonClicked(
+                    }
+                    if (blePeripheralServerEnabled) {
+                        connectionMethods.add(
+                            MdocConnectionMethodBle(
+                                supportsPeripheralServerMode = true,
+                                supportsCentralClientMode = false,
+                                peripheralServerModeUuid = bleUuid,
+                                centralClientModeUuid = null,
+                            )
+                        )
+                    }
+                    if (nfcDataTransferEnabled) {
+                        connectionMethods.add(
+                            MdocConnectionMethodNfc(
+                                commandDataFieldMaxLength = 0xffff,
+                                responseDataFieldMaxLength = 0x10000
+                            )
+                        )
+                    }
+                    onGenerateQrCode(
                         MdocProximityQrSettings(
                             availableConnectionMethods = connectionMethods,
-                            createTransportOptions = MdocTransportOptions(bleUseL2CAP = true),
-                        ),
+                            createTransportOptions = MdocTransportOptions(
+                                bleUseL2CAP = bleL2CapEnabled,
+                                bleUseL2CAPInEngagement = bleL2CapInEngagementEnabled
+                            )
+                        )
                     )
                 }) {
                     Text("Present mDL via QR")
@@ -257,14 +322,14 @@ private fun ShowQrButton(
 @Composable
 private fun ShowQrCode(
     uri: String,
-    presentmentModel: PresentmentModel,
+    onReset: () -> Unit,
 ) {
+    val qrCodeBitmap = remember { generateQrCode(uri) }
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val qrCodeBitmap = remember { generateQrCode(uri) }
         Text(text = "Present QR code to mdoc reader")
         Image(
             modifier = Modifier.fillMaxWidth(),
@@ -272,11 +337,7 @@ private fun ShowQrCode(
             contentDescription = null,
             contentScale = ContentScale.FillWidth,
         )
-        Button(
-            onClick = {
-                presentmentModel.reset()
-            },
-        ) {
+        Button(onClick = { onReset() }) {
             Text("Cancel")
         }
     }

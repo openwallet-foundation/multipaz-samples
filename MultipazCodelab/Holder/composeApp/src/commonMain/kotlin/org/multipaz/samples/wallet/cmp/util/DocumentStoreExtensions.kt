@@ -7,6 +7,6 @@ import kotlin.time.ExperimentalTime
 suspend fun DocumentStore.hasAnyUsableCredential(): Boolean {
     if (listDocuments().isEmpty()) return false
     val documentId = listDocuments().first()
-    val document = lookupDocument(documentId) ?: return false
+    val document = lookupDocument(documentId.identifier) ?: return false
     return document.hasUsableCredential()
 }

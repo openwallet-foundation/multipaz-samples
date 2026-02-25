@@ -11,8 +11,8 @@ import org.multipaz.cbor.Tstr
 import org.multipaz.cbor.buildCborArray
 import org.multipaz.cbor.toDataItem
 import org.multipaz.crypto.EcCurve
-import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
+import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
 import org.multipaz.storage.StorageTableSpec
@@ -23,6 +23,7 @@ class AppSettingsModel private constructor(
     private val readOnly: Boolean,
 ) {
     private lateinit var settingsTable: StorageTable
+    private lateinit var digitalCredentials: DigitalCredentials
 
     companion object Companion {
         private val tableSpec =
@@ -44,6 +45,7 @@ class AppSettingsModel private constructor(
         ): AppSettingsModel {
             val instance = AppSettingsModel(readOnly)
             instance.settingsTable = storage.getTable(tableSpec)
+            instance.digitalCredentials = DigitalCredentials.getDefault()
             instance.init()
             return instance
         }
@@ -175,7 +177,7 @@ class AppSettingsModel private constructor(
         bind(readerAllowMultipleRequests, "readerAllowMultipleRequests", false)
 
         bind(cloudSecureAreaUrl, "cloudSecureAreaUrl", CSA_URL_DEFAULT)
-        bind(dcApiProtocols, "dcApiProtocols", DigitalCredentials.Default.supportedProtocols)
+        bind(dcApiProtocols, "dcApiProtocols", digitalCredentials.supportedProtocols)
 
         bind(cryptoPreferBouncyCastle, "cryptoForceBouncyCastle", false)
     }
@@ -202,7 +204,7 @@ class AppSettingsModel private constructor(
     val readerAllowMultipleRequests = MutableStateFlow<Boolean>(false)
 
     val cloudSecureAreaUrl = MutableStateFlow<String>(CSA_URL_DEFAULT)
-    val dcApiProtocols = MutableStateFlow<Set<String>>(DigitalCredentials.Default.supportedProtocols)
+    val dcApiProtocols = MutableStateFlow<Set<String>>(emptySet())
 
     val cryptoPreferBouncyCastle = MutableStateFlow<Boolean>(false)
 }

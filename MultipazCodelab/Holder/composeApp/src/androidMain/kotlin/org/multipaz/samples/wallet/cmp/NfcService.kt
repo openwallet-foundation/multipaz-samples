@@ -5,11 +5,9 @@ import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.presentment.model.PresentmentSource
-import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 
-class NdefService : MdocNdefService() {
+class NfcService : MdocNdefService() {
     private val presentmentSource: PresentmentSource by inject()
-    private val settingsModel: AppSettingsModel by inject()
 
     override suspend fun getSettings(): Settings {
         // Reset the presentment model with the source's document store and repository
@@ -24,15 +22,19 @@ class NdefService : MdocNdefService() {
             promptModel = PresentmentActivity.promptModel,
             presentmentModel = PresentmentActivity.presentmentModel,
             activityClass = PresentmentActivity::class.java,
-            sessionEncryptionCurve = settingsModel.presentmentSessionEncryptionCurve.value,
-            useNegotiatedHandover = settingsModel.presentmentUseNegotiatedHandover.value,
-            negotiatedHandoverPreferredOrder = settingsModel.presentmentNegotiatedHandoverPreferredOrder.value,
-            staticHandoverBleCentralClientModeEnabled = settingsModel.presentmentBleCentralClientModeEnabled.value,
-            staticHandoverBlePeripheralServerModeEnabled = settingsModel.presentmentBlePeripheralServerModeEnabled.value,
-            staticHandoverNfcDataTransferEnabled = settingsModel.presentmentNfcDataTransferEnabled.value,
+            sessionEncryptionCurve = org.multipaz.crypto.EcCurve.P256,
+            useNegotiatedHandover = true,
+            negotiatedHandoverPreferredOrder = listOf(
+                "ble:central_client_mode:",
+                "ble:peripheral_server_mode:",
+                "nfc:"
+            ),
+            staticHandoverBleCentralClientModeEnabled = false,
+            staticHandoverBlePeripheralServerModeEnabled = true,
+            staticHandoverNfcDataTransferEnabled = false,
             transportOptions = MdocTransportOptions(
-                bleUseL2CAP = settingsModel.presentmentBleL2CapEnabled.value,
-                bleUseL2CAPInEngagement = settingsModel.presentmentBleL2CapInEngagementEnabled.value
+                bleUseL2CAP = false,
+                bleUseL2CAPInEngagement = true
             )
         )
     }
