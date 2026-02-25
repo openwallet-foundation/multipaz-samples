@@ -79,13 +79,14 @@ val multipazModule =
         single<ProvisioningModel> {
             val secureArea: SecureArea = get()
             ProvisioningModel(
-                documentProvisioningHandler = DocumentProvisioningHandler(
-                    secureArea = secureArea,
-                    documentStore = get()
-                ),
+                documentProvisioningHandler =
+                    DocumentProvisioningHandler(
+                        secureArea = secureArea,
+                        documentStore = get(),
+                    ),
                 httpClient = get(),
                 promptModel = get(),
-                authorizationSecureArea = secureArea
+                authorizationSecureArea = secureArea,
             )
         }
 

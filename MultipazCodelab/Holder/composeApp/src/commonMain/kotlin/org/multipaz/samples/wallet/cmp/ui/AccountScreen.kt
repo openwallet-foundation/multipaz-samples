@@ -46,11 +46,9 @@ import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodNfc
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
-import org.multipaz.samples.wallet.cmp.util.Constants.APP_NAME
 import org.multipaz.util.Logger
 import org.multipaz.util.UUID
 import kotlin.time.Duration.Companion.seconds
@@ -60,7 +58,6 @@ private const val TAG = "AccountScreen"
 @Composable
 fun AccountScreen(
     promptModel: PromptModel = koinInject(),
-    presentmentModel: PresentmentModel = koinInject(),
     presentmentSource: PresentmentSource = koinInject(),
     settingsModel: AppSettingsModel = koinInject(),
     hasCredentials: Boolean?,
@@ -101,10 +98,13 @@ fun AccountScreen(
 
             // Collect settings as state
             val bleCentralClientEnabled = settingsModel.presentmentBleCentralClientModeEnabled.collectAsState().value
-            val blePeripheralServerEnabled = settingsModel.presentmentBlePeripheralServerModeEnabled.collectAsState().value
+            val blePeripheralServerEnabled =
+                settingsModel.presentmentBlePeripheralServerModeEnabled.collectAsState().value
             val nfcDataTransferEnabled = settingsModel.presentmentNfcDataTransferEnabled.collectAsState().value
-            val bleL2CapEnabled = settingsModel.presentmentBleL2CapEnabled.collectAsState().value
-            val bleL2CapInEngagementEnabled = settingsModel.presentmentBleL2CapInEngagementEnabled.collectAsState().value
+            val bleL2CapEnabled =
+                settingsModel.presentmentBleL2CapEnabled.collectAsState().value
+            val bleL2CapInEngagementEnabled =
+                settingsModel.presentmentBleL2CapInEngagementEnabled.collectAsState().value
             val sessionEncryptionCurve = settingsModel.presentmentSessionEncryptionCurve.collectAsState().value
 
             MdocProximityQrPresentment(
@@ -253,7 +253,7 @@ private fun ShowQrButton(
                                 supportsCentralClientMode = true,
                                 peripheralServerModeUuid = null,
                                 centralClientModeUuid = bleUuid,
-                            )
+                            ),
                         )
                     }
                     if (blePeripheralServerEnabled) {
@@ -263,25 +263,26 @@ private fun ShowQrButton(
                                 supportsCentralClientMode = false,
                                 peripheralServerModeUuid = bleUuid,
                                 centralClientModeUuid = null,
-                            )
+                            ),
                         )
                     }
                     if (nfcDataTransferEnabled) {
                         connectionMethods.add(
                             MdocConnectionMethodNfc(
                                 commandDataFieldMaxLength = 0xffff,
-                                responseDataFieldMaxLength = 0x10000
-                            )
+                                responseDataFieldMaxLength = 0x10000,
+                            ),
                         )
                     }
                     onGenerateQrCode(
                         MdocProximityQrSettings(
                             availableConnectionMethods = connectionMethods,
-                            createTransportOptions = MdocTransportOptions(
-                                bleUseL2CAP = bleL2CapEnabled,
-                                bleUseL2CAPInEngagement = bleL2CapInEngagementEnabled
-                            )
-                        )
+                            createTransportOptions =
+                                MdocTransportOptions(
+                                    bleUseL2CAP = bleL2CapEnabled,
+                                    bleUseL2CAPInEngagement = bleL2CapInEngagementEnabled,
+                                ),
+                        ),
                     )
                 }) {
                     Text("Present mDL via QR")

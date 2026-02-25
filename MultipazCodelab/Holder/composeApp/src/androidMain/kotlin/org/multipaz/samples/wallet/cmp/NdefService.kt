@@ -16,7 +16,7 @@ class NdefService : MdocNdefService() {
         PresentmentActivity.presentmentModel.reset(
             documentStore = presentmentSource.documentStore,
             documentTypeRepository = presentmentSource.documentTypeRepository,
-            preselectedDocuments = emptyList()
+            preselectedDocuments = emptyList(),
         )
 
         return Settings(
@@ -28,12 +28,14 @@ class NdefService : MdocNdefService() {
             useNegotiatedHandover = settingsModel.presentmentUseNegotiatedHandover.value,
             negotiatedHandoverPreferredOrder = settingsModel.presentmentNegotiatedHandoverPreferredOrder.value,
             staticHandoverBleCentralClientModeEnabled = settingsModel.presentmentBleCentralClientModeEnabled.value,
-            staticHandoverBlePeripheralServerModeEnabled = settingsModel.presentmentBlePeripheralServerModeEnabled.value,
+            staticHandoverBlePeripheralServerModeEnabled =
+                settingsModel.presentmentBlePeripheralServerModeEnabled.value,
             staticHandoverNfcDataTransferEnabled = settingsModel.presentmentNfcDataTransferEnabled.value,
-            transportOptions = MdocTransportOptions(
-                bleUseL2CAP = settingsModel.presentmentBleL2CapEnabled.value,
-                bleUseL2CAPInEngagement = settingsModel.presentmentBleL2CapInEngagementEnabled.value
-            )
+            transportOptions =
+                MdocTransportOptions(
+                    bleUseL2CAP = settingsModel.presentmentBleL2CapEnabled.value,
+                    bleUseL2CAPInEngagement = settingsModel.presentmentBleL2CapInEngagementEnabled.value,
+                ),
         )
     }
 }

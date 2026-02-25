@@ -14,7 +14,7 @@ class NfcService : MdocNdefService() {
         PresentmentActivity.presentmentModel.reset(
             documentStore = presentmentSource.documentStore,
             documentTypeRepository = presentmentSource.documentTypeRepository,
-            preselectedDocuments = emptyList()
+            preselectedDocuments = emptyList(),
         )
 
         return Settings(
@@ -24,18 +24,20 @@ class NfcService : MdocNdefService() {
             activityClass = PresentmentActivity::class.java,
             sessionEncryptionCurve = org.multipaz.crypto.EcCurve.P256,
             useNegotiatedHandover = true,
-            negotiatedHandoverPreferredOrder = listOf(
-                "ble:central_client_mode:",
-                "ble:peripheral_server_mode:",
-                "nfc:"
-            ),
+            negotiatedHandoverPreferredOrder =
+                listOf(
+                    "ble:central_client_mode:",
+                    "ble:peripheral_server_mode:",
+                    "nfc:",
+                ),
             staticHandoverBleCentralClientModeEnabled = false,
             staticHandoverBlePeripheralServerModeEnabled = true,
             staticHandoverNfcDataTransferEnabled = false,
-            transportOptions = MdocTransportOptions(
-                bleUseL2CAP = false,
-                bleUseL2CAPInEngagement = true
-            )
+            transportOptions =
+                MdocTransportOptions(
+                    bleUseL2CAP = false,
+                    bleUseL2CAPInEngagement = true,
+                ),
         )
     }
 }
