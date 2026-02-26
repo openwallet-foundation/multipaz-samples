@@ -131,14 +131,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".NfcActivity"
-            android:exported="true"
-            android:launchMode="singleInstance"
-            android:showWhenLocked="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen"
-            android:turnScreenOn="true" />
-
         <service
             android:name=".NdefService"
             android:exported="true"

@@ -1,11 +1,13 @@
 package org.multipaz.getstarted
 
 import android.content.pm.PackageManager
+import io.ktor.client.engine.HttpClientEngineFactory
+import io.ktor.client.engine.android.Android
 import org.multipaz.context.applicationContext
 import org.multipaz.digitalcredentials.getAppOrigin
 
 @Suppress("DEPRECATION")
-actual fun getAppToAppOrigin(): String {
+actual suspend fun getAppToAppOrigin(): String {
     val packageInfo = applicationContext.packageManager
         .getPackageInfo(applicationContext.packageName, PackageManager.GET_SIGNATURES)
 
@@ -17,3 +19,7 @@ actual fun getAppToAppOrigin(): String {
 }
 
 actual fun isAndroid(): Boolean = true
+
+actual val httpClientEngineFactory: HttpClientEngineFactory<*> by lazy {
+    Android
+}
