@@ -1,6 +1,5 @@
 package org.multipaz.getstarted
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
@@ -18,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,13 +35,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil3.ImageLoader
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import org.jetbrains.compose.resources.painterResource
-import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
 import org.multipaz.compose.camera.Camera
 import org.multipaz.compose.camera.CameraCaptureResolution
@@ -63,24 +61,22 @@ import org.multipaz.getstarted.App.Companion.SAMPLE_DOCUMENT_DISPLAY_NAME
 import org.multipaz.getstarted.w3cdc.ShowResponseMetadata
 import org.multipaz.getstarted.w3cdc.W3CDCCredentialsRequestButton
 import org.multipaz.getstarted.w3cdc.buildShowResponseDestination
-import org.multipaz.getstarted.w3cdc.toDataItem
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.selfiecheck.SelfieCheck
 import org.multipaz.selfiecheck.SelfieCheckViewModel
 import org.multipaz.util.UUID
-import org.multipaz.util.toBase64Url
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun HomeScreen(
     app: App,
     navController: NavController,
     documents: List<Document>,
-    imageLoader: ImageLoader,
     identityIssuer: String = "Multipaz Getting Started Sample",
-    onDeleteDocument: (Document) -> Unit,
-    onCancel: () -> Unit
+    onDeleteDocument: (Document) -> Unit
 ) {
     val selfieCheckViewModel: SelfieCheckViewModel =
         remember { SelfieCheckViewModel(identityIssuer) }
@@ -126,23 +122,73 @@ fun HomeScreen(
                 Text("Enable Bluetooth")
             }
         } else {
+
             MdocProximityQrPresentment(
                 modifier = Modifier.weight(1f),
-                appName = app.appName,
-                appIconPainter = painterResource(app.appIcon),
-                presentmentModel = app.presentmentModel,
-                presentmentSource = app.presentmentSource,
+                source = app.presentmentSource,
                 promptModel = App.promptModel,
-                documentTypeRepository = app.documentTypeRepository,
-                imageLoader = imageLoader,
-                allowMultipleRequests = false,
-                showQrButton = { onQrButtonClicked -> ShowQrButton(onQrButtonClicked) },
-                showQrCode = { uri ->
+                prepareSettings = { generateQrCode ->
+                    val connectionMethods = mutableListOf<MdocConnectionMethod>()
+                    val bleUuid = UUID.randomUUID()
+                    connectionMethods.add(
+                        MdocConnectionMethodBle(
+                            supportsPeripheralServerMode = true,
+                            supportsCentralClientMode = false,
+                            peripheralServerModeUuid = bleUuid,
+                            centralClientModeUuid = null,
+                        )
+                    )
+
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Button(
+                            onClick = {
+                                generateQrCode(
+                                    MdocProximityQrSettings(
+                                        availableConnectionMethods = connectionMethods,
+                                        createTransportOptions = MdocTransportOptions(
+                                            bleUseL2CAPInEngagement = true
+                                        )
+                                    )
+                                )
+                            }
+                        ) @Composable {
+                            Text("Present mDoc via QR code")
+                        }
+                    }
+                },
+                showTransacting = { reset ->
+                    Text("Transacting")
+                    Button(onClick = { reset() }) {
+                        Text("Cancel")
+                    }
+                },
+                showQrCode = { uri, reset ->
                     ShowQrCode(
                         uri,
-                        onCancel = onCancel
+                        onCancel = {
+                            reset()
+                        }
                     )
-                }
+                },
+                showCompleted = { error, reset ->
+                    if (error is CancellationException) {
+                        reset()
+                    } else {
+                        if (error != null) {
+                            Text("Something went wrong: $error")
+                        } else {
+                            Text("The data was shared")
+                        }
+                        LaunchedEffect(Unit) {
+                            delay(1.5.seconds)
+                            reset()
+                        }
+                    }
+                },
             )
 
             Button(
@@ -172,10 +218,10 @@ fun HomeScreen(
                 documents.forEachIndexed { index, document ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = document.metadata.displayName ?: document.identifier,
+                            text = document.displayName ?: document.identifier,
                             modifier = Modifier.padding(4.dp)
                         )
-                        if (document.metadata.displayName != SAMPLE_DOCUMENT_DISPLAY_NAME) {
+                        if (document.displayName != SAMPLE_DOCUMENT_DISPLAY_NAME) {
                             IconButton(
                                 content = @Composable {
                                     Icon(
