@@ -25,8 +25,8 @@ import org.multipaz.crypto.EcPublicKey
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
-import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
+import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.documenttype.DocumentCannedRequest
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.getstarted.getAppToAppOrigin
@@ -39,7 +39,6 @@ import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.METADATA_ENGAGEMEN
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.METADATA_TRANSFER_PROTOCOL_PREFIX
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.NONCE_SIZE_BYTES
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.READER_KEY_CURVE
-import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.READER_ROOT_KEY_CURVE
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.RESPONSE_ENCRYPTION_CURVE
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_CERT
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_PRIVATE_KEY
@@ -337,8 +336,7 @@ private suspend fun loadBundledReaderRootKey(): EcPrivateKey {
     val privateKeyPem = Res.readBytes("files/reader_root_key_private.pem").decodeToString()
 
     val readerRootKeyPub = EcPublicKey.fromPem(
-        publicKeyPem,
-        READER_ROOT_KEY_CURVE
+        publicKeyPem
     )
 
     return EcPrivateKey.fromPem(
@@ -447,7 +445,7 @@ private suspend fun doDcRequestFlow(
 
     // Send request and measure response time
     val t0 = Clock.System.now()
-    val dcResponseObject = DigitalCredentials.Default.request(dcRequestObject)
+    val dcResponseObject = DigitalCredentials.getDefault().request(dcRequestObject)
     Logger.iJson(TAG, "Response", dcResponseObject)
 
     // Decrypt the response using our encryption key
