@@ -19,7 +19,6 @@ import org.multipaz.cbor.DataItem
 import org.multipaz.compose.rememberUiBoundCoroutineScope
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
-import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.EcPublicKey
 import org.multipaz.crypto.X500Name
@@ -48,6 +47,11 @@ import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.storage.StorageTable
+import org.multipaz.trustmanagement.TrustEntryX509Cert
+import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustMetadata
+import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
+import org.multipaz.trustmanagement.toDataItem
 import org.multipaz.util.Logger
 import org.multipaz.verification.MdocApiDcResponse
 import org.multipaz.verification.OpenID4VPDcResponse
@@ -85,6 +89,7 @@ const val TAG = "W3CDCCredentialsRequestButton"
 fun W3CDCCredentialsRequestButton(
     storageTable: StorageTable,
     promptModel: PromptModel,
+    readerTrustManager: TrustManagerLocal,
     text: String = "W3CDC Credentials Request",
     showResponse: (
         vpToken: JsonObject?,
@@ -135,6 +140,20 @@ fun W3CDCCredentialsRequestButton(
                 certsValidFrom = certsValidFrom,
                 certsValidUntil = certsValidUntil
             )
+
+            // This is for the get started sample app itself
+            // for trust verification during the native to native request
+            try {
+                readerTrustManager.addX509Cert(
+                    certificate = readerRootKey.certChain.certificates.first(),
+                    metadata = TrustMetadata(
+                        displayName = "Multipaz Getting Started Sample",
+                        privacyPolicyUrl = "https://developer.multipaz.org"
+                    )
+                )
+            } catch (e: TrustPointAlreadyExistsException) {
+                e.printStackTrace()
+            }
 
             try {
                 // Execute the credential request flow
