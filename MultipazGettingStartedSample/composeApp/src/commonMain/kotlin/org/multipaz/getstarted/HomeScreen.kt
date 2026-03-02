@@ -249,6 +249,7 @@ fun HomeScreen(
             W3CDCCredentialsRequestButton(
                 promptModel = App.promptModel,
                 storageTable = app.storageTable,
+                readerTrustManager = app.readerTrustManager,
                 showResponse = { vpToken: JsonObject?,
                                  deviceResponse: DataItem?,
                                  sessionTranscript: DataItem,
