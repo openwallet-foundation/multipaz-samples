@@ -118,16 +118,6 @@
                    requests on the lock screen because there is no PII. For an app with real
                    user data it might be a privacy problem to show PII on the lock screen.
         -->
-        <activity
-            android:name=".NfcActivity"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:exported="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen"
-            android:launchMode="singleInstance">
-        </activity>
-
         <service
             android:name=".NdefService"
             android:exported="true"
