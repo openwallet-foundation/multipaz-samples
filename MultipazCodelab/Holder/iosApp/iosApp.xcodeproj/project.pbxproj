@@ -297,7 +297,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 4G3ATA5MLV;
+				DEVELOPMENT_TEAM = BU6YGAJF63;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -306,7 +306,8 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "This app uses FaceID to unlock key material";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth permission is required for proximity presentations";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "This app uses FaceID to protect keys";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -321,6 +322,7 @@
 					"$(inherited)",
 					"-lsqlite3",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.samples.ever.wallet.cmp.UtopiaSample;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -338,7 +340,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 4G3ATA5MLV;
+				DEVELOPMENT_TEAM = BU6YGAJF63;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -347,7 +349,8 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "This app uses FaceID to unlock key material";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Bluetooth permission is required for proximity presentations";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "This app uses FaceID to protect keys";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -362,6 +365,7 @@
 					"$(inherited)",
 					"-lsqlite3",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.samples.ever.wallet.cmp.UtopiaSample;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

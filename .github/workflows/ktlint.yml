@@ -1,0 +1,37 @@
+name: ktlint
+
+on:
+  push:
+    branches:
+      - main
+      - code-starter
+    paths:
+      - MultipazCodelab/Holder/**
+  pull_request:
+    branches:
+      - main
+      - code-starter
+    paths:
+      - MultipazCodelab/Holder/**
+
+jobs:
+  ktlint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Run ktlint check
+        id: ktlint
+        run: |
+          cd MultipazCodelab/Holder/
+          chmod +x gradlew
+          ./gradlew ktlintCheck
