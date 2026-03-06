@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material3.AlertDialog
@@ -42,26 +43,35 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
+import mpzcmpwallet.composeapp.generated.resources.Res
+import mpzcmpwallet.composeapp.generated.resources.bluetooth_required
+import mpzcmpwallet.composeapp.generated.resources.bluetooth_settings_message
+import mpzcmpwallet.composeapp.generated.resources.hold_to_reader
+import mpzcmpwallet.composeapp.generated.resources.more_options
+import mpzcmpwallet.composeapp.generated.resources.ok
+import mpzcmpwallet.composeapp.generated.resources.present
+import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.launch
 import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
+import org.multipaz.document.Document
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.prompt.PromptModel
 import org.multipaz.util.Logger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WalletDetailScreen(
-    documentInfo: DocumentInfo,
+fun DocumentViewerScreen(
+    documentId: String,
     documentModel: DocumentModel,
-    presentmentModel: PresentmentModel,
+    promptModel: PromptModel,
     presentmentSource: PresentmentSource,
-    documentTypeRepository: DocumentTypeRepository,
-    imageLoader: ImageLoader,
     onBack: () -> Unit,
+    onMenuClick: () -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val blePermissionState = rememberBluetoothPermissionState()
@@ -70,8 +80,9 @@ fun WalletDetailScreen(
     var showQrDialog by remember { mutableStateOf(false) }
     var showBleInfoDialog by remember { mutableStateOf(false) }
     var firstAttemptToEnableBle by remember { mutableStateOf(false) }
-    val documentInfo = documentModel.documentInfos
-        .collectAsState().value[documentInfo.document.identifier]
+    val documentInfo = documentModel.documentInfos.collectAsState().value.find {
+        it.document.identifier == documentId
+    }
 
     LaunchedEffect(
         pendingQrRequest,
@@ -96,39 +107,49 @@ fun WalletDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-
-                            coroutineScope.launch {
-                                when {
-                                    !blePermissionState.isGranted -> {
-                                        if (firstAttemptToEnableBle) {
-                                            showBleInfoDialog = true
-                                            if(pendingQrRequest) {
-                                                pendingQrRequest = false
+                    if (documentInfo?.canPresentWithProximity() == true) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    when {
+                                        !blePermissionState.isGranted -> {
+                                            if (firstAttemptToEnableBle) {
+                                                showBleInfoDialog = true
+                                                if (pendingQrRequest) {
+                                                    pendingQrRequest = false
+                                                }
+                                            } else {
+                                                pendingQrRequest = true
+                                                blePermissionState.launchPermissionRequest()
+                                                firstAttemptToEnableBle = true
                                             }
-                                        } else {
+
+                                        }
+
+                                        !bleEnabledState.isEnabled -> {
                                             pendingQrRequest = true
-                                            blePermissionState.launchPermissionRequest()
+                                            bleEnabledState.enable()
                                             firstAttemptToEnableBle = true
                                         }
 
-                                    }
-
-                                    !bleEnabledState.isEnabled -> {
-                                        pendingQrRequest = true
-                                        bleEnabledState.enable()
-                                        firstAttemptToEnableBle = true
-                                    }
-
-                                    else -> {
-                                        showQrDialog = true
+                                        else -> {
+                                            showQrDialog = true
+                                        }
                                     }
                                 }
                             }
+                        ) {
+                            Icon(
+                                Icons.Filled.QrCode,
+                                contentDescription = stringResource(Res.string.present)
+                            )
                         }
-                    ) {
-                        Icon(Icons.Filled.QrCode, contentDescription = "Present")
+                    }
+                    IconButton(onClick = onMenuClick) {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(Res.string.more_options)
+                        )
                     }
                 }
             )
@@ -160,13 +181,12 @@ fun WalletDetailScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Hold to reader",
+                        text = stringResource(Res.string.hold_to_reader),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -178,12 +198,9 @@ fun WalletDetailScreen(
 
     if (showQrDialog) {
         QrPresentmentDialog(
-            presentmentModel = presentmentModel,
             presentmentSource = presentmentSource,
-            documentTypeRepository = documentTypeRepository,
-            imageLoader = imageLoader,
+            promptModel = promptModel,
             onDismiss = {
-                presentmentModel.reset()
                 showQrDialog = false
             }
         )
@@ -221,11 +238,9 @@ fun BleSettingsDialog(
 ) {
    AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Bluetooth required") },
+        title = { Text(stringResource(Res.string.bluetooth_required)) },
         text = {
-            Text(
-                "To present your ID, enable Bluetooth permissions and Bluetooth access in Settings."
-            )
+            Text(stringResource(Res.string.bluetooth_settings_message))
         },
         confirmButton = {
             TextButton(
@@ -234,13 +249,21 @@ fun BleSettingsDialog(
                     onDismiss()
                 }
             ) {
-                Text("OK")
+                Text(stringResource(Res.string.ok))
             }
         },
 
     )
 }
 
+private fun DocumentInfo.canPresentWithProximity(): Boolean {
+    credentialInfos.forEach {
+        if (it.credential is MdocCredential) {
+            return true
+        }
+    }
+    return false
+}
 
 
 

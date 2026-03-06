@@ -30,9 +30,6 @@ class W3CDCConstants {
         /* The elliptic curve used for reader key generation (P-256 is industry standard) */
         val READER_KEY_CURVE = EcCurve.P256
 
-        /* The elliptic curve used for the bundled reader root key (P-384 provides higher security) */
-        val READER_ROOT_KEY_CURVE = EcCurve.P384
-
         /* Nonce size in bytes for request/response correlation */
         const val NONCE_SIZE_BYTES = 16
 
