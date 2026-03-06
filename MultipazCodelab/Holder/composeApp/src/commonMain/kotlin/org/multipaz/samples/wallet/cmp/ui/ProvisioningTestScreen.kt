@@ -155,9 +155,7 @@ fun EvidenceRequestWebView(
             EVIDENCE_REQUEST_WEB_VIEW,
             "EvidenceRequestWebView LaunchedEffect invokedUrl: $invokedUrl",
         )
-        provisioningModel.provideAuthorizationResponse(
-            AuthorizationResponse.OAuth(stableEvidenceRequest.id, invokedUrl),
-        )
+        //TODO: add provideAuthorizationResponse
     }
     val uriHandler = LocalUriHandler.current
     LaunchedEffect(stableEvidenceRequest.url) {

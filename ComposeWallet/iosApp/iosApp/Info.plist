@@ -2,11 +2,60 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Bluetooth permission is required for proximity presentations</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>This app uses FaceID to protect keys</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.credential-offer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>openid-credential-offer</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.haip-vci</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>haip-vci</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.haip-vp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>haip-vp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.vp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>openid4vp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.testapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>multipaz-test-app</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

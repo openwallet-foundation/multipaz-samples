@@ -19,14 +19,13 @@ import org.multipaz.cbor.DataItem
 import org.multipaz.compose.rememberUiBoundCoroutineScope
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
-import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.EcPublicKey
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
-import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
+import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.documenttype.DocumentCannedRequest
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.getstarted.getAppToAppOrigin
@@ -39,7 +38,6 @@ import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.METADATA_ENGAGEMEN
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.METADATA_TRANSFER_PROTOCOL_PREFIX
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.NONCE_SIZE_BYTES
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.READER_KEY_CURVE
-import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.READER_ROOT_KEY_CURVE
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.RESPONSE_ENCRYPTION_CURVE
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_CERT
 import org.multipaz.getstarted.w3cdc.W3CDCConstants.Companion.STORAGE_KEY_READER_PRIVATE_KEY
@@ -49,6 +47,11 @@ import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.storage.StorageTable
+import org.multipaz.trustmanagement.TrustEntryX509Cert
+import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustMetadata
+import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
+import org.multipaz.trustmanagement.toDataItem
 import org.multipaz.util.Logger
 import org.multipaz.verification.MdocApiDcResponse
 import org.multipaz.verification.OpenID4VPDcResponse
@@ -86,6 +89,7 @@ const val TAG = "W3CDCCredentialsRequestButton"
 fun W3CDCCredentialsRequestButton(
     storageTable: StorageTable,
     promptModel: PromptModel,
+    readerTrustManager: TrustManagerLocal,
     text: String = "W3CDC Credentials Request",
     showResponse: (
         vpToken: JsonObject?,
@@ -136,6 +140,20 @@ fun W3CDCCredentialsRequestButton(
                 certsValidFrom = certsValidFrom,
                 certsValidUntil = certsValidUntil
             )
+
+            // This is for the get started sample app itself
+            // for trust verification during the native to native request
+            try {
+                readerTrustManager.addX509Cert(
+                    certificate = readerRootKey.certChain.certificates.first(),
+                    metadata = TrustMetadata(
+                        displayName = "Multipaz Getting Started Sample",
+                        privacyPolicyUrl = "https://developer.multipaz.org"
+                    )
+                )
+            } catch (e: TrustPointAlreadyExistsException) {
+                e.printStackTrace()
+            }
 
             try {
                 // Execute the credential request flow
@@ -337,8 +355,7 @@ private suspend fun loadBundledReaderRootKey(): EcPrivateKey {
     val privateKeyPem = Res.readBytes("files/reader_root_key_private.pem").decodeToString()
 
     val readerRootKeyPub = EcPublicKey.fromPem(
-        publicKeyPem,
-        READER_ROOT_KEY_CURVE
+        publicKeyPem
     )
 
     return EcPrivateKey.fromPem(
@@ -447,7 +464,7 @@ private suspend fun doDcRequestFlow(
 
     // Send request and measure response time
     val t0 = Clock.System.now()
-    val dcResponseObject = DigitalCredentials.Default.request(dcRequestObject)
+    val dcResponseObject = DigitalCredentials.getDefault().request(dcRequestObject)
     Logger.iJson(TAG, "Response", dcResponseObject)
 
     // Decrypt the response using our encryption key

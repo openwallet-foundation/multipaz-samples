@@ -62,7 +62,7 @@
                 <data
                     android:scheme="https"
                     android:host="apps.multipaz.org"
-                    android:pathPattern="/redirect/org.multipaz.samples.wallet.cmp"/>
+                    android:pathPattern="/redirect/org.multipaz.samples.wallet.cmp/"/>
             </intent-filter>
 
             <!-- 2. OpenID4VCI Credential Offers -->
@@ -82,7 +82,7 @@
         </activity>
 
         <activity
-            android:name=".CredmanActivity"
+            android:name=".CredentialManagerPresentmentActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
             android:theme="@android:style/Theme.Translucent"
@@ -94,18 +94,23 @@
             </intent-filter>
         </activity>
 
-        <!-- NOTE: This app uses made-up credentials so it's not a concern to handle credential
-                   requests on the lock screen because there is no PII. For an app with real
-                   user data it might be a privacy problem to show PII on the lock screen.
-        -->
         <activity
-            android:name=".NfcActivity"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
+            android:name=".UriSchemePresentmentActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen"
-            android:launchMode="singleInstance">
+            android:theme="@android:style/Theme.Translucent"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!--  Various OpenID4VP schemes -->
+                <data android:scheme="haip-vp"/>
+                <data android:scheme="openid4vp"/>
+                <!-- Accept all hosts for any of the defined schemes above -->
+                <data android:host="*"/>
+            </intent-filter>
         </activity>
 
         <service

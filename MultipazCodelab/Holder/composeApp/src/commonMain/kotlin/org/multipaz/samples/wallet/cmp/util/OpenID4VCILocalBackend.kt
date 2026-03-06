@@ -1,7 +1,7 @@
 package org.multipaz.samples.wallet.cmp.util
 
 import org.multipaz.crypto.AsymmetricKey
-import org.multipaz.provisioning.openid4vci.KeyIdAndAttestation
+import org.multipaz.provisioning.CredentialKeyAttestation
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackendUtil
 import org.multipaz.securearea.KeyAttestation
@@ -9,7 +9,9 @@ import org.multipaz.securearea.KeyAttestation
 class OpenID4VCILocalBackend : OpenID4VCIBackend {
     override suspend fun getClientId(): String = CLIENT_ID
 
-    override suspend fun createJwtClientAssertion(authorizationServerIdentifier: String): String = // TODO: create and assign JWT client assertion string
+
+    override suspend fun createJwtClientAssertion(authorizationServerIdentifier: String): String =
+        // TODO: create and assign JWT client assertion string
 
 
     override suspend fun createJwtWalletAttestation(keyAttestation: KeyAttestation): String =
@@ -24,7 +26,7 @@ class OpenID4VCILocalBackend : OpenID4VCIBackend {
         )
 
     override suspend fun createJwtKeyAttestation(
-        keyIdAndAttestations: List<KeyIdAndAttestation>,
+        credentialKeyAttestations: List<CredentialKeyAttestation>,
         challenge: String,
         userAuthentication: List<String>?,
         keyStorage: List<String>?,
@@ -32,7 +34,7 @@ class OpenID4VCILocalBackend : OpenID4VCIBackend {
         OpenID4VCIBackendUtil.createJwtKeyAttestation(
             signingKey = attestationKey,
             attestationIssuer = attestationKey.subject,
-            keysToAttest = keyIdAndAttestations,
+            keysToAttest = credentialKeyAttestations,
             challenge = challenge,
             userAuthentication = userAuthentication,
             keyStorage = keyStorage,
@@ -49,7 +51,7 @@ class OpenID4VCILocalBackend : OpenID4VCIBackend {
                 "x": "nSmAFnZx-SqgTEyqqOSmZyLESdbiSUIYlRlLLoWy5uc",
                 "y": "FN1qcif7nyVX1MHN_YSbo7o7RgG2kPJUjg27YX6AKsQ",
                 "d": "TdQhxDqbAUpzMJN5XXQqLea7-6LvQu2GFKzj5QmFDCw"
-            }            
+            }
             """.trimIndent()
 
         private val attestationJwk =

@@ -49,7 +49,7 @@ class MainActivity : FragmentActivity() {
         initializeApplication(this.applicationContext)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        handleIntent(intent)
+
         lifecycle.coroutineScope.launch {
             val app = App.getInstance()
             app.init()
@@ -59,7 +59,7 @@ class MainActivity : FragmentActivity() {
             AppLinksCheck.checkAppLinksServerSetup(
                 context = this@MainActivity,
                 appLinkServer = ProvisioningSupport.APP_LINK_SERVER,
-                httpClient = HttpClient(platformHttpClientEngineFactory())
+                httpClient = HttpClient(AppPlatform.httpClientEngineFactory)
             )
         }
     }
