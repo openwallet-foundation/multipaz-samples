@@ -4,13 +4,11 @@ on:
   push:
     branches:
       - main
-      - code-starter
     paths:
       - MultipazCodelab/Holder/**
   pull_request:
     branches:
       - main
-      - code-starter
     paths:
       - MultipazCodelab/Holder/**
 
