@@ -27,6 +27,8 @@ import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
@@ -44,11 +46,10 @@ import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
-import org.multipaz.digitalcredentials.Default
 import org.multipaz.digitalcredentials.DigitalCredentials
+import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.document.AbstractDocumentMetadata
 import org.multipaz.document.Document
-import org.multipaz.document.DocumentMetadata
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -58,10 +59,10 @@ import org.multipaz.facedetection.FaceLandmarkType
 import org.multipaz.facematch.FaceMatchLiteRtModel
 import org.multipaz.getstarted.w3cdc.ShowResponseScreen
 import org.multipaz.mdoc.util.MdocUtil
-import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.provisioning.Display
+import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureArea
@@ -72,6 +73,7 @@ import org.multipaz.storage.StorageTableSpec
 import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
+import org.multipaz.util.Logger
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -92,7 +94,6 @@ class App {
     lateinit var documentTypeRepository: DocumentTypeRepository
     lateinit var documentStore: DocumentStore
 
-    lateinit var presentmentModel: PresentmentModel
     lateinit var presentmentSource: PresentmentSource
 
     lateinit var readerTrustManager: TrustManagerLocal
@@ -268,11 +269,18 @@ class App {
             } catch (e: TrustPointAlreadyExistsException) {
                 e.printStackTrace()
             }
-            presentmentModel = PresentmentModel().apply { setPromptModel(org.multipaz.util.Platform.promptModel) }
             presentmentSource = SimplePresentmentSource(
                 documentStore = documentStore,
                 documentTypeRepository = documentTypeRepository,
-                readerTrustManager = readerTrustManager,
+                resolveTrustFn = { requester ->
+                    requester.certChain?.let { certChain ->
+                        val trustResult = readerTrustManager.verify(certChain.certificates)
+                        if (trustResult.isTrusted) {
+                            return@SimplePresentmentSource trustResult.trustPoints.first().metadata
+                        }
+                    }
+                    return@SimplePresentmentSource null
+                },
                 preferSignatureToKeyAgreement = true,
                 // Match domains used when storing credentials via OpenID4VCI
                 domainMdocSignature = CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
@@ -285,21 +293,43 @@ class App {
             faceMatchLiteRtModel =
                 FaceMatchLiteRtModel(modelData, imageSquareSize = 160, embeddingsArraySize = 512)
 
-            if (DigitalCredentials.Default.available) {
-                DigitalCredentials.Default.startExportingCredentials(
-                    documentStore = documentStore,
-                    documentTypeRepository = documentTypeRepository
-                )
+            val digitalCredentials = DigitalCredentials.getDefault()
+            if (digitalCredentials.registerAvailable) {
+                try {
+                    digitalCredentials.register(
+                        documentStore = documentStore,
+                        documentTypeRepository = documentTypeRepository,
+                    )
+                } catch (_: Throwable) {
+                }
+
+                // Re-register if document store changes...
+                CoroutineScope(Dispatchers.Default).launch {
+                    documentStore.eventFlow
+                        .onEach { event ->
+                            try {
+                                digitalCredentials.register(
+                                    documentStore = documentStore,
+                                    documentTypeRepository = documentTypeRepository,
+                                )
+                            } catch (_: Throwable) {
+
+                            }
+                        }
+                        .launchIn(this)
+                }
             }
 
             provisioningModel = ProvisioningModel(
-                documentStore = documentStore,
-                secureArea = secureArea,
-                httpClient = HttpClient {
+                documentProvisioningHandler = DocumentProvisioningHandler(
+                    documentStore = documentStore,
+                    secureArea = secureArea
+                ),
+                httpClient = HttpClient(httpClientEngineFactory) {
                     followRedirects = false
                 },
                 promptModel = promptModel,
-                documentMetadataInitializer = ::initializeDocumentMetadata
+                authorizationSecureArea = secureArea
             )
             provisioningSupport = ProvisioningSupport(
                 storage = storage,
@@ -334,11 +364,6 @@ class App {
                 Text(text = "Initializing...")
             }
             return
-        }
-
-        val context = LocalPlatformContext.current
-        val imageLoader = remember {
-            ImageLoader.Builder(context).components { /* network loader omitted */ }.build()
         }
 
         var isProvisioning by remember { mutableStateOf(false) }
@@ -390,14 +415,10 @@ class App {
                     HomeScreen(
                         app = this@App,
                         navController = navController,
-                        imageLoader = imageLoader,
                         identityIssuer = identityIssuer,
                         documents = documents,
                         onDeleteDocument = {
                             documents.remove(it)
-                        },
-                        onCancel = {
-                            presentmentModel.reset()
                         }
                     )
                 }
@@ -423,28 +444,12 @@ class App {
                         goBack = {
                             isProvisioning = false
                             provisioningModel.cancel()
-                            presentmentModel
                             navController.popBackStack()
                         }
                     )
                 }
             }
         }
-    }
-
-    private suspend fun initializeDocumentMetadata(
-        metadata: AbstractDocumentMetadata,
-        credentialDisplay: Display,
-        issuerDisplay: Display
-    ) {
-        (metadata as DocumentMetadata).setMetadata(
-            displayName = credentialDisplay.text,
-            typeDisplayName = credentialDisplay.text,
-            cardArt = credentialDisplay.logo
-                ?: ByteString(Res.readBytes("drawable/profile.png")),
-            issuerLogo = issuerDisplay.logo,
-            other = null
-        )
     }
 
     /**
@@ -469,8 +474,8 @@ class App {
 
     suspend fun listDocuments(): MutableList<Document> {
         val documents = mutableStateListOf<Document>()
-        for (documentId in documentStore.listDocuments()) {
-            documentStore.lookupDocument(documentId)?.let { document ->
+        for (document in documentStore.listDocuments()) {
+            document.let { document ->
                 if (!documents.contains(document)) {
                     documents.add(document)
                 }

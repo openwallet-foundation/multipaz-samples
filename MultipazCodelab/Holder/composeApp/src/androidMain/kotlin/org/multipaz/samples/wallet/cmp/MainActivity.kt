@@ -52,13 +52,9 @@ class MainActivity : FragmentActivity() {
     /**
      * Handle a link (either a app link, universal link, or custom URL schema link).
      */
+    //TODO: implement HandleUrl for Android
     fun handleUrl(url: String) {
-        handleUrl(
-            url = url,
-            credentialOffers = credentialOffers,
-            provisioningModel = provisioningModel,
-            provisioningSupport = provisioningSupport,
-        )
+
     }
 
     companion object {

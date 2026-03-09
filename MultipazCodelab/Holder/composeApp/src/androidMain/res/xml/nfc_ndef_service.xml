@@ -12,5 +12,4 @@
     tools:ignore="UnusedAttribute">
 
     <!--TODO: implement nfc_ndef_service xml-->
-
 </host-apdu-service>
