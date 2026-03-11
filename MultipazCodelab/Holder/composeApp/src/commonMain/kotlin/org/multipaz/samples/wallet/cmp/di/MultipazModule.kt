@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package org.multipaz.samples.wallet.cmp.di
 
 import io.ktor.client.HttpClient
@@ -17,6 +19,8 @@ import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.prompt.PromptModel
+import org.multipaz.prompt.promptModelRequestConsent
+import org.multipaz.prompt.promptModelSilentConsent
 import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
@@ -27,6 +31,8 @@ import org.multipaz.samples.wallet.cmp.util.OpenID4VCILocalBackend
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport.Companion.APP_LINK_BASE_URL
 import org.multipaz.samples.wallet.cmp.util.TestAppUtils
+import org.multipaz.samples.wallet.cmp.util.createWalletStorage
+import org.multipaz.samples.wallet.cmp.util.shouldRegisterDigitalCredentialsInCommonModule
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
@@ -40,7 +46,7 @@ import utopiasample.composeapp.generated.resources.Res
 
 val multipazModule =
     module {
-        single<Storage> { Platform.nonBackedUpStorage }
+        single<Storage> { createWalletStorage() }
         single<SecureArea> { runBlocking { Platform.getSecureArea() } }
         single<SecureAreaRepository> {
             val secureArea: SecureArea = get()
@@ -155,26 +161,69 @@ val multipazModule =
         }
 
         single<PresentmentSource> {
-            runBlocking {
-                val digitalCredentials = DigitalCredentials.getDefault()
-                if (digitalCredentials.registerAvailable) {
-                    digitalCredentials.register(
-                        documentStore = get(),
-                        documentTypeRepository = get(),
-                    )
-                }
+            val settingsModel: AppSettingsModel = get()
+            val requireAuthentication = settingsModel.presentmentRequireAuthentication.value
+            val documentStore: DocumentStore = get()
+            val documentTypeRepository: DocumentTypeRepository = get()
 
-                SimplePresentmentSource(
-                    documentStore = get(),
-                    documentTypeRepository = get(),
-                    preferSignatureToKeyAgreement = true,
-                    // Match domains used when storing credentials via OpenID4VCI
-                    domainMdocSignature = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-                    domainMdocKeyAgreement = TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-                    domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-                    domainKeyBoundSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH,
-                )
+            // Android registers here; iOS uses IosDocumentProviderBridge with entitlement-filtered types.
+            if (shouldRegisterDigitalCredentialsInCommonModule()) {
+                runBlocking {
+                    val digitalCredentials = DigitalCredentials.getDefault()
+                    if (digitalCredentials.registerAvailable) {
+                        try {
+                            digitalCredentials.register(
+                                documentStore = documentStore,
+                                documentTypeRepository = documentTypeRepository,
+                                selectedProtocols = settingsModel.dcApiProtocols.value,
+                            )
+                        } catch (t: Throwable) {
+                            Logger.w("DigitalCredentials", "Initial DC API registration failed", t)
+                        }
+                    }
+                }
             }
+
+            SimplePresentmentSource(
+                documentStore = documentStore,
+                documentTypeRepository = documentTypeRepository,
+                showConsentPromptFn =
+                    if (settingsModel.presentmentShowConsentPrompt.value) {
+                        ::promptModelRequestConsent
+                    } else {
+                        ::promptModelSilentConsent
+                    },
+                resolveTrustFn = { requester ->
+                    requester.certChain?.let { certChain ->
+                        val trustResult = get<TrustManager>().verify(certChain.certificates)
+                        if (trustResult.isTrusted) {
+                            trustResult.trustPoints.firstOrNull()?.metadata
+                        } else {
+                            null
+                        }
+                    }
+                },
+                preferSignatureToKeyAgreement = settingsModel.presentmentPreferSignatureToKeyAgreement.value,
+                domainMdocSignature =
+                    if (requireAuthentication) {
+                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH
+                    } else {
+                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_NO_USER_AUTH
+                    },
+                domainMdocKeyAgreement =
+                    if (requireAuthentication) {
+                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH
+                    } else {
+                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_NO_USER_AUTH
+                    },
+                domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
+                domainKeyBoundSdJwt =
+                    if (requireAuthentication) {
+                        TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
+                    } else {
+                        TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_NO_USER_AUTH
+                    },
+            )
         }
 
         single<ProvisioningSupport> {
