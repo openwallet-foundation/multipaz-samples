@@ -21,28 +21,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import coil3.ImageLoader
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import mpzcmpwallet.composeapp.generated.resources.Res
 import mpzcmpwallet.composeapp.generated.resources.cancel
-import mpzcmpwallet.composeapp.generated.resources.compose_multiplatform
-import mpzcmpwallet.composeapp.generated.resources.present_mdl
 import mpzcmpwallet.composeapp.generated.resources.present_qr_to_reader
-import mpzcmpwallet.composeapp.generated.resources.show_qr_code
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.qrcode.generateQrCode
-import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.presentment.model.PresentmentModel
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
-import org.multipaz.samples.wallet.cmp.App
 import org.multipaz.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
@@ -135,6 +127,7 @@ fun QrPresentmentDialog(
                         }
                     }
                 },
+                disablePlatformSpecificImplementation = false
             )
         }
     }

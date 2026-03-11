@@ -70,6 +70,7 @@ kotlin {
             implementation(libs.coil.ktor3)
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.jetbrains.navigationevent.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

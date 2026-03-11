@@ -56,10 +56,8 @@ import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.permissions.rememberBluetoothEnabledState
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
-import org.multipaz.document.Document
-import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.credential.MdocCredential
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.util.Logger
 

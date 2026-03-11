@@ -8,10 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil3.ImageLoader
+import org.multipaz.compose.provisioning.ProvisioningBottomSheet
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.App
 import org.multipaz.samples.wallet.cmp.AppRoute
-import org.multipaz.samples.wallet.cmp.ui.ProvisioningScreen
 
 @Composable
 fun AppNavHost(
@@ -19,25 +19,6 @@ fun AppNavHost(
     imageLoader: ImageLoader,
 ) {
     val navController = rememberNavController()
-    val provisioningState by app.provisioningModel.state.collectAsState()
-
-    LaunchedEffect(provisioningState) {
-        val provisioningActive =
-            provisioningState != ProvisioningModel.Idle &&
-                provisioningState != ProvisioningModel.CredentialsIssued
-
-        val targetRoute: AppRoute = if (provisioningActive) {
-            AppRoute.Provisioning
-        } else {
-            AppRoute.Wallet
-        }
-
-        navController.navigate(targetRoute) {
-            popUpTo(0) { inclusive = true }
-            launchSingleTop = true
-        }
-    }
-
     NavHost(
         navController = navController,
         startDestination = AppRoute.Wallet,
@@ -49,14 +30,6 @@ fun AppNavHost(
                 promptModel = App.promptModel,
                 presentmentSource = app.presentmentSource,
                 documentStore = app.documentStore,
-            )
-        }
-
-        composable<AppRoute.Provisioning> {
-            ProvisioningScreen(
-                provisioningModel = app.provisioningModel,
-                provisioningSupport = app.provisioningSupport,
-                onCancel = { app.provisioningModel.cancel() }
             )
         }
     }

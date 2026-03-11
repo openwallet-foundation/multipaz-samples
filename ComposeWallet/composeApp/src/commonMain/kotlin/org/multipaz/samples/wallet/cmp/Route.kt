@@ -6,9 +6,6 @@ import kotlinx.serialization.Serializable
 sealed interface AppRoute {
     @Serializable
     data object Wallet : AppRoute
-
-    @Serializable
-    data object Provisioning : AppRoute
 }
 
 @Serializable

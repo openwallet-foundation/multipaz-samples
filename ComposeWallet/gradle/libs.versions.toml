@@ -1,26 +1,27 @@
 [versions]
 agp = "8.13.0"
 android-compileSdk = "36"
-android-minSdk = "26"
+android-minSdk = "29"
 android-targetSdk = "36"
-androidx-activity = "1.12.4"
+androidx-activity = "1.13.0"
 androidx-appcompat = "1.7.1"
 androidx-constraintlayout = "2.2.1"
-androidx-core = "1.17.0"
+androidx-core = "1.18.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.9.6"
 androidx-testExt = "1.3.0"
-composeMultiplatform = "1.10.1"
+composeMultiplatform = "1.10.2"
 junit = "4.13.2"
 kotlin = "2.3.10"
 kotlinx-coroutines = "1.10.2"
-kotlinx-io = "0.8.2"
+kotlinx-io = "0.9.0"
 kotlinx-datetime = "0.7.1"
 kotlinx-serialization = "1.10.0"
-coil = "3.3.0"
-multipaz = "0.97.0"
-ktor = "3.4.0"
+coil = "3.4.0"
+multipaz = "0.98.0-pre.32.bd74e27e"
+ktor = "3.4.1"
 navigation-compose = "2.9.2"
+jetbrains-navigationevent = "1.0.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -52,6 +53,7 @@ ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "k
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
+jetbrains-navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "jetbrains-navigationevent" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

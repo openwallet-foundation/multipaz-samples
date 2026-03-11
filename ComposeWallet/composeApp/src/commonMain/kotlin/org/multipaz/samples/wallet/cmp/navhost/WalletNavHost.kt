@@ -9,7 +9,7 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.document.DocumentStore
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.SettingsModel
 import org.multipaz.samples.wallet.cmp.WalletRoute
@@ -36,11 +36,12 @@ fun WalletNavHost(
         composable<WalletRoute.WalletList> {
             WalletScreen(
                 documentModel = documentModel,
+                documentStore = documentStore,
                 settingsModel = settingsModel,
-                onDocumentSelected = { documentInfo ->
+                onDocumentViewClaims = { documentId ->
                     navController.navigate(
-                        WalletRoute.WalletDetails(
-                            documentId = documentInfo.document.identifier
+                        WalletRoute.PersonalIdInfo(
+                            documentId = documentId
                         )
                     )
                 }

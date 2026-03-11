@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import coil3.ImageLoader
+import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.LocalPlatformContext
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import io.ktor.client.HttpClient
@@ -35,6 +36,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.prompt.PromptDialogs
+import org.multipaz.compose.provisioning.ProvisioningBottomSheet
 import org.multipaz.crypto.X509Cert
 import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.digitalcredentials.getDefault
@@ -53,17 +55,16 @@ import org.multipaz.documenttype.knowntypes.UtopiaMovieTicket
 import org.multipaz.documenttype.knowntypes.UtopiaNaturalization
 import org.multipaz.documenttype.knowntypes.VaccinationDocument
 import org.multipaz.documenttype.knowntypes.VehicleRegistration
-import org.multipaz.presentment.model.PresentmentSource
-import org.multipaz.presentment.model.SimplePresentmentSource
-import org.multipaz.presentment.model.uriSchemePresentment
+import org.multipaz.presentment.PresentmentSource
+import org.multipaz.presentment.SimplePresentmentSource
+import org.multipaz.presentment.uriSchemePresentment
 import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.navhost.AppNavHost
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
-import org.multipaz.storage.ephemeral.EphemeralStorage
-import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.util.Logger
 import org.multipaz.util.Platform
@@ -82,7 +83,7 @@ class App() {
     lateinit var secureArea: SecureArea
     lateinit var documentStore: DocumentStore
     lateinit var documentModel: DocumentModel
-    lateinit var readerTrustManager: TrustManagerLocal
+    lateinit var readerTrustManager: TrustManager
     lateinit var presentmentSource: PresentmentSource
     lateinit var provisioningModel: ProvisioningModel
     lateinit var provisioningSupport: ProvisioningSupport
@@ -117,11 +118,11 @@ class App() {
                 addDocumentType(UtopiaNaturalization.getDocumentType())
             }
             documentStore = buildDocumentStore(storage = storage, secureAreaRepository = secureAreaRepository) {}
-            documentModel = DocumentModel(
+            documentModel = DocumentModel.create(
                 documentStore = documentStore,
                 documentTypeRepository = documentTypeRepository
             )
-            readerTrustManager = TrustManagerLocal(storage = storage)
+            readerTrustManager = TrustManager(storage = storage)
             // Populate built-ins...
             if (readerTrustManager.getEntries().isEmpty()) {
                 // The Root CA baked into the Multipaz TestApp
@@ -156,19 +157,17 @@ class App() {
                     certificate = X509Cert.fromPem(
                         """
                             -----BEGIN CERTIFICATE-----
-                            MIICrjCCAjSgAwIBAgIQPBwq4BiWYFZE6A+NyGDT8jAKBggqhkjOPQQDAzBMMT0wOwYDVQQDDDRW
-                            ZXJpZmllciBSb290IGF0IGh0dHBzOi8vaXNzdWVyLm11bHRpcGF6Lm9yZy9yZWNvcmRzMQswCQYD
-                            VQQGDAJVUzAeFw0yNjAxMDUxNjM0MzNaFw00MTAxMDExNjM0MzNaMEwxPTA7BgNVBAMMNFZlcmlm
-                            aWVyIFJvb3QgYXQgaHR0cHM6Ly9pc3N1ZXIubXVsdGlwYXoub3JnL3JlY29yZHMxCzAJBgNVBAYM
-                            AlVTMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEY3+0sjs0mzzXVlxSfAsimOl9pviPCMONvjT7a7ZR
-                            5FuQATIYnHPK8Qu/YJtwG7LWMPgsUR6H9fwyfLMqHZ309z+MJyDgKcn5tmlCyT0rslJzqWQeC1oB
-                            /tXsFcc9Y5dto4HaMIHXMA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEBMC4GA1Ud
-                            EgQnMCWGI2h0dHBzOi8vaXNzdWVyLm11bHRpcGF6Lm9yZy9yZWNvcmRzMEEGA1UdHwQ6MDgwNqA0
-                            oDKGMGh0dHBzOi8vaXNzdWVyLm11bHRpcGF6Lm9yZy9yZWNvcmRzL2NybC92ZXJpZmllcjAdBgNV
-                            HQ4EFgQUkdd4v76+FW8lvSXKJ+I/z0D+JCUwHwYDVR0jBBgwFoAUkdd4v76+FW8lvSXKJ+I/z0D+
-                            JCUwCgYIKoZIzj0EAwMDaAAwZQIwWJx6Dn0NRjKCXiRKesqOKlA+CI5MhTDP9uj5T857U8alpOsD
-                            Ho923n0DcjK5o/GeAjEAkEUFodNSrClSunFQAN+63KMqZmyNyS/pBi7k3CH1gTzC/kC9uU4yADKe
-                            MTZj3/iH
+                            MIICaTCCAe+gAwIBAgIQtzUvFDCKLUBWQAZ4UnCw5zAKBggqhkjOPQQDAzA3MQswCQYDVQQGDAJV
+                            UzEoMCYGA1UEAwwfdmVyaWZpZXIubXVsdGlwYXoub3JnIFJlYWRlciBDQTAeFw0yNTA2MTkyMjE2
+                            MzJaFw0zMDA2MTkyMjE2MzJaMDcxCzAJBgNVBAYMAlVTMSgwJgYDVQQDDB92ZXJpZmllci5tdWx0
+                            aXBhei5vcmcgUmVhZGVyIENBMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEa6oCzC8rfHfwVOmQf83W
+                            yHEQFE8HrLK+NxsufJDrSFgMXjhRvPt3fIjlMyRAaf94Y25Ux9tXg+28EzzB/xG7q8P/FQ9nOSJk
+                            w4cQJVdD/ufN599uVdfp1URdG95Vncuoo4G/MIG8MA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8E
+                            CDAGAQH/AgEAMFYGA1UdHwRPME0wS6BJoEeGRWh0dHBzOi8vZ2l0aHViLmNvbS9vcGVud2FsbGV0
+                            LWZvdW5kYXRpb24tbGFicy9pZGVudGl0eS1jcmVkZW50aWFsL2NybDAdBgNVHQ4EFgQUsYQ5hS9K
+                            buq/6mKtvFHQgfdIhykwHwYDVR0jBBgwFoAUsYQ5hS9Kbuq/6mKtvFHQgfdIhykwCgYIKoZIzj0E
+                            AwMDaAAwZQIwKh87sK/cMbzuc9PFvyiSRedr2RoP0fuFK0X8ddOpi6hEMOapHL/Gs/QByROCpDpk
+                            AjEA2yLSJDZEu1GI8uChAsDBZwJPtv5KHUjq1Vpok69SNn+zzb1mNpqmiey+tchPBjZm
                             -----END CERTIFICATE-----
                         """.trimIndent()
                     ),
@@ -271,6 +270,7 @@ class App() {
         }
     }
 
+    @OptIn(ExperimentalCoilApi::class)
     @Composable
     fun Content() {
         var isInitialized by remember { mutableStateOf(false) }
@@ -312,6 +312,13 @@ class App() {
 
         val currentBranding = Branding.Current.collectAsState().value
         currentBranding.theme {
+            ProvisioningBottomSheet(
+                provisioningModel = provisioningModel,
+                waitForRedirectLinkInvocation = { state ->
+                    provisioningSupport.waitForAppLinkInvocation(state)
+                }
+            )
+
             PromptDialogs(
                 promptModel = promptModel,
                 imageLoader = imageLoader
@@ -359,11 +366,12 @@ class App() {
                 val redirectUri = uriSchemePresentment(
                     source = presentmentSource,
                     uri = requestUrl,
+                    appId = null,
                     origin = origin,
                     httpClientEngineFactory = AppPlatform.httpClientEngineFactory,
                 )
                 // Open the redirect URI in a browser...
-                urlsToOpen.send(redirectUri)
+                redirectUri?.let { urlsToOpen.send(it) }
             } catch (e: Throwable) {
                 Logger.i(TAG, "Error processing request", e)
             }
