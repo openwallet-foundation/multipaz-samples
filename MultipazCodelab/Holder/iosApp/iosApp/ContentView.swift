@@ -14,7 +14,25 @@ struct ContentView: View {
         ComposeView()
                 .ignoresSafeArea()
                 .onOpenURL(perform: { url in
-                    MainViewControllerKt.HandleUrl(url: url.absoluteString)
+                    let absoluteUrl = url.absoluteString
+                    if MainViewControllerKt.IsIosUriSchemePresentmentUrl(url: absoluteUrl) {
+                        Task {
+                            do {
+                                let redirectUri = try await MainViewControllerKt.ProcessIosUriSchemeRequest(
+                                    requestUrl: absoluteUrl
+                                )
+                                if let redirectUrl = URL(string: redirectUri) {
+                                    await MainActor.run {
+                                        UIApplication.shared.open(redirectUrl)
+                                    }
+                                }
+                            } catch {
+                                print("Error processing OpenID4VP URI scheme request: \(error)")
+                            }
+                        }
+                    } else {
+                        MainViewControllerKt.HandleUrl(url: absoluteUrl)
+                    }
                 })
     }
 }

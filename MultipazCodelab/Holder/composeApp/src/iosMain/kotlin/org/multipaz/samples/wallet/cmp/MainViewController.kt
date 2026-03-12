@@ -12,19 +12,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.ComposeUIViewController
+import io.ktor.client.engine.darwin.Darwin
+import io.ktor.http.Url
+import io.ktor.http.protocolWithAuthority
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.multipaz.document.DocumentStore
 import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.model.uriSchemePresentment
+import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
-import org.multipaz.samples.wallet.cmp.di.initKoin
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
 
 private const val TAG = "MainViewController"
+private const val OPENID4VP_URL_SCHEME = "openid4vp://"
+private const val HAIP_VP_URL_SCHEME = "haip-vp://"
 
 // Store credentialOffers channel globally so HandleUrl can access it
 private var globalCredentialOffers: Channel<String>? = null
@@ -33,7 +41,7 @@ private var globalCredentialOffers: Channel<String>? = null
 fun MainViewController() =
     ComposeUIViewController(
         configure = {
-            initKoin()
+            EnsureIosDocumentProviderInitialized()
         },
     ) {
         var isInitialized by remember { mutableStateOf(false) }
@@ -56,6 +64,7 @@ fun MainViewController() =
                 koinHelper.get<ProvisioningSupport>()
                 koinHelper.get<PresentmentModel>()
                 koinHelper.get<PresentmentSource>()
+                StartIosDigitalCredentialsRegistration()
                 Logger.i(TAG, "iOS: All Koin dependencies initialized successfully")
                 isInitialized = true
             } catch (e: Exception) {
@@ -106,3 +115,25 @@ fun HandleUrl(url: String) {
         Logger.e(TAG, "Error in HandleUrl: ${e.message}", e)
     }
 }
+
+@Suppress("FunctionName") // Swift interop naming
+suspend fun ProcessIosUriSchemeRequest(requestUrl: String): String {
+    EnsureIosDocumentProviderInitialized()
+    val koinHelper = object : KoinComponent { }
+    val source = koinHelper.get<PresentmentSource>()
+    val promptModel = koinHelper.get<PromptModel>()
+    val origin = Url(requestUrl).protocolWithAuthority
+
+    return withContext(Dispatchers.Main + promptModel) {
+        uriSchemePresentment(
+            source = source,
+            uri = requestUrl,
+            origin = origin,
+            httpClientEngineFactory = Darwin,
+        )
+    }
+}
+
+@Suppress("FunctionName") // Swift interop naming
+fun IsIosUriSchemePresentmentUrl(url: String): Boolean =
+    url.startsWith(OPENID4VP_URL_SCHEME) || url.startsWith(HAIP_VP_URL_SCHEME)
