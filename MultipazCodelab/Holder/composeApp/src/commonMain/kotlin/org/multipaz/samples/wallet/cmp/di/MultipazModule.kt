@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package org.multipaz.samples.wallet.cmp.di
 
 import io.ktor.client.HttpClient
@@ -17,6 +19,8 @@ import org.multipaz.presentment.model.PresentmentModel
 import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.SimplePresentmentSource
 import org.multipaz.prompt.PromptModel
+import org.multipaz.prompt.promptModelRequestConsent
+import org.multipaz.prompt.promptModelSilentConsent
 import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
@@ -27,6 +31,8 @@ import org.multipaz.samples.wallet.cmp.util.OpenID4VCILocalBackend
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport.Companion.APP_LINK_BASE_URL
 import org.multipaz.samples.wallet.cmp.util.TestAppUtils
+import org.multipaz.samples.wallet.cmp.util.createWalletStorage
+import org.multipaz.samples.wallet.cmp.util.shouldRegisterDigitalCredentialsInCommonModule
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
