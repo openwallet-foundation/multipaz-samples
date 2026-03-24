@@ -49,7 +49,7 @@ class MainActivity : FragmentActivity() {
         initializeApplication(this.applicationContext)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
+        handleIntent(intent)
         lifecycle.coroutineScope.launch {
             val app = App.getInstance()
             app.init()
