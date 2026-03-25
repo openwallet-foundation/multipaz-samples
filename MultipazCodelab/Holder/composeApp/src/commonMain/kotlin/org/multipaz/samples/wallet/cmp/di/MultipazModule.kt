@@ -8,8 +8,6 @@ import kotlinx.coroutines.withContext
 import org.koin.dsl.module
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.X509Cert
-import org.multipaz.digitalcredentials.DigitalCredentials
-import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -27,6 +25,7 @@ import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.rpc.handler.RpcAuthClientSession
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
+import org.multipaz.samples.wallet.cmp.util.DigitalCredentialsRegistrationManager
 import org.multipaz.samples.wallet.cmp.util.OpenID4VCILocalBackend
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport.Companion.APP_LINK_BASE_URL
@@ -166,28 +165,23 @@ val multipazModule =
             }
         }
 
+        single<DigitalCredentialsRegistrationManager> {
+            DigitalCredentialsRegistrationManager(
+                documentStore = get(),
+                documentTypeRepository = get(),
+                settingsModel = get(),
+            )
+        }
+
         single<PresentmentSource> {
             val settingsModel: AppSettingsModel = get()
             val requireAuthentication = settingsModel.presentmentRequireAuthentication.value
             val documentStore: DocumentStore = get()
             val documentTypeRepository: DocumentTypeRepository = get()
 
-            // Android registers here; iOS uses IosDocumentProviderBridge with entitlement-filtered types.
+            // Keep an initial eager refresh here so existing startup behavior is preserved.
             if (shouldRegisterDigitalCredentialsInCommonModule()) {
-                runBlocking {
-                    val digitalCredentials = DigitalCredentials.getDefault()
-                    if (digitalCredentials.registerAvailable) {
-                        try {
-                            digitalCredentials.register(
-                                documentStore = documentStore,
-                                documentTypeRepository = documentTypeRepository,
-                                selectedProtocols = settingsModel.dcApiProtocols.value,
-                            )
-                        } catch (t: Throwable) {
-                            Logger.w("DigitalCredentials", "Initial DC API registration failed", t)
-                        }
-                    }
-                }
+                runBlocking { get<DigitalCredentialsRegistrationManager>().refresh("PresentmentSource init") }
             }
 
             SimplePresentmentSource(
