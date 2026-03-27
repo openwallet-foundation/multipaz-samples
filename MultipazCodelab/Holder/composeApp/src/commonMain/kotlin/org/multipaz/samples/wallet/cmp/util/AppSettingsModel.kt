@@ -142,6 +142,9 @@ class AppSettingsModel private constructor(
         boundItems.forEach { it.resetValue() }
     }
 
+    // TODO: use something like KSP to avoid having to repeat settings name three times..
+    //
+
     private suspend fun init() {
         bind(presentmentBleCentralClientModeEnabled, "presentmentBleCentralClientModeEnabled", false)
         bind(presentmentBlePeripheralServerModeEnabled, "presentmentBlePeripheralServerModeEnabled", true)

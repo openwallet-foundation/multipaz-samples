@@ -26,7 +26,6 @@ import org.multipaz.presentment.model.PresentmentSource
 import org.multipaz.presentment.model.uriSchemePresentment
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
-import org.multipaz.samples.wallet.cmp.di.initKoin
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
@@ -43,7 +42,6 @@ fun MainViewController() =
     ComposeUIViewController(
         configure = {
             EnsureIosDocumentProviderInitialized()
-            initKoin() // fixme
         },
     ) {
         var isInitialized by remember { mutableStateOf(false) }
@@ -94,11 +92,28 @@ fun MainViewController() =
  * Handle a link (either an app link, universal link, or custom URL scheme link).
  * Called from SwiftUI's .onOpenURL modifier.
  */
-
-//TODO: implement HandleUrl for iOS
 @Suppress("FunctionName") // Swift interop: follows Swift naming convention for exported functions
 fun HandleUrl(url: String) {
+    val credentialOffers = globalCredentialOffers
+    if (credentialOffers == null) {
+        Logger.w(TAG, "HandleUrl: credentialOffers channel not yet initialized, URL will be ignored: $url")
+        return
+    }
 
+    try {
+        val koinHelper = object : KoinComponent { }
+        val provisioningModel = koinHelper.get<ProvisioningModel>()
+        val provisioningSupport = koinHelper.get<ProvisioningSupport>()
+
+        org.multipaz.samples.wallet.cmp.util.handleUrl(
+            url = url,
+            credentialOffers = credentialOffers,
+            provisioningModel = provisioningModel,
+            provisioningSupport = provisioningSupport,
+        )
+    } catch (e: Exception) {
+        Logger.e(TAG, "Error in HandleUrl: ${e.message}", e)
+    }
 }
 
 @Suppress("FunctionName") // Swift interop naming
