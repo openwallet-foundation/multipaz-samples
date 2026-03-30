@@ -16,338 +16,82 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import coil3.ImageLoader
-import coil3.compose.LocalPlatformContext
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.io.bytestring.ByteString
-import kotlinx.io.bytestring.encodeToByteString
-import multipazgettingstartedsample.composeapp.generated.resources.Res
-import multipazgettingstartedsample.composeapp.generated.resources.compose_multiplatform
-import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.multipaz.asn1.ASN1Integer
-import org.multipaz.compose.camera.CameraFrame
-import org.multipaz.compose.cropRotateScaleImage
 import org.multipaz.compose.prompt.PromptDialogs
-import org.multipaz.crypto.Algorithm
-import org.multipaz.crypto.AsymmetricKey
-import org.multipaz.crypto.Crypto
-import org.multipaz.crypto.EcCurve
-import org.multipaz.crypto.X500Name
-import org.multipaz.crypto.X509Cert
-import org.multipaz.crypto.X509CertChain
-import org.multipaz.digitalcredentials.DigitalCredentials
-import org.multipaz.digitalcredentials.getDefault
-import org.multipaz.document.AbstractDocumentMetadata
 import org.multipaz.document.Document
-import org.multipaz.document.DocumentStore
-import org.multipaz.document.buildDocumentStore
-import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.facedetection.DetectedFace
-import org.multipaz.facedetection.FaceLandmarkType
-import org.multipaz.facematch.FaceMatchLiteRtModel
-import org.multipaz.getstarted.w3cdc.ShowResponseScreen
-import org.multipaz.mdoc.util.MdocUtil
-import org.multipaz.presentment.model.PresentmentSource
-import org.multipaz.presentment.model.SimplePresentmentSource
-import org.multipaz.provisioning.Display
+import org.multipaz.getstarted.core.AppContainer
+import org.multipaz.getstarted.core.httpClientEngineFactory
+import org.multipaz.getstarted.provisioning.ProvisioningScreen
+import org.multipaz.getstarted.provisioning.ProvisioningSupport
+import org.multipaz.getstarted.verification.ShowResponseDestination
+import org.multipaz.getstarted.verification.ShowResponseScreen
 import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
-import org.multipaz.securearea.CreateKeySettings
-import org.multipaz.securearea.SecureArea
-import org.multipaz.securearea.SecureAreaRepository
-import org.multipaz.storage.Storage
-import org.multipaz.storage.StorageTable
-import org.multipaz.storage.StorageTableSpec
-import org.multipaz.trustmanagement.TrustManagerLocal
-import org.multipaz.trustmanagement.TrustMetadata
-import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
-import org.multipaz.util.Logger
-import kotlin.math.PI
-import kotlin.math.atan2
-import kotlin.math.sqrt
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.days
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 class App {
 
-    // Storage
-    lateinit var storage: Storage
-    lateinit var storageTable: StorageTable
-    lateinit var secureArea: SecureArea
-    lateinit var secureAreaRepository: SecureAreaRepository
-
-    // DocumentStore
-    lateinit var documentTypeRepository: DocumentTypeRepository
-    lateinit var documentStore: DocumentStore
-
-    lateinit var presentmentSource: PresentmentSource
-
-    lateinit var readerTrustManager: TrustManagerLocal
+    private val container = AppContainer.getInstance()
+    private val credentialOffers = Channel<String>()
 
     lateinit var provisioningModel: ProvisioningModel
     lateinit var provisioningSupport: ProvisioningSupport
-    private val credentialOffers = Channel<String>()
-
-    lateinit var iacaKey: AsymmetricKey.X509Certified
-
-    val appName = "Multipaz Getting Started Sample"
-    val appIcon = Res.drawable.compose_multiplatform
-
-    lateinit var faceMatchLiteRtModel: FaceMatchLiteRtModel
-
     var isInitialized = false
 
-    @OptIn(ExperimentalTime::class)
     suspend fun init() {
-        if (!isInitialized) {
+        if (isInitialized) return
 
-            // Storage
-            storage = org.multipaz.util.Platform.nonBackedUpStorage
-            storageTable = storage.getTable(
-                StorageTableSpec(
-                    name = STORAGE_TABLE_NAME,
-                    supportPartitions = false,  // Simple key-value storage
-                    supportExpiration = false    // Keys don't auto-expire
-                )
-            )
-            secureArea = org.multipaz.util.Platform.getSecureArea()
-            secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+        container.init()
 
-            // DocumentStore
-            documentTypeRepository = DocumentTypeRepository().apply {
-                addDocumentType(DrivingLicense.getDocumentType())
-            }
-            documentStore = buildDocumentStore(
-                storage = storage,
-                secureAreaRepository = secureAreaRepository
-            ) {}
+        provisioningModel = ProvisioningModel(
+            documentProvisioningHandler = DocumentProvisioningHandler(
+                documentStore = container.documentStore,
+                secureArea = container.secureArea
+            ),
+            httpClient = HttpClient(httpClientEngineFactory) {
+                followRedirects = false
+            },
+            promptModel = AppContainer.promptModel,
+            authorizationSecureArea = container.secureArea
+        )
+        provisioningSupport = ProvisioningSupport(
+            storage = container.storage,
+            secureArea = container.secureArea,
+        )
+        provisioningSupport.init()
 
+        isInitialized = true
+    }
 
-            val iacaCert =
-                X509Cert.fromPem(Res.readBytes("files/iaca_certificate.pem").decodeToString())
-
-            println("------- IACA PEM -------")
-            println(iacaCert.toPem())
-            println("------- IACA PEM -------")
-
-            // 1. Prepare Timestamps
-            val now = Instant.fromEpochSeconds(Clock.System.now().epochSeconds)
-            val signedAt = now
-            val validFrom = now
-            val validUntil = now + 365.days
-
-            // 3. Generate Document Signing (DS) Certificate
-            val dsKey = Crypto.createEcPrivateKey(EcCurve.P256)
-            iacaKey = AsymmetricKey.X509CertifiedExplicit(
-                certChain = X509CertChain(certificates = listOf(iacaCert)),
-                privateKey = dsKey,
-            )
-            val dsCert = MdocUtil.generateDsCertificate(
-                iacaKey = iacaKey,
-                dsKey = dsKey.publicKey,
-                subject = X500Name.fromName(name = "CN=Test DS Key"),
-                serial = ASN1Integer.fromRandom(numBits = 128),
-                validFrom = validFrom,
-                validUntil = validUntil
-            )
-
-            // Creation of an mDoc
-            if (documentStore.listDocuments().isEmpty()) {
-
-                // Creating a Document
-                val document = documentStore.createDocument(
-                    displayName = SAMPLE_DOCUMENT_DISPLAY_NAME,
-                    typeDisplayName = SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME,
-                )
-                // 4. Create the mDoc Credential
-                DrivingLicense.getDocumentType().createMdocCredentialWithSampleData(
-                    document = document,
-                    secureArea = secureArea,
-                    createKeySettings = CreateKeySettings(
-                        algorithm = Algorithm.ESP256,
-                        nonce = "Challenge".encodeToByteString(),
-                        userAuthenticationRequired = true
-                    ),
-                    dsKey = AsymmetricKey.X509CertifiedExplicit(
-                        certChain = X509CertChain(certificates = listOf(dsCert)),
-                        privateKey = dsKey,
-                    ),
-                    signedAt = signedAt,
-                    validFrom = validFrom,
-                    validUntil = validUntil,
-                    domain = CREDENTIAL_DOMAIN_MDOC_USER_AUTH
-                )
-            }
-
-            // Initialize TrustManager
-            // Three certificates are configured to handle different verification scenarios:
-            // 1. OWF Multipaz TestApp - for testing with the Multipaz test application
-            // 2. Multipaz Identity Reader - for APK downloaded from https://apps.multipaz.org/ (production devices with secure boot)
-            //    Certificate available from: https://verifier.multipaz.org/identityreaderbackend/readerRootCert
-            // 3. Multipaz Identity Reader (Untrusted Devices) - for app compiled from source code at https://github.com/davidz25/MpzIdentityReader
-            //    Certificate available from: https://verifier.multipaz.org/identityreaderbackend/readerRootCertUntrustedDevices
-            readerTrustManager = TrustManagerLocal(storage = storage, identifier = "reader")
-
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_testapp.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "OWF Multipaz TestApp",
-                        privacyPolicyUrl = "https://apps.multipaz.org"
-                    )
-                )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-
-            // Certificate for APK downloaded from https://apps.multipaz.org/
-            // This should be used for production devices with secure boot (GREEN state)
-            // Certificate source: https://verifier.multipaz.org/identityreaderbackend/readerRootCert
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_identity_reader.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "Multipaz Identity Reader",
-                        privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
-                    )
-                )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-
-            // Certificate for app compiled from source code at https://github.com/davidz25/MpzIdentityReader
-            // This should be used for development/testing devices or devices with unlocked bootloaders
-            // Certificate source: https://verifier.multipaz.org/identityreaderbackend/readerRootCertUntrustedDevices
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_identity_reader_untrusted.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "Multipaz Identity Reader (Untrusted Devices)",
-                        privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
-                    )
-                )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-
-            // This is for https://verifier.multipaz.org website.
-            // Certificate source: https://verifier.multipaz.org/verifier/readerRootCert
-            try {
-                readerTrustManager.addX509Cert(
-                    certificate = X509Cert.fromPem(
-                        Res.readBytes("files/reader_root_cert_multipaz_web_verifier.pem")
-                            .decodeToString()
-                    ),
-                    metadata = TrustMetadata(
-                        displayName = "Multipaz Verifier",
-                        privacyPolicyUrl = "https://verifier.multipaz.org"
-                    )
-                )
-            } catch (e: TrustPointAlreadyExistsException) {
-                e.printStackTrace()
-            }
-            presentmentSource = SimplePresentmentSource(
-                documentStore = documentStore,
-                documentTypeRepository = documentTypeRepository,
-                resolveTrustFn = { requester ->
-                    requester.certChain?.let { certChain ->
-                        val trustResult = readerTrustManager.verify(certChain.certificates)
-                        if (trustResult.isTrusted) {
-                            return@SimplePresentmentSource trustResult.trustPoints.first().metadata
-                        }
-                    }
-                    return@SimplePresentmentSource null
-                },
-                preferSignatureToKeyAgreement = true,
-                // Match domains used when storing credentials via OpenID4VCI
-                domainMdocSignature = CREDENTIAL_DOMAIN_MDOC_USER_AUTH,
-                domainMdocKeyAgreement = CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH,
-                domainKeylessSdJwt = CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-                domainKeyBoundSdJwt = CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
-            )
-
-            val modelData = ByteString(*Res.readBytes("files/facenet_512.tflite"))
-            faceMatchLiteRtModel =
-                FaceMatchLiteRtModel(modelData, imageSquareSize = 160, embeddingsArraySize = 512)
-
-            val digitalCredentials = DigitalCredentials.getDefault()
-            if (digitalCredentials.registerAvailable) {
-                try {
-                    digitalCredentials.register(
-                        documentStore = documentStore,
-                        documentTypeRepository = documentTypeRepository,
-                    )
-                } catch (_: Throwable) {
-                }
-
-                // Re-register if document store changes...
+    fun handleUrl(url: String) {
+        if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME)
+            || url.startsWith(HAIP_URL_SCHEME)
+        ) {
+            val queryIndex = url.indexOf('?')
+            if (queryIndex >= 0) {
                 CoroutineScope(Dispatchers.Default).launch {
-                    documentStore.eventFlow
-                        .onEach { event ->
-                            try {
-                                digitalCredentials.register(
-                                    documentStore = documentStore,
-                                    documentTypeRepository = documentTypeRepository,
-                                )
-                            } catch (_: Throwable) {
-
-                            }
-                        }
-                        .launchIn(this)
+                    credentialOffers.send(url)
                 }
             }
-
-            provisioningModel = ProvisioningModel(
-                documentProvisioningHandler = DocumentProvisioningHandler(
-                    documentStore = documentStore,
-                    secureArea = secureArea
-                ),
-                httpClient = HttpClient(httpClientEngineFactory) {
-                    followRedirects = false
-                },
-                promptModel = promptModel,
-                authorizationSecureArea = secureArea
-            )
-            provisioningSupport = ProvisioningSupport(
-                storage = storage,
-                secureArea = secureArea,
-            )
-            provisioningSupport.init()
-
-            isInitialized = true
+        } else if (url.startsWith(ProvisioningSupport.APP_LINK_BASE_URL)) {
+            CoroutineScope(Dispatchers.Default).launch {
+                provisioningSupport.processAppLinkInvocation(url)
+            }
         }
     }
 
     @Composable
-    @Preview
     fun Content() {
         val navController = rememberNavController()
         val identityIssuer = "Multipaz Getting Started Sample"
 
-        // to track initialization
         val isInitialized = remember { mutableStateOf(false) }
 
         if (!isInitialized.value) {
@@ -372,7 +116,7 @@ class App {
         val documents = remember { mutableStateListOf<Document>() }
 
         LaunchedEffect(navController.currentDestination) {
-            val currentDocuments = listDocuments()
+            val currentDocuments = container.listDocuments()
             if (currentDocuments.size != documents.size) {
                 documents.apply {
                     clear()
@@ -388,10 +132,8 @@ class App {
         }
 
         MaterialTheme {
-            // This ensures all prompts inherit the app's main style
-            PromptDialogs(promptModel)
+            PromptDialogs(AppContainer.promptModel)
 
-            // Use the working pattern from identity-credential project
             LaunchedEffect(true) {
                 if (!provisioningModel.isActive) {
                     while (true) {
@@ -413,7 +155,7 @@ class App {
             ) {
                 composable<Destination.HomeDestination> {
                     HomeScreen(
-                        app = this@App,
+                        container = container,
                         navController = navController,
                         identityIssuer = identityIssuer,
                         documents = documents,
@@ -423,13 +165,13 @@ class App {
                     )
                 }
 
-                composable<Destination.ShowResponseDestination> { backStackEntry ->
+                composable<ShowResponseDestination> { backStackEntry ->
                     val response =
-                        backStackEntry.toRoute<Destination.ShowResponseDestination>()
+                        backStackEntry.toRoute<ShowResponseDestination>()
 
                     ShowResponseScreen(
                         response = response,
-                        documentTypeRepository = documentTypeRepository,
+                        documentTypeRepository = container.documentTypeRepository,
                         goBack = {
                             navController.popBackStack()
                         }
@@ -452,106 +194,9 @@ class App {
         }
     }
 
-    /**
-     * Handle a link (either a app link, universal link, or custom URL schema link).
-     */
-    fun handleUrl(url: String) {
-        if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME)
-            || url.startsWith(HAIP_URL_SCHEME)
-        ) {
-            val queryIndex = url.indexOf('?')
-            if (queryIndex >= 0) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    credentialOffers.send(url)
-                }
-            }
-        } else if (url.startsWith(ProvisioningSupport.APP_LINK_BASE_URL)) {
-            CoroutineScope(Dispatchers.Default).launch {
-                provisioningSupport.processAppLinkInvocation(url)
-            }
-        }
-    }
-
-    suspend fun listDocuments(): MutableList<Document> {
-        val documents = mutableStateListOf<Document>()
-        for (document in documentStore.listDocuments()) {
-            document.let { document ->
-                if (!documents.contains(document)) {
-                    documents.add(document)
-                }
-            }
-        }
-        return documents
-    }
-
-    /** Cut out the face square, rotate it to level eyes line, scale to the smaller size for face matching tasks. */
-    fun extractFaceBitmap(
-        frameData: CameraFrame,
-        face: DetectedFace,
-        targetSize: Int
-    ): ImageBitmap {
-        val leftEye = face.landmarks.find { it.type == FaceLandmarkType.LEFT_EYE }
-        val rightEye = face.landmarks.find { it.type == FaceLandmarkType.RIGHT_EYE }
-        val mouthPosition = face.landmarks.find { it.type == FaceLandmarkType.MOUTH_BOTTOM }
-
-        if (leftEye == null || rightEye == null || mouthPosition == null) {
-            return frameData.cameraImage.toImageBitmap()
-        }
-
-        // Heuristic multiplier to fit the face normalized to the eyes pupilar distance.
-        val faceCropFactor = 4f
-
-        // Heuristic multiplier to offset vertically so the face is better centered within the rectangular crop.
-        val faceVerticalOffsetFactor = 0.25f
-
-        var faceCenterX = (leftEye.position.x + rightEye.position.x) / 2
-        var faceCenterY = (leftEye.position.y + rightEye.position.y) / 2
-        val eyeOffsetX = leftEye.position.x - rightEye.position.x
-        val eyeOffsetY = leftEye.position.y - rightEye.position.y
-        val eyeDistance = sqrt(eyeOffsetX * eyeOffsetX + eyeOffsetY * eyeOffsetY)
-        val faceWidth = eyeDistance * faceCropFactor
-        val faceVerticalOffset = eyeDistance * faceVerticalOffsetFactor
-        if (frameData.isLandscape) {
-            /** Required for iOS capable of upside-down face detection. */
-            faceCenterY += faceVerticalOffset * (if (leftEye.position.y < mouthPosition.position.y) 1 else -1)
-        } else {
-            /** Required for iOS capable of upside-down face detection. */
-            faceCenterX -= faceVerticalOffset * (if (leftEye.position.x < mouthPosition.position.x) -1 else 1)
-        }
-        val eyesAngleRad = atan2(eyeOffsetY, eyeOffsetX)
-        val eyesAngleDeg = eyesAngleRad * 180.0 / PI // Convert radians to degrees
-        val totalRotationDegrees = 180 - eyesAngleDeg
-
-        // Call platform dependent bitmap transformation.
-        return cropRotateScaleImage(
-            frameData = frameData, // Platform-specific image data.
-            cx = faceCenterX.toDouble(), // Point between eyes
-            cy = faceCenterY.toDouble(), // Point between eyes
-            angleDegrees = totalRotationDegrees, //includes the camera rotation and eyes rotation.
-            outputWidthPx = faceWidth.toInt(), // Expected face width for cropping *before* final scaling.
-            outputHeightPx = faceWidth.toInt(),// Expected face height for cropping *before* final scaling.
-            targetWidthPx = targetSize, // Final square image size (for database saving and face matching tasks).
-        )
-    }
-
     companion object {
-
-        const val SAMPLE_DOCUMENT_DISPLAY_NAME = "Erika's Driving License"
-        private const val SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME = "Utopia Driving License"
-
-        // OID4VCI url scheme used for filtering OID4VCI Urls from all incoming URLs (deep links or QR)
         private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
         private const val HAIP_URL_SCHEME = "haip://"
-
-        // Domains used for MdocCredential & SdJwtVcCredential
-        private const val CREDENTIAL_DOMAIN_MDOC_USER_AUTH = "mdoc_user_auth"
-        private const val CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH = "mdoc_mac_user_auth"
-        private const val CREDENTIAL_DOMAIN_SDJWT_USER_AUTH = "sdjwt_user_auth"
-        private const val CREDENTIAL_DOMAIN_SDJWT_KEYLESS = "sdjwt_keyless"
-
-        private const val STORAGE_TABLE_NAME = "TestAppKeys"
-
-        val promptModel = org.multipaz.util.Platform.promptModel
 
         private var app: App? = null
         fun getInstance(): App {
