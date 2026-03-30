@@ -32,4 +32,9 @@ dependencyResolutionManagement {
     }
 }
 
+include(":core")
+include(":feature:presentment")
+include(":feature:provisioning")
+include(":feature:verification")
+include(":feature:biometrics")
 include(":composeApp")
