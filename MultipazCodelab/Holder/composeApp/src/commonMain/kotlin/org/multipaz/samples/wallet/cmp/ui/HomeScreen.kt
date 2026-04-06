@@ -36,10 +36,17 @@ fun HomeScreen(documentStore: DocumentStore = koinInject()) {
     val tabs = listOf("Explore", "Account")
     var hasCredentials by remember { mutableStateOf<Boolean?>(null) }
 
-    LaunchedEffect(Unit) {
-        val hasCred = documentStore.hasAnyUsableCredential()
-        hasCredentials = hasCred
-        Logger.i(TAG, "AccountScreen: hasAnyUsableCredential: $hasCred")
+    LaunchedEffect(documentStore) {
+        suspend fun refreshCredentials() {
+            val hasCred = documentStore.hasAnyUsableCredential()
+            hasCredentials = hasCred
+            Logger.i(TAG, "AccountScreen: hasAnyUsableCredential: $hasCred")
+        }
+
+        refreshCredentials()
+        documentStore.eventFlow.collect {
+            refreshCredentials()
+        }
     }
 
     Scaffold(
