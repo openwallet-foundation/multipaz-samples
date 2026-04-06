@@ -243,7 +243,58 @@ private fun ShowQrButton(
     ) {
         when (hasCredentials) {
             true -> {
-                // TODO: show qr button when credentials are available
+                Button(onClick = {
+                    val connectionMethods = mutableListOf<MdocConnectionMethod>()
+                    val bleUuid = UUID.randomUUID()
+                    if (bleCentralClientEnabled) {
+                        connectionMethods.add(
+                            MdocConnectionMethodBle(
+                                supportsPeripheralServerMode = false,
+                                supportsCentralClientMode = true,
+                                peripheralServerModeUuid = null,
+                                centralClientModeUuid = bleUuid,
+                            ),
+                        )
+                    }
+                    if (blePeripheralServerEnabled) {
+                        connectionMethods.add(
+                            MdocConnectionMethodBle(
+                                supportsPeripheralServerMode = true,
+                                supportsCentralClientMode = false,
+                                peripheralServerModeUuid = bleUuid,
+                                centralClientModeUuid = null,
+                            ),
+                        )
+                    }
+                    if (nfcDataTransferEnabled) {
+                        connectionMethods.add(
+                            MdocConnectionMethodNfc(
+                                commandDataFieldMaxLength = 0xffff,
+                                responseDataFieldMaxLength = 0x10000,
+                            ),
+                        )
+                    }
+                    onGenerateQrCode(
+                        MdocProximityQrSettings(
+                            availableConnectionMethods = connectionMethods,
+                            createTransportOptions =
+                                MdocTransportOptions(
+                                    bleUseL2CAP = bleL2CapEnabled,
+                                    bleUseL2CAPInEngagement = bleL2CapInEngagementEnabled,
+                                ),
+                        ),
+                    )
+                }) {
+                    Text("Present mDL via QR")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text =
+                        "The mDL is also available\n" +
+                            "via NFC engagement and W3C DC API\n" +
+                            "(Android-only right now)",
+                    textAlign = TextAlign.Center,
+                )
             }
 
             false -> {
@@ -281,7 +332,12 @@ private fun ShowQrCode(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(text = "Present QR code to mdoc reader")
-        //TODO: show QR code
+        Image(
+            modifier = Modifier.fillMaxWidth(),
+            bitmap = qrCodeBitmap,
+            contentDescription = null,
+            contentScale = ContentScale.FillWidth,
+        )
         Button(onClick = { onReset() }) {
             Text("Cancel")
         }
