@@ -3,15 +3,15 @@ package org.multipaz.getstarted
 import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.crypto.EcCurve
+import org.multipaz.getstarted.core.AppContainer
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.util.Platform.promptModel
 
 class NdefService : MdocNdefService() {
     override suspend fun getSettings(): Settings {
-        val app = App.getInstance()
-        app.init()
+        val container = AppContainer.getInstance()
+        container.init()
 
-        val source = app.presentmentSource
+        val source = container.presentmentSource
         PresentmentActivity.presentmentModel.reset(
             documentStore = source.documentStore,
             documentTypeRepository = source.documentTypeRepository,
@@ -19,7 +19,7 @@ class NdefService : MdocNdefService() {
         )
 
         return Settings(
-            source = app.presentmentSource,
+            source = container.presentmentSource,
             promptModel = PresentmentActivity.promptModel,
             presentmentModel = PresentmentActivity.presentmentModel,
             activityClass = PresentmentActivity::class.java,
