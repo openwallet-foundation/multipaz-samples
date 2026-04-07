@@ -32,7 +32,7 @@ kotlin {
     }
     // Create unified iOS source set hierarchy so 'iosMain' exists
     applyDefaultHierarchyTemplate()
-    
+
     sourceSets {
 
         androidMain.dependencies {
@@ -40,10 +40,14 @@ kotlin {
             implementation(libs.androidx.activity.compose)
 
             implementation(libs.androidx.fragment)
-
-            implementation(libs.ktor.client.android)
         }
         commonMain.dependencies {
+            implementation(project(":core"))
+            implementation(project(":feature:presentment"))
+            implementation(project(":feature:provisioning"))
+            implementation(project(":feature:verification"))
+            implementation(project(":feature:biometrics"))
+
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -57,11 +61,8 @@ kotlin {
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
             implementation(libs.multipaz.vision)
-            implementation(libs.multipaz.dcapi)
 
-            implementation(libs.coil.compose)
             implementation(libs.ktor.client.core)
-            // CIO for JVM/Android; Darwin engine for iOS in iosMain
             implementation(libs.ktor.client.cio)
             implementation(libs.kotlinx.serialization.json)
         }
@@ -116,16 +117,16 @@ tasks.register<Copy>("prepareCocoaPodsFramework") {
     dependsOn(
         "linkDebugFrameworkIosArm64"
     )
-    
+
     val frameworkDir = layout.buildDirectory.dir("cocoapods/framework")
     val sourceFrameworkDir = layout.buildDirectory.dir("bin/iosArm64/debugFramework")
-    
+
     // Copy the framework directory itself, preserving the directory structure
     from(sourceFrameworkDir) {
         include("ComposeApp.framework/**")
     }
     into(frameworkDir)
-    
+
     doLast {
         println("✓ Framework copied to ${frameworkDir.get().asFile.absolutePath}/ComposeApp.framework")
     }
@@ -142,4 +143,3 @@ tasks.register("generateDummyFramework") {
     group = "cocoapods"
     dependsOn("prepareCocoaPodsFramework")
 }
-
