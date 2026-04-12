@@ -2,7 +2,7 @@ package org.multipaz.samples.wallet.cmp
 
 import org.koin.android.ext.android.inject
 import org.multipaz.compose.digitalcredentials.CredentialManagerPresentmentActivity
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import utopiasample.composeapp.generated.resources.Res
 
 class CredmanActivity : CredentialManagerPresentmentActivity() {
