@@ -13,9 +13,9 @@ import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.Loyalty
-import org.multipaz.presentment.model.PresentmentModel
-import org.multipaz.presentment.model.PresentmentSource
-import org.multipaz.presentment.model.SimplePresentmentSource
+import org.multipaz.presentment.PresentmentModel
+import org.multipaz.presentment.PresentmentSource
+import org.multipaz.presentment.SimplePresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.prompt.promptModelRequestConsent
 import org.multipaz.prompt.promptModelSilentConsent
@@ -35,10 +35,9 @@ import org.multipaz.samples.wallet.cmp.util.shouldRegisterDigitalCredentialsInCo
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
+import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
 import org.multipaz.trustmanagement.TrustManager
-import org.multipaz.trustmanagement.TrustManagerLocal
 import org.multipaz.trustmanagement.TrustMetadata
-import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import utopiasample.composeapp.generated.resources.Res
@@ -96,7 +95,7 @@ val multipazModule =
         }
 
         single<TrustManager> {
-            val trustManager = TrustManagerLocal(storage = get(), identifier = "reader")
+            val trustManager = TrustManager(storage = get(), identifier = "reader")
 
             runBlocking {
                 suspend fun addCertificateIfNotExists(
@@ -121,7 +120,7 @@ val multipazModule =
                                 ),
                         )
                         Logger.i("TrustManager", "Successfully added certificate: $displayName")
-                    } catch (e: TrustPointAlreadyExistsException) {
+                    } catch (e: TrustEntryAlreadyExistsException) {
                         Logger.e(
                             "TrustManager",
                             "Certificate already exists: $displayName",
