@@ -1,11 +1,15 @@
 package org.multipaz.getstarted
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -129,59 +133,62 @@ class App {
             }
         }
 
-        MaterialTheme {
-            PromptDialogs(AppContainer.promptModel)
+        val colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+        MaterialTheme(colorScheme = colorScheme) {
+            Surface {
+                PromptDialogs(AppContainer.promptModel)
 
-            LaunchedEffect(true) {
-                if (!provisioningModel.isActive) {
-                    while (true) {
-                        val credentialOffer = credentialOffers.receive()
-                        provisioningModel.launchOpenID4VCIProvisioning(
-                            offerUri = credentialOffer,
-                            clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
-                            backend = provisioningSupport.getOpenID4VCIBackend()
+                LaunchedEffect(true) {
+                    if (!provisioningModel.isActive) {
+                        while (true) {
+                            val credentialOffer = credentialOffers.receive()
+                            provisioningModel.launchOpenID4VCIProvisioning(
+                                offerUri = credentialOffer,
+                                clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
+                                backend = provisioningSupport.getOpenID4VCIBackend()
+                            )
+                        }
+                    }
+                }
+
+                NavHost(
+                    navController = navController,
+                    startDestination = Destination.HomeDestination,
+                    modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+                ) {
+                    composable<Destination.HomeDestination> {
+                        HomeScreen(
+                            container = container,
+                            navController = navController,
+                            identityIssuer = identityIssuer,
+                            documents = documents,
+                            onDeleteDocument = {
+                                documents.remove(it)
+                            }
+                        )
+                    }
+
+                    composable<ShowResponseDestination> { backStackEntry ->
+                        val response =
+                            backStackEntry.toRoute<ShowResponseDestination>()
+
+                        ShowResponseScreen(
+                            response = response,
+                            documentTypeRepository = container.documentTypeRepository,
+                            goBack = {
+                                navController.popBackStack()
+                            }
                         )
                     }
                 }
+
+                ProvisioningBottomSheet(
+                    provisioningModel = provisioningModel,
+                    waitForRedirectLinkInvocation = { state ->
+                        provisioningSupport.waitForAppLinkInvocation(state)
+                    }
+                )
             }
-
-            NavHost(
-                navController = navController,
-                startDestination = Destination.HomeDestination,
-                modifier = Modifier.fillMaxSize().navigationBarsPadding(),
-            ) {
-                composable<Destination.HomeDestination> {
-                    HomeScreen(
-                        container = container,
-                        navController = navController,
-                        identityIssuer = identityIssuer,
-                        documents = documents,
-                        onDeleteDocument = {
-                            documents.remove(it)
-                        }
-                    )
-                }
-
-                composable<ShowResponseDestination> { backStackEntry ->
-                    val response =
-                        backStackEntry.toRoute<ShowResponseDestination>()
-
-                    ShowResponseScreen(
-                        response = response,
-                        documentTypeRepository = container.documentTypeRepository,
-                        goBack = {
-                            navController.popBackStack()
-                        }
-                    )
-                }
-            }
-
-            ProvisioningBottomSheet(
-                provisioningModel = provisioningModel,
-                waitForRedirectLinkInvocation = { state ->
-                    provisioningSupport.waitForAppLinkInvocation(state)
-                }
-            )
         }
     }
 
