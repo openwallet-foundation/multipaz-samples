@@ -4,7 +4,7 @@ import org.koin.android.ext.android.inject
 import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 
 class NdefService : MdocNdefService() {
@@ -14,8 +14,7 @@ class NdefService : MdocNdefService() {
     override suspend fun getSettings(): Settings {
         // Reset the presentment model with the source's document store and repository
         PresentmentActivity.presentmentModel.reset(
-            documentStore = presentmentSource.documentStore,
-            documentTypeRepository = presentmentSource.documentTypeRepository,
+            source = presentmentSource,
             preselectedDocuments = emptyList(),
         )
 

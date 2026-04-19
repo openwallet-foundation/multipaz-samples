@@ -46,7 +46,7 @@ import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodNfc
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 import org.multipaz.util.Logger
