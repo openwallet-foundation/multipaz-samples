@@ -63,13 +63,7 @@ class AppContainerImpl : AppContainer {
 
         // Storage
         storage = org.multipaz.util.Platform.nonBackedUpStorage
-        storageTable = storage.getTable(
-            StorageTableSpec(
-                name = CredentialDomains.STORAGE_TABLE_NAME,
-                supportPartitions = false,
-                supportExpiration = false
-            )
-        )
+        storageTable = storage.getTable(CredentialDomains.storageTableSpec)
         secureArea = org.multipaz.util.Platform.getSecureArea()
         secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
 
