@@ -9,11 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -26,10 +24,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.multipaz.compose.prompt.PromptDialogs
+import org.multipaz.compose.provisioning.ProvisioningBottomSheet
 import org.multipaz.document.Document
 import org.multipaz.getstarted.core.AppContainer
 import org.multipaz.getstarted.core.httpClientEngineFactory
-import org.multipaz.getstarted.provisioning.ProvisioningScreen
 import org.multipaz.getstarted.provisioning.ProvisioningSupport
 import org.multipaz.getstarted.verification.ShowResponseDestination
 import org.multipaz.getstarted.verification.ShowResponseScreen
@@ -110,24 +108,24 @@ class App {
             return
         }
 
-        var isProvisioning by remember { mutableStateOf(false) }
         val provisioningState = provisioningModel.state.collectAsState().value
 
         val documents = remember { mutableStateListOf<Document>() }
 
-        LaunchedEffect(navController.currentDestination) {
-            val currentDocuments = container.listDocuments()
-            if (currentDocuments.size != documents.size) {
-                documents.apply {
-                    clear()
-                    addAll(currentDocuments)
-                }
-            }
-        }
+        LaunchedEffect(
+            navController.currentDestination,
+            provisioningState
+        ) {
+            val shouldRefresh =
+                provisioningState is ProvisioningModel.CredentialsIssued ||
+                        navController.currentDestination != null
 
-        LaunchedEffect(isProvisioning) {
-            if (isProvisioning) {
-                navController.navigate(Destination.ProvisioningDestination)
+            if (shouldRefresh) {
+                val currentDocuments = container.listDocuments()
+                if (currentDocuments.size != documents.size) {
+                    documents.clear()
+                    documents.addAll(currentDocuments)
+                }
             }
         }
 
@@ -143,7 +141,6 @@ class App {
                             clientPreferences = provisioningSupport.getOpenID4VCIClientPreferences(),
                             backend = provisioningSupport.getOpenID4VCIBackend()
                         )
-                        isProvisioning = true
                     }
                 }
             }
@@ -177,20 +174,14 @@ class App {
                         }
                     )
                 }
-
-                composable<Destination.ProvisioningDestination> {
-                    ProvisioningScreen(
-                        provisioningModel = provisioningModel,
-                        provisioningSupport = provisioningSupport,
-                        provisioningState = provisioningState,
-                        goBack = {
-                            isProvisioning = false
-                            provisioningModel.cancel()
-                            navController.popBackStack()
-                        }
-                    )
-                }
             }
+
+            ProvisioningBottomSheet(
+                provisioningModel = provisioningModel,
+                waitForRedirectLinkInvocation = { state ->
+                    provisioningSupport.waitForAppLinkInvocation(state)
+                }
+            )
         }
     }
 

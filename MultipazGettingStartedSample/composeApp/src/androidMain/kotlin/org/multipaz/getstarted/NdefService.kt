@@ -11,10 +11,8 @@ class NdefService : MdocNdefService() {
         val container = AppContainer.getInstance()
         container.init()
 
-        val source = container.presentmentSource
         PresentmentActivity.presentmentModel.reset(
-            documentStore = source.documentStore,
-            documentTypeRepository = source.documentTypeRepository,
+            source = container.presentmentSource,
             preselectedDocuments = emptyList()
         )
 

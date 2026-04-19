@@ -27,6 +27,7 @@ import org.multipaz.crypto.X509CertChain
 import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.documenttype.DocumentCannedRequest
+import org.multipaz.documenttype.SingleDocumentCannedRequest
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.getstarted.core.getAppToAppOrigin
 import org.multipaz.getstarted.verification.W3CDCConstants.Companion.CERT_CRL_URL
@@ -47,9 +48,9 @@ import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.storage.StorageTable
-import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
+import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
-import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.Logger
 import org.multipaz.verification.MdocApiDcResponse
 import org.multipaz.verification.OpenID4VPDcResponse
@@ -66,7 +67,7 @@ const val TAG = "W3CDCCredentialsRequestButton"
 fun W3CDCCredentialsRequestButton(
     storageTable: StorageTable,
     promptModel: PromptModel,
-    readerTrustManager: TrustManagerLocal,
+    readerTrustManager: TrustManager,
     text: String = "W3CDC Credentials Request",
     showResponse: (
         vpToken: JsonObject?,
@@ -120,14 +121,14 @@ fun W3CDCCredentialsRequestButton(
                         privacyPolicyUrl = "https://developer.multipaz.org"
                     )
                 )
-            } catch (e: TrustPointAlreadyExistsException) {
+            } catch (e: TrustEntryAlreadyExistsException) {
                 e.printStackTrace()
             }
 
             try {
                 doDcRequestFlow(
                     appReaderKey = readerKey,
-                    request = requestOptions.first().sampleRequest,
+                    request = requestOptions.first().sampleRequest as SingleDocumentCannedRequest,
                     showResponse = showResponse
                 )
             } catch (error: Throwable) {
@@ -165,6 +166,7 @@ private suspend fun readerInit(
                 readerRootKey = readerRootKey,
                 readerKey = readerPrivateKey.publicKey,
                 subject = X500Name.fromName(CERT_SUBJECT_COMMON_NAME),
+                dnsName = null,
                 serial = ASN1Integer.fromRandom(numBits = CERT_SERIAL_NUMBER_BITS),
                 validFrom = certsValidFrom,
                 validUntil = certsValidUntil,
@@ -244,7 +246,7 @@ private suspend fun loadBundledReaderRootKey(): EcPrivateKey {
 @OptIn(ExperimentalTime::class)
 private suspend fun doDcRequestFlow(
     appReaderKey: AsymmetricKey.X509Compatible,
-    request: DocumentCannedRequest,
+    request: SingleDocumentCannedRequest,
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -269,6 +271,7 @@ private suspend fun doDcRequestFlow(
         namespaceRequest.dataElementsToRequest.forEach { (mdocDataElement, intentToRetain) ->
             claims.add(
                 MdocRequestedClaim(
+                    docType = request.mdocRequest!!.docType,
                     namespaceName = namespaceRequest.namespace,
                     dataElementName = mdocDataElement.attribute.identifier,
                     intentToRetain = intentToRetain
