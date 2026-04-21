@@ -7,7 +7,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.koin.dsl.module
 import org.multipaz.crypto.Algorithm
-import org.multipaz.presentment.model.PresentmentModel
+import org.multipaz.presentment.PresentmentModel
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
@@ -59,8 +59,7 @@ val multipazModule =
         }
         // TODO: define TrustManager in Koin module
 
-        // TODO: define Digit
-        //  alCredentialsRegistrationManager in Koin module
+        // TODO: define DigitalCredentialsRegistrationManager in Koin module
 
         // TODO: define PresentmentSource in Koin module
 
