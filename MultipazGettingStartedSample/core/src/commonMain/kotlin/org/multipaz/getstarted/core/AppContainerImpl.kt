@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.io.bytestring.encodeToByteString
 import multipazgettingstartedsample.core.generated.resources.Res
 import org.multipaz.asn1.ASN1Integer
@@ -24,17 +25,17 @@ import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.mdoc.util.MdocUtil
-import org.multipaz.presentment.model.PresentmentSource
-import org.multipaz.presentment.model.SimplePresentmentSource
+import org.multipaz.presentment.PresentmentSource
+import org.multipaz.presentment.SimplePresentmentSource
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
 import org.multipaz.storage.StorageTableSpec
-import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
+import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
-import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
@@ -52,7 +53,7 @@ class AppContainerImpl : AppContainer {
 
     override lateinit var presentmentSource: PresentmentSource
 
-    override lateinit var readerTrustManager: TrustManagerLocal
+    override lateinit var readerTrustManager: TrustManager
 
     override var isInitialized = false
 
@@ -62,13 +63,7 @@ class AppContainerImpl : AppContainer {
 
         // Storage
         storage = org.multipaz.util.Platform.nonBackedUpStorage
-        storageTable = storage.getTable(
-            StorageTableSpec(
-                name = CredentialDomains.STORAGE_TABLE_NAME,
-                supportPartitions = false,
-                supportExpiration = false
-            )
-        )
+        storageTable = storage.getTable(CredentialDomains.storageTableSpec)
         secureArea = org.multipaz.util.Platform.getSecureArea()
         secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
 
@@ -131,7 +126,7 @@ class AppContainerImpl : AppContainer {
         }
 
         // Initialize TrustManager
-        readerTrustManager = TrustManagerLocal(storage = storage, identifier = "reader")
+        readerTrustManager = TrustManager(storage = storage, identifier = "reader")
 
         try {
             readerTrustManager.addX509Cert(
@@ -144,7 +139,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://apps.multipaz.org"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -159,7 +154,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -174,7 +169,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -189,7 +184,7 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org"
                 )
             )
-        } catch (e: TrustPointAlreadyExistsException) {
+        } catch (e: TrustEntryAlreadyExistsException) {
             e.printStackTrace()
         }
 
@@ -199,11 +194,12 @@ class AppContainerImpl : AppContainer {
             resolveTrustFn = { requester ->
                 requester.certChain?.let { certChain ->
                     val trustResult = readerTrustManager.verify(certChain.certificates)
+
                     if (trustResult.isTrusted) {
                         return@SimplePresentmentSource trustResult.trustPoints.first().metadata
                     }
                 }
-                return@SimplePresentmentSource null
+                null
             },
             preferSignatureToKeyAgreement = true,
             domainMdocSignature = CredentialDomains.MDOC_USER_AUTH,
