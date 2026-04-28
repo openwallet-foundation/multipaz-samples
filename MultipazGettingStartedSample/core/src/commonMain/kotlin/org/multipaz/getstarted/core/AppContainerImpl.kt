@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.io.bytestring.encodeToByteString
 import multipazgettingstartedsample.core.generated.resources.Res
 import org.multipaz.asn1.ASN1Integer
@@ -32,7 +31,6 @@ import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
-import org.multipaz.storage.StorageTableSpec
 import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
@@ -139,8 +137,8 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://apps.multipaz.org"
                 )
             )
-        } catch (e: TrustEntryAlreadyExistsException) {
-            e.printStackTrace()
+        } catch (_: TrustEntryAlreadyExistsException) {
+            // Already seeded; ignore duplicate during subsequent launches.
         }
 
         try {
@@ -154,8 +152,8 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
                 )
             )
-        } catch (e: TrustEntryAlreadyExistsException) {
-            e.printStackTrace()
+        } catch (_: TrustEntryAlreadyExistsException) {
+            // Already seeded; ignore duplicate during subsequent launches.
         }
 
         try {
@@ -169,8 +167,8 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org/identityreaderbackend/"
                 )
             )
-        } catch (e: TrustEntryAlreadyExistsException) {
-            e.printStackTrace()
+        } catch (_: TrustEntryAlreadyExistsException) {
+            // Already seeded; ignore duplicate during subsequent launches.
         }
 
         try {
@@ -184,8 +182,8 @@ class AppContainerImpl : AppContainer {
                     privacyPolicyUrl = "https://verifier.multipaz.org"
                 )
             )
-        } catch (e: TrustEntryAlreadyExistsException) {
-            e.printStackTrace()
+        } catch (_: TrustEntryAlreadyExistsException) {
+            // Already seeded; ignore duplicate during subsequent launches.
         }
 
         presentmentSource = SimplePresentmentSource(
