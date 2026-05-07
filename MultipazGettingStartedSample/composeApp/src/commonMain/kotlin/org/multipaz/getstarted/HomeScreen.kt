@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,8 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.JsonObject
 import org.multipaz.cbor.DataItem
-import org.multipaz.compose.document.DocumentCarousel
-import org.multipaz.compose.document.DocumentInfo
+import org.multipaz.compose.cards.CardCarousel
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.permissions.rememberCameraPermissionState
 import org.multipaz.crypto.EcPrivateKey
@@ -82,13 +80,11 @@ fun HomeScreen(
     }
 
     val faceCaptured = remember { mutableStateOf<FaceEmbedding?>(null) }
-    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
+            .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -123,20 +119,18 @@ fun HomeScreen(
             )
         }
 
-        var selectedDocumentId by remember { mutableStateOf<String?>(null) }
+        var selectedDocumentId by rememberSaveable { mutableStateOf<String?>(null) }
 
         documentModel?.let { model ->
-            DocumentCarousel(
-                documentModel = model,
-                onDocumentClicked = { documentInfo: DocumentInfo ->
-                    selectedDocumentId = documentInfo.document.identifier
-                }
+            val documentInfos by model.documentInfos.collectAsState()
+
+            CardCarousel(
+                cardInfos = documentInfos,
+                onCardClicked = { selectedDocumentId = it.identifier },
             )
 
             selectedDocumentId?.let { id ->
-                ModalBottomSheet(
-                    onDismissRequest = { selectedDocumentId = null },
-                ) {
+                ModalBottomSheet(onDismissRequest = { selectedDocumentId = null }) {
                     DocumentDetails(
                         documentModel = model,
                         documentStore = container.documentStore,

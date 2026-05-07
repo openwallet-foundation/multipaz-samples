@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -184,6 +185,8 @@ class App {
 
                 ProvisioningBottomSheet(
                     provisioningModel = provisioningModel,
+                    clientPreferences = CompletableDeferred(provisioningSupport.getOpenID4VCIClientPreferences()),
+                    backend = CompletableDeferred(provisioningSupport.getOpenID4VCIBackend()),
                     waitForRedirectLinkInvocation = { state ->
                         provisioningSupport.waitForAppLinkInvocation(state)
                     }
