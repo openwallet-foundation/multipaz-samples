@@ -200,10 +200,10 @@ class AppContainerImpl : AppContainer {
                 null
             },
             preferSignatureToKeyAgreement = true,
-            domainMdocSignature = CredentialDomains.MDOC_USER_AUTH,
-            domainMdocKeyAgreement = CredentialDomains.MDOC_MAC_USER_AUTH,
-            domainKeylessSdJwt = CredentialDomains.SDJWT_KEYLESS,
-            domainKeyBoundSdJwt = CredentialDomains.SDJWT_USER_AUTH
+            domainsMdocSignature = listOf(CredentialDomains.MDOC_USER_AUTH, CredentialDomains.MDOC_SOFTWARE),
+            domainsMdocKeyAgreement = listOf(CredentialDomains.MDOC_MAC_USER_AUTH),
+            domainsKeylessSdJwt = listOf(CredentialDomains.SDJWT_KEYLESS, CredentialDomains.SDJWT_SOFTWARE),
+            domainsKeyBoundSdJwt = listOf(CredentialDomains.SDJWT_USER_AUTH, CredentialDomains.SDJWT_SOFTWARE),
         )
 
         val digitalCredentials = DigitalCredentials.getDefault()
