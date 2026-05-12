@@ -12,7 +12,6 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.documenttype.knowntypes.Loyalty
 import org.multipaz.presentment.PresentmentModel
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.presentment.SimplePresentmentSource
@@ -55,7 +54,6 @@ val multipazModule =
         single<DocumentTypeRepository> {
             DocumentTypeRepository().apply {
                 addDocumentType(DrivingLicense.getDocumentType())
-                addDocumentType(Loyalty.getDocumentType())
             }
         }
         single<DocumentStore> {
@@ -203,24 +201,24 @@ val multipazModule =
                     }
                 },
                 preferSignatureToKeyAgreement = settingsModel.presentmentPreferSignatureToKeyAgreement.value,
-                domainMdocSignature =
+                domainsMdocSignature =
                     if (requireAuthentication) {
-                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH
+                        listOf(TestAppUtils.CREDENTIAL_DOMAIN_MDOC_USER_AUTH)
                     } else {
-                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_NO_USER_AUTH
+                        listOf(TestAppUtils.CREDENTIAL_DOMAIN_MDOC_NO_USER_AUTH)
                     },
-                domainMdocKeyAgreement =
+                domainsMdocKeyAgreement =
                     if (requireAuthentication) {
-                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH
+                        listOf(TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_USER_AUTH)
                     } else {
-                        TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_NO_USER_AUTH
+                        listOf(TestAppUtils.CREDENTIAL_DOMAIN_MDOC_MAC_NO_USER_AUTH)
                     },
-                domainKeylessSdJwt = TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS,
-                domainKeyBoundSdJwt =
+                domainsKeylessSdJwt = listOf(TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_KEYLESS),
+                domainsKeyBoundSdJwt =
                     if (requireAuthentication) {
-                        TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH
+                        listOf(TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_USER_AUTH)
                     } else {
-                        TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_NO_USER_AUTH
+                        listOf(TestAppUtils.CREDENTIAL_DOMAIN_SDJWT_NO_USER_AUTH)
                     },
             )
         }
