@@ -3,7 +3,13 @@ package org.multipaz.getstarted.verification
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -26,7 +32,6 @@ import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.digitalcredentials.getDefault
-import org.multipaz.documenttype.DocumentCannedRequest
 import org.multipaz.documenttype.SingleDocumentCannedRequest
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.getstarted.core.getAppToAppOrigin
@@ -68,7 +73,14 @@ fun W3CDCCredentialsRequestButton(
     storageTable: StorageTable,
     promptModel: PromptModel,
     readerTrustManager: TrustManager,
-    text: String = "W3CDC Credentials Request",
+    text: AnnotatedString = buildAnnotatedString {
+        withStyle(style = SpanStyle(fontSize = 14.sp)) {
+            append("W3CDC Credentials Request")
+        }
+        withStyle(style = SpanStyle(fontSize = 12.sp)) {
+            append("\nmDL Driving License")
+        }
+    },
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -78,18 +90,15 @@ fun W3CDCCredentialsRequestButton(
         metadata: ShowResponseMetadata
     ) -> Unit
 ) {
-    val requestOptions = mutableListOf<RequestEntry>()
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
 
-    LaunchedEffect(Unit) {
+    val requestOptions = remember {
         val documentType = DrivingLicense.getDocumentType()
-        documentType.cannedRequests.forEach { sampleRequest ->
-            requestOptions.add(
-                RequestEntry(
-                    displayName = "${documentType.displayName}: ${sampleRequest.displayName}",
-                    documentType = documentType,
-                    sampleRequest = sampleRequest
-                )
+        documentType.cannedRequests.map { sampleRequest ->
+            RequestEntry(
+                displayName = "${documentType.displayName}: ${sampleRequest.displayName}",
+                documentType = documentType,
+                sampleRequest = sampleRequest
             )
         }
     }
@@ -136,7 +145,10 @@ fun W3CDCCredentialsRequestButton(
             }
         }
     }) {
-        Text(text = text)
+        Text(
+            text = text,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
