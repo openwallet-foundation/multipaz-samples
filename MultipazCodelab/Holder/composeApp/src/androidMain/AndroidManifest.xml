@@ -32,6 +32,14 @@
     <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Required on Android 11+ for Multipaz's OAuth flow to discover a Chrome Custom Tabs
+         provider via CustomTabsClient.getPackageName() -->
+    <queries>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+
     <application
         android:usesCleartextTraffic="true"
         android:allowBackup="true"

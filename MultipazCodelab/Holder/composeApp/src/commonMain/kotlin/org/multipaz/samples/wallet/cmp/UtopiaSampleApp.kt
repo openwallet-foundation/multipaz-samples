@@ -57,7 +57,7 @@ fun UtopiaSampleApp(
 
         LaunchedEffect(provisioningModel) {
             provisioningModel.state.collect { state ->
-                if (state == ProvisioningModel.CredentialsIssued) {
+                if (state is ProvisioningModel.CredentialsIssued) {
                     registrationManager.refresh("credentials issued")
                 }
             }

@@ -100,7 +100,7 @@ fun ProvisioningTestScreen(
                         ProvisioningModel.ProcessingAuthorization -> "Processing authorization..."
                         ProvisioningModel.Authorized -> "Authorized"
                         ProvisioningModel.RequestingCredentials -> "Requesting credentials..."
-                        ProvisioningModel.CredentialsIssued -> "Credentials issued"
+                        is ProvisioningModel.CredentialsIssued -> "Credentials issued"
                         is ProvisioningModel.Error -> throw IllegalStateException()
                         is ProvisioningModel.Authorizing -> throw IllegalStateException()
                     }
