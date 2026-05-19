@@ -42,6 +42,14 @@
         android:required="false" />
     <uses-permission android:name="android.permission.CAMERA"/>
 
+    <!-- Required on Android 11+ for Multipaz's OAuth flow to discover a Chrome Custom Tabs
+         provider via CustomTabsClient.getPackageName() -->
+    <queries>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

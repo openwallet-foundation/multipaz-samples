@@ -8,13 +8,45 @@
 
 /* Begin PBXBuildFile section */
 		1E7435791A61812201180A6E /* Pods_iosApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B8D30211C07C2DB842B1065A /* Pods_iosApp.framework */; };
+		AEEDD7920B067EFDB722DDCF /* Pods_iosApp_IdentityDocumentProviderExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 42019664B582E0E9ADCA40CD /* Pods_iosApp_IdentityDocumentProviderExtension.framework */; };
+		B9DA98262E00000100A4DA20 /* IdentityDocumentProviderExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = B9DA98222E00000100A4DA20 /* IdentityDocumentProviderExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B9DA98272E00000100A4DA20 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B9DA97A92DC1472C00A4DA20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B9DA98292E00000100A4DA20;
+			remoteInfo = IdentityDocumentProviderExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B9DA98252E00000100A4DA20 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				B9DA98262E00000100A4DA20 /* IdentityDocumentProviderExtension.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0ACCBC22D28831C6ACA0750A /* Pods-iosApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.debug.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.debug.xcconfig"; sourceTree = "<group>"; };
+		42019664B582E0E9ADCA40CD /* Pods_iosApp_IdentityDocumentProviderExtension.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iosApp_IdentityDocumentProviderExtension.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		70EE0D0A941D21D91A696A83 /* Pods-iosApp-IdentityDocumentProviderExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp-IdentityDocumentProviderExtension.debug.xcconfig"; path = "Target Support Files/Pods-iosApp-IdentityDocumentProviderExtension/Pods-iosApp-IdentityDocumentProviderExtension.debug.xcconfig"; sourceTree = "<group>"; };
+		80E4292CF491829FB4D47D3B /* Pods-iosApp-IdentityDocumentProviderExtension.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp-IdentityDocumentProviderExtension.release.xcconfig"; path = "Target Support Files/Pods-iosApp-IdentityDocumentProviderExtension/Pods-iosApp-IdentityDocumentProviderExtension.release.xcconfig"; sourceTree = "<group>"; };
+		94CF9BA29065AA40E8DB506F /* Pods-IdentityDocumentProviderExtension.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IdentityDocumentProviderExtension.release.xcconfig"; path = "Target Support Files/Pods-IdentityDocumentProviderExtension/Pods-IdentityDocumentProviderExtension.release.xcconfig"; sourceTree = "<group>"; };
+		B1B19D0EF1E47FC5F4A3964D /* Pods-IdentityDocumentProviderExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-IdentityDocumentProviderExtension.debug.xcconfig"; path = "Target Support Files/Pods-IdentityDocumentProviderExtension/Pods-IdentityDocumentProviderExtension.debug.xcconfig"; sourceTree = "<group>"; };
 		B6606B91CB0E6FE9E031D042 /* Pods-iosApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.release.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.release.xcconfig"; sourceTree = "<group>"; };
 		B8D30211C07C2DB842B1065A /* Pods_iosApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iosApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		B9DA97B12DC1472C00A4DA20 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9DA98222E00000100A4DA20 /* IdentityDocumentProviderExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = IdentityDocumentProviderExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -24,6 +56,13 @@
 				Info.plist,
 			);
 			target = B9DA97B02DC1472C00A4DA20 /* iosApp */;
+		};
+		B9DA98232E00000100A4DA20 /* Exceptions for "IdentityDocumentProviderExtension" folder in "IdentityDocumentProviderExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B9DA98292E00000100A4DA20 /* IdentityDocumentProviderExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -43,6 +82,14 @@
 			path = Configuration;
 			sourceTree = "<group>";
 		};
+		B9DA98242E00000100A4DA20 /* IdentityDocumentProviderExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B9DA98232E00000100A4DA20 /* Exceptions for "IdentityDocumentProviderExtension" folder in "IdentityDocumentProviderExtension" target */,
+			);
+			path = IdentityDocumentProviderExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,6 +101,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B9DA982A2E00000100A4DA20 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AEEDD7920B067EFDB722DDCF /* Pods_iosApp_IdentityDocumentProviderExtension.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -62,6 +117,10 @@
 			children = (
 				0ACCBC22D28831C6ACA0750A /* Pods-iosApp.debug.xcconfig */,
 				B6606B91CB0E6FE9E031D042 /* Pods-iosApp.release.xcconfig */,
+				B1B19D0EF1E47FC5F4A3964D /* Pods-IdentityDocumentProviderExtension.debug.xcconfig */,
+				94CF9BA29065AA40E8DB506F /* Pods-IdentityDocumentProviderExtension.release.xcconfig */,
+				70EE0D0A941D21D91A696A83 /* Pods-iosApp-IdentityDocumentProviderExtension.debug.xcconfig */,
+				80E4292CF491829FB4D47D3B /* Pods-iosApp-IdentityDocumentProviderExtension.release.xcconfig */,
 			);
 			name = Pods;
 			path = ../Pods;
@@ -71,6 +130,7 @@
 			isa = PBXGroup;
 			children = (
 				B8D30211C07C2DB842B1065A /* Pods_iosApp.framework */,
+				42019664B582E0E9ADCA40CD /* Pods_iosApp_IdentityDocumentProviderExtension.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -80,6 +140,7 @@
 			children = (
 				B9DA98002DC14AA900A4DA20 /* Configuration */,
 				B9DA97B32DC1472C00A4DA20 /* iosApp */,
+				B9DA98242E00000100A4DA20 /* IdentityDocumentProviderExtension */,
 				B9DA97B22DC1472C00A4DA20 /* Products */,
 				7CD137DEAB783BF75D80F1B3 /* Pods */,
 				9A5397CB0DDA90DA08F8EFCF /* Frameworks */,
@@ -90,6 +151,7 @@
 			isa = PBXGroup;
 			children = (
 				B9DA97B12DC1472C00A4DA20 /* iosApp.app */,
+				B9DA98222E00000100A4DA20 /* IdentityDocumentProviderExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,10 +170,12 @@
 				CAAF8B225B9976F427008448 /* [CP] Embed Pods Frameworks */,
 				D98FAB13A0D3E849056C129D /* Copy Compose Resources to App Bundle */,
 				A827D60FF0727CAA18D78AE9 /* [CP] Copy Pods Resources */,
+				B9DA98252E00000100A4DA20 /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B9DA98282E00000100A4DA20 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				B9DA97B32DC1472C00A4DA20 /* iosApp */,
@@ -120,6 +184,29 @@
 			productName = iosApp;
 			productReference = B9DA97B12DC1472C00A4DA20 /* iosApp.app */;
 			productType = "com.apple.product-type.application";
+		};
+		B9DA98292E00000100A4DA20 /* IdentityDocumentProviderExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9DA98302E00000100A4DA20 /* Build configuration list for PBXNativeTarget "IdentityDocumentProviderExtension" */;
+			buildPhases = (
+				E5E0B5118D2750D8E71581F0 /* [CP] Check Pods Manifest.lock */,
+				B9DA982D2E00000100A4DA20 /* Compile Kotlin Framework */,
+				B9DA982C2E00000100A4DA20 /* Sources */,
+				B9DA982A2E00000100A4DA20 /* Frameworks */,
+				B9DA982B2E00000100A4DA20 /* Resources */,
+				31175F933A0FEDF35EF74157 /* [CP] Copy Pods Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B9DA98242E00000100A4DA20 /* IdentityDocumentProviderExtension */,
+			);
+			name = IdentityDocumentProviderExtension;
+			productName = IdentityDocumentProviderExtension;
+			productReference = B9DA98222E00000100A4DA20 /* IdentityDocumentProviderExtension.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -132,6 +219,9 @@
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					B9DA97B02DC1472C00A4DA20 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					B9DA98292E00000100A4DA20 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -151,6 +241,7 @@
 			projectRoot = "";
 			targets = (
 				B9DA97B02DC1472C00A4DA20 /* iosApp */,
+				B9DA98292E00000100A4DA20 /* IdentityDocumentProviderExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -163,9 +254,33 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B9DA982B2E00000100A4DA20 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		31175F933A0FEDF35EF74157 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-iosApp-IdentityDocumentProviderExtension/Pods-iosApp-IdentityDocumentProviderExtension-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-iosApp-IdentityDocumentProviderExtension/Pods-iosApp-IdentityDocumentProviderExtension-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-iosApp-IdentityDocumentProviderExtension/Pods-iosApp-IdentityDocumentProviderExtension-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		A827D60FF0727CAA18D78AE9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -182,6 +297,25 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		B9DA982D2E00000100A4DA20 /* Compile Kotlin Framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Compile Kotlin Framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\n";
 		};
 		CAAF8B225B9976F427008448 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -240,6 +374,28 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		E5E0B5118D2750D8E71581F0 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-iosApp-IdentityDocumentProviderExtension-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -250,7 +406,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B9DA982C2E00000100A4DA20 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B9DA98282E00000100A4DA20 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B9DA98292E00000100A4DA20 /* IdentityDocumentProviderExtension */;
+			targetProxy = B9DA98272E00000100A4DA20 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		B9DA97BD2DC1472D00A4DA20 /* Debug */ = {
@@ -382,10 +553,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 4G3ATA5MLV;
+				DEVELOPMENT_TEAM = BU6YGAJF63;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -410,7 +582,7 @@
 					"$(inherited)",
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.vishu.multipaz.getstarted;
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.ever.getstarted;
 				PRODUCT_NAME = iosApp;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -424,6 +596,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
@@ -459,6 +632,76 @@
 			};
 			name = Release;
 		};
+		B9DA982E2E00000100A4DA20 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 70EE0D0A941D21D91A696A83 /* Pods-iosApp-IdentityDocumentProviderExtension.debug.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BU6YGAJF63;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				INFOPLIST_FILE = IdentityDocumentProviderExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lsqlite3",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.ever.getstarted.DocumentProviderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B9DA982F2E00000100A4DA20 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80E4292CF491829FB4D47D3B /* Pods-iosApp-IdentityDocumentProviderExtension.release.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = BU6YGAJF63;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				INFOPLIST_FILE = IdentityDocumentProviderExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lsqlite3",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.ever.getstarted.DocumentProviderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -476,6 +719,15 @@
 			buildConfigurations = (
 				B9DA97C02DC1472D00A4DA20 /* Debug */,
 				B9DA97C12DC1472D00A4DA20 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B9DA98302E00000100A4DA20 /* Build configuration list for PBXNativeTarget "IdentityDocumentProviderExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9DA982E2E00000100A4DA20 /* Debug */,
+				B9DA982F2E00000100A4DA20 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
