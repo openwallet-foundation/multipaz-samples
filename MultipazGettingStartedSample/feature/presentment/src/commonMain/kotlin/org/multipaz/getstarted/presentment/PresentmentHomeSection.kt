@@ -22,7 +22,7 @@ import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.util.UUID
 import kotlin.time.Duration.Companion.seconds

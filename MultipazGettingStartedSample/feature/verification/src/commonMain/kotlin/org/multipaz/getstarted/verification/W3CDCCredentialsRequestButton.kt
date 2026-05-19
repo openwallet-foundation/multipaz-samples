@@ -3,7 +3,13 @@ package org.multipaz.getstarted.verification
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -26,7 +32,7 @@ import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.digitalcredentials.getDefault
-import org.multipaz.documenttype.DocumentCannedRequest
+import org.multipaz.documenttype.SingleDocumentCannedRequest
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.getstarted.core.getAppToAppOrigin
 import org.multipaz.getstarted.verification.W3CDCConstants.Companion.CERT_CRL_URL
@@ -47,9 +53,9 @@ import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.storage.StorageTable
-import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
+import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
-import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
 import org.multipaz.util.Logger
 import org.multipaz.verification.MdocApiDcResponse
 import org.multipaz.verification.OpenID4VPDcResponse
@@ -66,8 +72,15 @@ const val TAG = "W3CDCCredentialsRequestButton"
 fun W3CDCCredentialsRequestButton(
     storageTable: StorageTable,
     promptModel: PromptModel,
-    readerTrustManager: TrustManagerLocal,
-    text: String = "W3CDC Credentials Request",
+    readerTrustManager: TrustManager,
+    text: AnnotatedString = buildAnnotatedString {
+        withStyle(style = SpanStyle(fontSize = 14.sp)) {
+            append("W3CDC Credentials Request")
+        }
+        withStyle(style = SpanStyle(fontSize = 12.sp)) {
+            append("\nmDL Driving License")
+        }
+    },
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -77,18 +90,15 @@ fun W3CDCCredentialsRequestButton(
         metadata: ShowResponseMetadata
     ) -> Unit
 ) {
-    val requestOptions = mutableListOf<RequestEntry>()
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
 
-    LaunchedEffect(Unit) {
+    val requestOptions = remember {
         val documentType = DrivingLicense.getDocumentType()
-        documentType.cannedRequests.forEach { sampleRequest ->
-            requestOptions.add(
-                RequestEntry(
-                    displayName = "${documentType.displayName}: ${sampleRequest.displayName}",
-                    documentType = documentType,
-                    sampleRequest = sampleRequest
-                )
+        documentType.cannedRequests.map { sampleRequest ->
+            RequestEntry(
+                displayName = "${documentType.displayName}: ${sampleRequest.displayName}",
+                documentType = documentType,
+                sampleRequest = sampleRequest
             )
         }
     }
@@ -120,14 +130,14 @@ fun W3CDCCredentialsRequestButton(
                         privacyPolicyUrl = "https://developer.multipaz.org"
                     )
                 )
-            } catch (e: TrustPointAlreadyExistsException) {
+            } catch (e: TrustEntryAlreadyExistsException) {
                 e.printStackTrace()
             }
 
             try {
                 doDcRequestFlow(
                     appReaderKey = readerKey,
-                    request = requestOptions.first().sampleRequest,
+                    request = requestOptions.first().sampleRequest as SingleDocumentCannedRequest,
                     showResponse = showResponse
                 )
             } catch (error: Throwable) {
@@ -135,7 +145,10 @@ fun W3CDCCredentialsRequestButton(
             }
         }
     }) {
-        Text(text = text)
+        Text(
+            text = text,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -165,6 +178,7 @@ private suspend fun readerInit(
                 readerRootKey = readerRootKey,
                 readerKey = readerPrivateKey.publicKey,
                 subject = X500Name.fromName(CERT_SUBJECT_COMMON_NAME),
+                dnsName = null,
                 serial = ASN1Integer.fromRandom(numBits = CERT_SERIAL_NUMBER_BITS),
                 validFrom = certsValidFrom,
                 validUntil = certsValidUntil,
@@ -244,7 +258,7 @@ private suspend fun loadBundledReaderRootKey(): EcPrivateKey {
 @OptIn(ExperimentalTime::class)
 private suspend fun doDcRequestFlow(
     appReaderKey: AsymmetricKey.X509Compatible,
-    request: DocumentCannedRequest,
+    request: SingleDocumentCannedRequest,
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -269,6 +283,7 @@ private suspend fun doDcRequestFlow(
         namespaceRequest.dataElementsToRequest.forEach { (mdocDataElement, intentToRetain) ->
             claims.add(
                 MdocRequestedClaim(
+                    docType = request.mdocRequest!!.docType,
                     namespaceName = namespaceRequest.namespace,
                     dataElementName = mdocDataElement.attribute.identifier,
                     intentToRetain = intentToRetain

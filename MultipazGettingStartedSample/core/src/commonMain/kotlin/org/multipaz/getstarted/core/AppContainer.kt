@@ -3,13 +3,13 @@ package org.multipaz.getstarted.core
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.presentment.model.PresentmentSource
+import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
-import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustManager
 
 interface AppContainer {
 
@@ -23,7 +23,7 @@ interface AppContainer {
 
     val presentmentSource: PresentmentSource
 
-    val readerTrustManager: TrustManagerLocal
+    val readerTrustManager: TrustManager
 
     val isInitialized: Boolean
 
