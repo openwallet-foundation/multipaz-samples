@@ -68,8 +68,6 @@ fun ShowResponseScreen(
         Cbor.decode(it.fromBase64Url())
     }
 
-    val nonce = response.nonce?.let { ByteString(it.fromBase64Url()) }
-
     val verificationResult =
         remember { mutableStateOf<VerificationResult>(VerificationResult.Loading) }
     val verificationResultValue = verificationResult.value
@@ -85,7 +83,7 @@ fun ShowResponseScreen(
                 now = now,
                 vpToken = vpToken,
                 sessionTranscript = sessionTranscript,
-                nonce = nonce,
+                nonce = response.nonce,
                 documentTypeRepository = documentTypeRepository,
             )
         } catch (e: Throwable) {
@@ -249,7 +247,7 @@ private suspend fun parseResponse(
     now: Instant,
     vpToken: JsonObject?,
     sessionTranscript: DataItem,
-    nonce: ByteString?,
+    nonce: String?,
     documentTypeRepository: DocumentTypeRepository?
 ): VerificationResult {
     val documentValues: MutableList<DocumentValue> = mutableListOf()
@@ -261,7 +259,8 @@ private suspend fun parseResponse(
             sessionTranscript = sessionTranscript,
             nonce = nonce!!,
             documentTypeRepository = documentTypeRepository,
-            zkSystemRepository = null
+            zkSystemRepository = null,
+            queryData = emptyMap()
         )
     } else {
         throw IllegalStateException("vpToken must be non-null")

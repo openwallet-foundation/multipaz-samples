@@ -155,10 +155,10 @@ private suspend fun ensureBridgeInitialized() {
         resolveTrustFn = { null },
         showConsentPromptFn = ::promptModelSilentConsent,
         preferSignatureToKeyAgreement = true,
-        domainMdocSignature = CredentialDomains.MDOC_USER_AUTH,
-        domainMdocKeyAgreement = CredentialDomains.MDOC_MAC_USER_AUTH,
-        domainKeylessSdJwt = CredentialDomains.SDJWT_KEYLESS,
-        domainKeyBoundSdJwt = CredentialDomains.SDJWT_USER_AUTH,
+	domainsMdocSignature = listOf(CredentialDomains.MDOC_USER_AUTH),
+	domainsMdocKeyAgreement = listOf(CredentialDomains.MDOC_MAC_USER_AUTH),
+	domainsKeylessSdJwt = listOf(CredentialDomains.SDJWT_KEYLESS),
+	domainsKeyBoundSdJwt = listOf(CredentialDomains.SDJWT_USER_AUTH),
     )
 
     initialized = true
