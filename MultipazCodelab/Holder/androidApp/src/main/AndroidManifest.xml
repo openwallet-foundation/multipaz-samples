@@ -127,7 +127,7 @@
                    user data it might be a privacy problem to show PII on the lock screen.
         -->
         <service
-            android:name="org.multipaz.samples.wallet.cmp.NdefService"
+            android:name="org.multipaz.samples.wallet.cmp.UtopiaNfcService"
             android:exported="true"
             android:label="@string/nfc_ndef_service_description"
             android:permission="android.permission.BIND_NFC_SERVICE">

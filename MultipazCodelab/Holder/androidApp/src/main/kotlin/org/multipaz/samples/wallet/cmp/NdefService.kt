@@ -1,15 +1,23 @@
 package org.multipaz.samples.wallet.cmp
 
+import android.content.Context
 import org.koin.android.ext.android.inject
+import org.koin.java.KoinJavaComponent.inject
 import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 
-class NdefService : MdocNdefService() {
-    private val presentmentSource: PresentmentSource by inject()
-    private val settingsModel: AppSettingsModel by inject()
+class NdefService(
+    applicationContext: Context,
+    sendResponse: (ByteArray) -> Unit,
+) : MdocNdefService(
+    applicationContext,
+    sendResponse,
+) {
+    private val presentmentSource: PresentmentSource by inject(PresentmentSource::class.java)
+    private val settingsModel: AppSettingsModel by inject(AppSettingsModel::class.java)
 
     override suspend fun getSettings(): Settings {
         // Reset the presentment model with the source's document store and repository

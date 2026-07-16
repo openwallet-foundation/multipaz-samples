@@ -21,9 +21,9 @@ import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.multipaz.document.DocumentStore
-import org.multipaz.presentment.model.PresentmentModel
-import org.multipaz.presentment.model.PresentmentSource
-import org.multipaz.presentment.model.uriSchemePresentment
+import org.multipaz.presentment.PresentmentModel
+import org.multipaz.presentment.PresentmentSource
+import org.multipaz.presentment.uriSchemePresentment
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.samples.wallet.cmp.util.ProvisioningSupport
@@ -128,9 +128,10 @@ suspend fun ProcessIosUriSchemeRequest(requestUrl: String): String {
         uriSchemePresentment(
             source = source,
             uri = requestUrl,
+            appId = null,
             origin = origin,
             httpClientEngineFactory = Darwin,
-        )
+        ) ?: ""
     }
 }
 

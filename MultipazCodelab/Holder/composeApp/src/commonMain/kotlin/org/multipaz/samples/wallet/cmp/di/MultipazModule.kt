@@ -22,6 +22,7 @@ import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
+import org.multipaz.request.TrustedRequesterIdentity
 import org.multipaz.rpc.handler.RpcAuthClientSession
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 import org.multipaz.samples.wallet.cmp.util.DigitalCredentialsRegistrationManager
@@ -175,6 +176,7 @@ val multipazModule =
             val requireAuthentication = settingsModel.presentmentRequireAuthentication.value
             val documentStore: DocumentStore = get()
             val documentTypeRepository: DocumentTypeRepository = get()
+            val readerTrustManager: TrustManager = get()
 
             // Keep an initial eager refresh here so existing startup behavior is preserved.
             if (shouldRegisterDigitalCredentialsInCommonModule()) {
@@ -191,10 +193,14 @@ val multipazModule =
                         ::promptModelSilentConsent
                     },
                 resolveTrustFn = { requester ->
-                    requester.certChain?.let { certChain ->
-                        val trustResult = get<TrustManager>().verify(certChain.certificates)
+                    requester.requesterIdentities.firstNotNullOfOrNull { requesterIdentity ->
+                        val trustResult =
+                            readerTrustManager.verify(requesterIdentity.certChain.certificates)
                         if (trustResult.isTrusted) {
-                            trustResult.trustPoints.firstOrNull()?.metadata
+                            TrustedRequesterIdentity(
+                                requesterIdentity,
+                                trustResult.trustPoints.first().metadata,
+                            )
                         } else {
                             null
                         }

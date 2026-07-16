@@ -13,8 +13,8 @@ import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.presentment.model.PresentmentSource
-import org.multipaz.presentment.model.digitalCredentialsPresentment
+import org.multipaz.presentment.PresentmentSource
+import org.multipaz.presentment.digitalCredentialsPresentment
 import org.multipaz.samples.wallet.cmp.di.initKoin
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 import org.multipaz.util.Logger
