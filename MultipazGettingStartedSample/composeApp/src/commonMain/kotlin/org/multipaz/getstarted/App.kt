@@ -3,8 +3,11 @@ package org.multipaz.getstarted
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -18,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -97,18 +101,26 @@ class App {
 
         val isInitialized = remember { mutableStateOf(false) }
 
+        val colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+
         if (!isInitialized.value) {
             CoroutineScope(Dispatchers.Main).launch {
                 init()
                 isInitialized.value = true
             }
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Initializing...")
+            MaterialTheme(colorScheme = colorScheme) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(Modifier.height(16.dp))
+                        Text(text = "Initializing…")
+                    }
+                }
             }
             return
         }
@@ -134,7 +146,6 @@ class App {
             }
         }
 
-        val colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
         MaterialTheme(colorScheme = colorScheme) {
             Surface {
                 PromptDialogs(AppContainer.promptModel)

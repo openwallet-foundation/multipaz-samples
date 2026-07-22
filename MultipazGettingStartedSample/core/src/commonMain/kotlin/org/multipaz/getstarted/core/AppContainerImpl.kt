@@ -26,6 +26,7 @@ import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.presentment.SimplePresentmentSource
+import org.multipaz.request.TrustedRequesterIdentity
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
@@ -190,11 +191,15 @@ class AppContainerImpl : AppContainer {
             documentStore = documentStore,
             documentTypeRepository = documentTypeRepository,
             resolveTrustFn = { requester ->
-                requester.certChain?.let { certChain ->
-                    val trustResult = readerTrustManager.verify(certChain.certificates)
-
-                    if (trustResult.isTrusted) {
-                        return@SimplePresentmentSource trustResult.trustPoints.first().metadata
+                requester.requesterIdentities.forEach { requesterIdentity ->
+                    requesterIdentity.certChain.let { certChain ->
+                        val trustResult = readerTrustManager.verify(certChain.certificates)
+                        if (trustResult.isTrusted) {
+                            return@SimplePresentmentSource TrustedRequesterIdentity(
+                                requesterIdentity,
+                                trustResult.trustPoints.first().metadata
+                            )
+                        }
                     }
                 }
                 null

@@ -1,12 +1,19 @@
 package org.multipaz.getstarted
 
+import android.content.Context
 import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.crypto.EcCurve
 import org.multipaz.getstarted.core.AppContainer
 import org.multipaz.mdoc.transport.MdocTransportOptions
 
-class NdefService : MdocNdefService() {
+class NdefService(
+    applicationContext: Context,
+    sendResponse: (ByteArray) -> Unit
+) : MdocNdefService(
+    applicationContext,
+    sendResponse
+) {
     override suspend fun getSettings(): Settings {
         val container = AppContainer.getInstance()
         container.init()

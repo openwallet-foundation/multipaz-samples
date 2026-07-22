@@ -1,24 +1,23 @@
 [versions]
-agp = "8.7.3"
-android-compileSdk = "35"
+agp = "9.2.1"
+android-compileSdk = "36"
 android-minSdk = "29"
 android-targetSdk = "35"
-androidx-activity = "1.10.1"
+androidx-activity = "1.12.0"
 androidx-appcompat = "1.7.1"
 androidx-constraintlayout = "2.2.1"
 androidx-core = "1.16.0"
 androidx-espresso = "3.6.1"
 androidx-lifecycle = "2.9.0"
 androidx-testExt = "1.2.1"
-composeMultiplatform = "1.8.2"
+composeMultiplatform = "1.10.1"
 junit = "4.13.2"
 kotlin = "2.2.0"
 kotlinx-coroutines = "1.8.1"
 kotlinx-io = "0.4.0"
 kotlinx-datetime = "0.6.0"
 kotlinx-serialization = "1.7.3"
-# Align Multipaz with Kotlin 2.2.0 (same as identity-credential root)
-multipaz = "0.99.0"
+multipaz = "0.100.0"
 ktor = "3.1.0"
 androidx-sqlite = "2.5.2"
 coil = "3.3.0"
@@ -67,6 +66,7 @@ koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

@@ -140,7 +140,7 @@
         </activity>
 
         <service
-            android:name=".NdefService"
+            android:name=".GetStartedNfcService"
             android:exported="true"
             android:permission="android.permission.BIND_NFC_SERVICE">
             <intent-filter>

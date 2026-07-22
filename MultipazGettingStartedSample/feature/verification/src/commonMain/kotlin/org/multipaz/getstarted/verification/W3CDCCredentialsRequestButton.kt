@@ -60,6 +60,7 @@ import org.multipaz.util.Logger
 import org.multipaz.verification.MdocApiDcResponse
 import org.multipaz.verification.OpenID4VPDcResponse
 import org.multipaz.verification.VerificationUtil
+import org.multipaz.verification.VerifierIdentity
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -298,9 +299,8 @@ private suspend fun doDcRequestFlow(
         claims = claims,
         nonce = nonce,
         origin = origin,
-        clientId = clientId,
         responseEncryptionKey = responseEncryptionKey.publicKey,
-        readerAuthenticationKey = appReaderKey,
+        verifierIdentities = emptyList(),
         zkSystemSpecs = emptyList()
     )
 

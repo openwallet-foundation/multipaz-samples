@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,9 +94,19 @@ fun PresentmentHomeSection(
                 }
             },
             showTransacting = { reset ->
-                Text("Transacting")
-                Button(onClick = { reset() }) {
-                    Text("Cancel")
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "Sharing your credential…",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    OutlinedButton(onClick = { reset() }) {
+                        Text("Cancel")
+                    }
                 }
             },
             showQrCode = { uri, reset ->
@@ -108,10 +121,27 @@ fun PresentmentHomeSection(
                 if (error is CancellationException) {
                     reset()
                 } else {
-                    if (error != null) {
-                        Text("Something went wrong: $error")
-                    } else {
-                        Text("The data was shared")
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = if (error != null) "Something went wrong" else "Credential shared",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (error != null) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                        if (error != null) {
+                            Text(
+                                text = error.message ?: error.toString(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                     LaunchedEffect(Unit) {
                         delay(1.5.seconds)
