@@ -420,7 +420,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 4G3ATA5MLV;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -461,7 +460,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 4G3ATA5MLV;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -499,7 +497,6 @@
 				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 4G3ATA5MLV;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -520,7 +517,7 @@
 					"$(inherited)",
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.samples.wallet.cmp.UtopiaSample.DocumentProviderExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}.DocumentProviderExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -537,7 +534,6 @@
 				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 4G3ATA5MLV;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -558,7 +554,7 @@
 					"$(inherited)",
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.samples.wallet.cmp.UtopiaSample.DocumentProviderExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}.DocumentProviderExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;

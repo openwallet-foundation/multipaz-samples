@@ -195,3 +195,6 @@ fabric.properties
 *.xcuserstate
 xcuserdata/
 *.xcuserdatad
+
+# Local iOS signing settings
+Holder/iosApp/Configuration/DeveloperConfig.xcconfig

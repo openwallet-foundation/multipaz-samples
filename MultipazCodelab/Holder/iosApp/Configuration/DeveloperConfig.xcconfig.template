@@ -1,0 +1,13 @@
+// Local Xcode signing settings. Copy this file to DeveloperConfig.xcconfig
+// and fill in values registered to your Apple Developer account.
+
+// Set this to the ID for your Xcode Development Team, without quotes.
+DEVELOPMENT_TEAM =
+
+// Set this to the app bundle identifier, without the extension suffix.
+// The extension target appends .DocumentProviderExtension automatically.
+LOCAL_BUNDLE_ID =
+
+// Set this to an App Group registered to your Apple Developer account.
+// The app and IdentityDocumentProviderExtension use this for shared storage.
+APP_GROUP_ID =
