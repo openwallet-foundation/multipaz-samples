@@ -1,0 +1,7 @@
+#include "DeveloperConfig.xcconfig"
+#include "../../Pods/Target Support Files/Pods-iosApp-IdentityDocumentProviderExtension/Pods-iosApp-IdentityDocumentProviderExtension.debug.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = $(LOCAL_BUNDLE_ID).DocumentProviderExtension
+PRODUCT_NAME = $(TARGET_NAME)
+CURRENT_PROJECT_VERSION = 1
+MARKETING_VERSION = 1.0
