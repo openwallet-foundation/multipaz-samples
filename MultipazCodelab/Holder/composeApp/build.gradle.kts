@@ -90,3 +90,14 @@ kotlin {
 compose.resources {
     publicResClass = true
 }
+
+val generateDummyFrameworkTasks = tasks.matching { it.name == "generateDummyFramework" }
+
+tasks.matching { it.name == "prepareComposeResourcesTaskForCommonMain" }.configureEach {
+    mustRunAfter(generateDummyFrameworkTasks)
+}
+
+tasks.matching { it.name == "embedAndSignAppleFrameworkForXcode" }.configureEach {
+    dependsOn(generateDummyFrameworkTasks)
+    dependsOn(tasks.named("prepareComposeResourcesTaskForCommonMain"))
+}
