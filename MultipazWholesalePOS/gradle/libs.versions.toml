@@ -10,7 +10,7 @@ composeMultiplatform = "1.11.1"
 junit = "4.13.2"
 kotlin = "2.4.10"
 material3 = "1.11.0-alpha07"
-multipaz = "0.101.0-SNAPSHOT"
+multipaz = "0.101.0"
 ktor = "3.3.3"
 
 ksp = "2.3.11"
