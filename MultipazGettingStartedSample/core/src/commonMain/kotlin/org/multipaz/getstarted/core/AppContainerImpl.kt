@@ -24,6 +24,8 @@ import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.mdoc.util.MdocUtil
+import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.mdoc.zkp.longfellow.LongfellowZkSystem
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.presentment.SimplePresentmentSource
 import org.multipaz.request.TrustedRequesterIdentity
@@ -51,6 +53,8 @@ class AppContainerImpl : AppContainer {
     override lateinit var documentStore: DocumentStore
 
     override lateinit var presentmentSource: PresentmentSource
+
+    override lateinit var zkSystemRepository: ZkSystemRepository
 
     override lateinit var readerTrustManager: TrustManager
 
@@ -101,27 +105,54 @@ class AppContainerImpl : AppContainer {
 
         // Creation of an mDoc
         if (documentStore.listDocuments().isEmpty()) {
-            val document = documentStore.createDocument(
+            val createKeySettings = CreateKeySettings(
+                algorithm = Algorithm.ESP256,
+                nonce = "Challenge".encodeToByteString(),
+                userAuthenticationRequired = true
+            )
+            val dsKeyCertified = AsymmetricKey.X509CertifiedExplicit(
+                certChain = X509CertChain(certificates = listOf(dsCert)),
+                privateKey = dsKey,
+            )
+
+            val mdlDocument = documentStore.createDocument(
                 displayName = CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME,
                 typeDisplayName = CredentialDomains.SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME,
             )
             DrivingLicense.getDocumentType().createMdocCredentialWithSampleData(
-                document = document,
+                document = mdlDocument,
                 secureArea = secureArea,
-                createKeySettings = CreateKeySettings(
-                    algorithm = Algorithm.ESP256,
-                    nonce = "Challenge".encodeToByteString(),
-                    userAuthenticationRequired = true
-                ),
-                dsKey = AsymmetricKey.X509CertifiedExplicit(
-                    certChain = X509CertChain(certificates = listOf(dsCert)),
-                    privateKey = dsKey,
-                ),
+                createKeySettings = createKeySettings,
+                dsKey = dsKeyCertified,
                 signedAt = signedAt,
                 validFrom = validFrom,
                 validUntil = validUntil,
-                domain = CredentialDomains.MDOC_USER_AUTH
+                domain = CredentialDomains.MDOC_USER_AUTH,
             )
+
+            val zkpDocument = documentStore.createDocument(
+                displayName = CredentialDomains.SAMPLE_DOCUMENT_DISPLAY_NAME,
+                typeDisplayName = CredentialDomains.ZKP_DOCUMENT_TYPE_DISPLAY_NAME,
+            )
+            DrivingLicense.getDocumentType().createMdocCredentialWithSampleData(
+                document = zkpDocument,
+                secureArea = secureArea,
+                createKeySettings = createKeySettings,
+                dsKey = dsKeyCertified,
+                signedAt = signedAt,
+                validFrom = validFrom,
+                validUntil = validUntil,
+                domain = CredentialDomains.MDOC_USER_AUTH,
+            ) { namespaceName, dataElement ->
+                setOf(
+                    "age_over_18",
+                    "age_over_21",
+                    "portrait",
+                    "given_name",
+                    "family_name",
+                    "birth_date",
+                ).contains(dataElement.attribute.identifier)
+            }
         }
 
         // Initialize TrustManager
@@ -187,9 +218,17 @@ class AppContainerImpl : AppContainer {
             // Already seeded; ignore duplicate during subsequent launches.
         }
 
+        // Register the Longfellow ZK system so the wallet can answer reader requests with a
+        // zero-knowledge proof instead of disclosing the raw mdoc. addDefaultCircuits() loads the
+        // proving circuits bundled in multipaz-longfellow.
+        zkSystemRepository = ZkSystemRepository().apply {
+            add(LongfellowZkSystem().apply { addDefaultCircuits() })
+        }
+
         presentmentSource = SimplePresentmentSource(
             documentStore = documentStore,
             documentTypeRepository = documentTypeRepository,
+            zkSystemRepository = zkSystemRepository,
             resolveTrustFn = { requester ->
                 requester.requesterIdentities.forEach { requesterIdentity ->
                     requesterIdentity.certChain.let { certChain ->
@@ -205,10 +244,19 @@ class AppContainerImpl : AppContainer {
                 null
             },
             preferSignatureToKeyAgreement = true,
-            domainsMdocSignature = listOf(CredentialDomains.MDOC_USER_AUTH, CredentialDomains.MDOC_SOFTWARE),
+            domainsMdocSignature = listOf(
+                CredentialDomains.MDOC_USER_AUTH,
+                CredentialDomains.MDOC_SOFTWARE
+            ),
             domainsMdocKeyAgreement = listOf(CredentialDomains.MDOC_MAC_USER_AUTH),
-            domainsKeylessSdJwt = listOf(CredentialDomains.SDJWT_KEYLESS, CredentialDomains.SDJWT_SOFTWARE),
-            domainsKeyBoundSdJwt = listOf(CredentialDomains.SDJWT_USER_AUTH, CredentialDomains.SDJWT_SOFTWARE),
+            domainsKeylessSdJwt = listOf(
+                CredentialDomains.SDJWT_KEYLESS,
+                CredentialDomains.SDJWT_SOFTWARE
+            ),
+            domainsKeyBoundSdJwt = listOf(
+                CredentialDomains.SDJWT_USER_AUTH,
+                CredentialDomains.SDJWT_SOFTWARE
+            ),
         )
 
         val digitalCredentials = DigitalCredentials.getDefault()

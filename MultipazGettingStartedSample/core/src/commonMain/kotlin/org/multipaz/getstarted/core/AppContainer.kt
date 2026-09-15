@@ -3,6 +3,7 @@ package org.multipaz.getstarted.core
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.securearea.SecureArea
@@ -22,6 +23,8 @@ interface AppContainer {
     val documentStore: DocumentStore
 
     val presentmentSource: PresentmentSource
+
+    val zkSystemRepository: ZkSystemRepository
 
     val readerTrustManager: TrustManager
 

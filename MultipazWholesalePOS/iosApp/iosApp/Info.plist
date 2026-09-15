@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>The terminal uses Bluetooth to read membership cards from nearby devices.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The terminal uses the camera to scan the QR code from the customer's wallet.</string>
+	<key>NFCReaderUsageDescription</key>
+	<string>The terminal reads membership cards tapped to the device over NFC.</string>
+</dict>
+</plist>

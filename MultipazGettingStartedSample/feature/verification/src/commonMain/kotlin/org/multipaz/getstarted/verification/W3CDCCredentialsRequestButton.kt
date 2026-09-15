@@ -4,6 +4,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -23,6 +24,7 @@ import org.multipaz.asn1.ASN1Integer
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
 import org.multipaz.compose.rememberUiBoundCoroutineScope
+import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcPrivateKey
@@ -50,13 +52,16 @@ import org.multipaz.getstarted.verification.W3CDCConstants.Companion.STORAGE_KEY
 import org.multipaz.getstarted.verification.W3CDCConstants.Companion.STORAGE_KEY_READER_ROOT_CERT
 import org.multipaz.getstarted.verification.W3CDCConstants.Companion.STORAGE_KEY_READER_ROOT_PRIVATE_KEY
 import org.multipaz.mdoc.util.MdocUtil
+import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.storage.StorageTable
 import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
+import org.multipaz.trustmanagement.TrustEntryX509Cert
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.util.Logger
+import org.multipaz.util.toBase64Url
 import org.multipaz.verification.MdocApiDcResponse
 import org.multipaz.verification.OpenID4VPDcResponse
 import org.multipaz.verification.VerificationUtil
@@ -68,20 +73,18 @@ import kotlin.time.Instant
 
 const val TAG = "W3CDCCredentialsRequestButton"
 
+private const val ZKP_REQUEST_ID = "age_over_18_zkp"
+
 @OptIn(ExperimentalTime::class)
 @Composable
 fun W3CDCCredentialsRequestButton(
+    modifier: Modifier = Modifier,
     storageTable: StorageTable,
     promptModel: PromptModel,
     readerTrustManager: TrustManager,
-    text: AnnotatedString = buildAnnotatedString {
-        withStyle(style = SpanStyle(fontSize = 14.sp)) {
-            append("W3CDC Credentials Request")
-        }
-        withStyle(style = SpanStyle(fontSize = 12.sp)) {
-            append("\nmDL Driving License")
-        }
-    },
+    zkSystemRepository: ZkSystemRepository,
+    useZkp: Boolean = false,
+    text: AnnotatedString,
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -93,18 +96,19 @@ fun W3CDCCredentialsRequestButton(
 ) {
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
 
-    val requestOptions = remember {
-        val documentType = DrivingLicense.getDocumentType()
-        documentType.cannedRequests.map { sampleRequest ->
-            RequestEntry(
-                displayName = "${documentType.displayName}: ${sampleRequest.displayName}",
-                documentType = documentType,
-                sampleRequest = sampleRequest
-            )
+    val selectedRequest = remember(useZkp) {
+        val documentType =
+            DrivingLicense.getDocumentType()
+        if (useZkp) {
+            documentType.cannedRequests.first { it.id == ZKP_REQUEST_ID }
+        } else {
+            documentType.cannedRequests.first()
         }
     }
 
-    Button(onClick = {
+    Button(
+        modifier = modifier,
+        onClick = {
         coroutineScope.launch {
             val certsValidFrom = LocalDate.parse(CERT_VALID_FROM_DATE).atStartOfDayIn(TimeZone.UTC)
             val certsValidUntil =
@@ -138,7 +142,10 @@ fun W3CDCCredentialsRequestButton(
             try {
                 doDcRequestFlow(
                     appReaderKey = readerKey,
-                    request = requestOptions.first().sampleRequest as SingleDocumentCannedRequest,
+                    request = selectedRequest,
+                    zkSystemRepository = zkSystemRepository,
+                    readerTrustManager = readerTrustManager,
+                    useZkp = useZkp,
                     showResponse = showResponse
                 )
             } catch (error: Throwable) {
@@ -258,8 +265,11 @@ private suspend fun loadBundledReaderRootKey(): EcPrivateKey {
 
 @OptIn(ExperimentalTime::class)
 private suspend fun doDcRequestFlow(
-    appReaderKey: AsymmetricKey.X509Compatible,
+    appReaderKey: AsymmetricKey.X509Certified,
     request: SingleDocumentCannedRequest,
+    zkSystemRepository: ZkSystemRepository,
+    readerTrustManager: TrustManager,
+    useZkp: Boolean,
     showResponse: (
         vpToken: JsonObject?,
         deviceResponse: DataItem?,
@@ -274,7 +284,10 @@ private suspend fun doDcRequestFlow(
     val nonce = ByteString(Random.Default.nextBytes(NONCE_SIZE_BYTES))
     val responseEncryptionKey = Crypto.createEcPrivateKey(RESPONSE_ENCRYPTION_CURVE)
     val origin = getAppToAppOrigin()
-    val clientId = "web-origin:$origin"
+
+    val readerCert = appReaderKey.certChain.certificates.first()
+    val clientId = "x509_hash:" +
+        Crypto.digest(Algorithm.SHA256, readerCert.encoded.toByteArray()).toBase64Url()
 
     val protocolDisplayName = "OpenID4VP 1.0"
     val exchangeProtocolNames = listOf("openid4vp-v1-signed")
@@ -300,8 +313,8 @@ private suspend fun doDcRequestFlow(
         nonce = nonce,
         origin = origin,
         responseEncryptionKey = responseEncryptionKey.publicKey,
-        verifierIdentities = emptyList(),
-        zkSystemSpecs = emptyList()
+        verifierIdentities = listOf(VerifierIdentity(appReaderKey, clientId)),
+        zkSystemSpecs = if (useZkp) zkSystemRepository.getAllZkSystemSpecs() else emptyList()
     )
 
     Logger.i(TAG, "clientId: $clientId")

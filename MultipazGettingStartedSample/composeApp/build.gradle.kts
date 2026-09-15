@@ -143,3 +143,7 @@ tasks.register("generateDummyFramework") {
     group = "cocoapods"
     dependsOn("prepareCocoaPodsFramework")
 }
+
+tasks.named("embedAndSignAppleFrameworkForXcode") {
+    dependsOn(tasks.named("prepareComposeResourcesTaskForCommonMain"))
+}

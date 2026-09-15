@@ -21,4 +21,5 @@ object CredentialDomains {
 
     const val SAMPLE_DOCUMENT_DISPLAY_NAME = "Erika's Driving License"
     const val SAMPLE_DOCUMENT_TYPE_DISPLAY_NAME = "Utopia Driving License"
+    const val ZKP_DOCUMENT_TYPE_DISPLAY_NAME = "Utopia Driving License (ZK Compatible)"
 }

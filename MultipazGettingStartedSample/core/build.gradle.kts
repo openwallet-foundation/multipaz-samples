@@ -35,6 +35,7 @@ kotlin {
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
             implementation(libs.multipaz.dcapi)
+            implementation(libs.multipaz.longfellow)
             implementation(libs.multipaz.vision)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.cio)

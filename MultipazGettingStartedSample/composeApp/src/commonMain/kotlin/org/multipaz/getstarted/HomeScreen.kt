@@ -244,16 +244,11 @@ private fun PresentmentSection(
 
             // W3C Digital Credentials API is only available on Android
             if (isAndroid() && documents.isNotEmpty()) {
-                W3CDCCredentialsRequestButton(
-                    promptModel = AppContainer.promptModel,
-                    storageTable = container.storageTable,
-                    readerTrustManager = container.readerTrustManager,
-                    showResponse = { vpToken: JsonObject?,
-                                     deviceResponse: DataItem?,
-                                     sessionTranscript: DataItem,
-                                     nonce: ByteString?,
-                                     eReaderKey: EcPrivateKey?,
-                                     metadata: ShowResponseMetadata ->
+
+                val showResponse: (
+                    JsonObject?, DataItem?, DataItem, ByteString?, EcPrivateKey?, ShowResponseMetadata
+                ) -> Unit =
+                    { vpToken, deviceResponse, sessionTranscript, nonce, eReaderKey, metadata ->
                         navController.navigate(
                             buildShowResponseDestination(
                                 vpToken = vpToken,
@@ -265,7 +260,47 @@ private fun PresentmentSection(
                             )
                         )
                     }
-                )
+
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    W3CDCCredentialsRequestButton(
+                        modifier = Modifier.weight(1f),
+                        promptModel = AppContainer.promptModel,
+                        storageTable = container.storageTable,
+                        readerTrustManager = container.readerTrustManager,
+                        zkSystemRepository = container.zkSystemRepository,
+                        showResponse = showResponse,
+                        text = buildAnnotatedString {
+                            withStyle(style = SpanStyle(fontSize = 14.sp)) {
+                                append("W3CDC Request")
+                            }
+                            withStyle(style = SpanStyle(fontSize = 12.sp)) {
+                                append("\nmDL Driving License")
+                            }
+                        }
+                    )
+
+                    W3CDCCredentialsRequestButton(
+                        modifier = Modifier.weight(1f),
+                        promptModel = AppContainer.promptModel,
+                        storageTable = container.storageTable,
+                        readerTrustManager = container.readerTrustManager,
+                        zkSystemRepository = container.zkSystemRepository,
+                        useZkp = true,
+                        text = buildAnnotatedString {
+                            withStyle(style = SpanStyle(fontSize = 14.sp)) {
+                                append("W3CDC Request (ZKP)")
+                            }
+                            withStyle(style = SpanStyle(fontSize = 12.sp)) {
+                                append("\nAge over 18")
+                            }
+                        },
+                        showResponse = showResponse
+                    )
+                }
             }
         }
     }
