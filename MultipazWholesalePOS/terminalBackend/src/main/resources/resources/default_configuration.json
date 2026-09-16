@@ -1,0 +1,32 @@
+{
+  "server_port": 8110,
+  "database_engine": "ephemeral",
+  "admin_password": "multipaz",
+  "records_server_url": "http://localhost:8004",
+  "client_requirements": {
+    "android": {
+      "gms_attestation": false,
+      "verified_boot_green": false,
+      "keystore_security_level": "software",
+      "app_signature_certificate_digests": [
+        "66:BA:A1:9A:34:33:AD:09:08:7B:4B:87:67:15:C3:08:B0:E8:C7:3B:CD:08:22:28:9C:F2:4F:49:F8:A6:5B:EE"
+      ],
+      "app_packages": [
+        "org.multipaz.pos"
+      ]
+    }
+  },
+  "server_identities": {
+    "payment_processor": {
+      "kty": "EC",
+      "crv": "P-256",
+      "d": "R6MkkhCseMinfz0CeCEwv3Vwrd1b26lDs_vXEp94o4U",
+      "x": "35D08oNu2jF--ifRjo19hq2YFc9yBkP7NznLqagJpvg",
+      "y": "JKioEUvZMh4FUHtFXTjvI1R5FanKXy4dGmnhCNtBf4w",
+      "x5c": [
+        "MIICRjCCAeugAwIBAgIRAMprm6Qm/En0AVULElwbOAkwCgYIKoZIzj0EAwIwQzELMAkGA1UEBgwCVVMxNDAyBgNVBAMMK1V0b3BpYSBXaG9sZXNhbGUgUE9TIFBheW1lbnQgUHJvY2Vzc29yIFJvb3QwHhcNMjYwODI1MTE1MTAyWhcNMzYwODI1MTE1MTAyWjA4MQswCQYDVQQGDAJVUzEpMCcGA1UEAwwgVXRvcGlhIFdob2xlc2FsZSBQT1MgVGVybWluYWwgMDEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATfkPTyg27aMX76J9GOjX2GrZgVz3IGQ/s3OcupqAmm+CSoqBFL2TIeBVB7RV047yNUeRWpyl8uHRpp4QjbQX+Mo4HKMIHHMB8GA1UdIwQYMBaAFDdMACOK5ilwaubo7HZbSyHC5Yj+MA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUBAf8ECzAJBgcogYxdBQECMCAGA1UdEgQZMBeGFWh0dHA6Ly9sb2NhbGhvc3Q6ODAwNDA8BgNVHR8ENTAzMDGgL6AthitodHRwOi8vbG9jYWxob3N0OjgwMDQvY3JsL3BheW1lbnRfcHJvY2Vzc29yMB0GA1UdDgQWBBQKxoMmcTwdKezeMRJ98SNDduBHmzAKBggqhkjOPQQDAgNJADBGAiEAyfjUgkN01wYowtNL5na9r50gBTtma6dcjZzhfd1A1tUCIQDHX/VJDhva9zkxCWPYhkuNEjdIPZQPmJzRtEgmiX1EmA==",
+        "MIICTDCCAfKgAwIBAgIQYyUBB3RwBoVrKgA3k2j80zAKBggqhkjOPQQDAjBDMQswCQYDVQQGDAJVUzE0MDIGA1UEAwwrVXRvcGlhIFdob2xlc2FsZSBQT1MgUGF5bWVudCBQcm9jZXNzb3IgUm9vdDAeFw0yNjA4MjUxMTUwNDZaFw0zNjA4MjUxMTUwNDZaMEMxCzAJBgNVBAYMAlVTMTQwMgYDVQQDDCtVdG9waWEgV2hvbGVzYWxlIFBPUyBQYXltZW50IFByb2Nlc3NvciBSb290MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvcWEUrHYOzfTHjTJIEw7zhBDZLGmrOR9Eqy6kBdwBX2LY4oCZwOAYEwZz04IgbbY2VVCv30xYjed0/5iUGHtaOBxzCBxDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIBADAgBgNVHRIEGTAXhhVodHRwOi8vbG9jYWxob3N0OjgwMDQwPAYDVR0fBDUwMzAxoC+gLYYraHR0cDovL2xvY2FsaG9zdDo4MDA0L2NybC9wYXltZW50X3Byb2Nlc3NvcjAdBgNVHQ4EFgQUN0wAI4rmKXBq5ujsdltLIcLliP4wHwYDVR0jBBgwFoAUN0wAI4rmKXBq5ujsdltLIcLliP4wCgYIKoZIzj0EAwIDSAAwRQIgCv69wBSYmNX0LRhJEPe0tGv3hok9kyX2mUEK66Pft0oCIQC2o2CnhcfXWZ5KJTzKDjLejUfG2HFVBdysNP0RsQ6BiQ=="
+      ]
+    }
+  }
+}

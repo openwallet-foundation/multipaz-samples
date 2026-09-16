@@ -36,6 +36,7 @@ kotlin {
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
             implementation(libs.multipaz.dcapi)
+            implementation(libs.multipaz.longfellow)
             implementation(libs.coil.compose)
             implementation(libs.kotlinx.serialization.json)
         }

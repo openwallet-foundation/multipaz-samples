@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+<<<<<<<< HEAD:MultipazCodelab/Reader/composeApp/src/androidMain/res/mipmap-anydpi-v26/ic_launcher.xml
+    <background android:drawable="@mipmap/ic_launcher_background"/>
+    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+</adaptive-icon>
+========
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
+>>>>>>>> main:MultipazWholesalePOS/androidApp/src/main/res/mipmap-anydpi-v26/ic_launcher.xml

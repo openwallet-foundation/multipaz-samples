@@ -43,6 +43,7 @@ import org.multipaz.cbor.DataItem
 import org.multipaz.compose.decodeImage
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.verification.MdocVerifiedPresentation
@@ -56,6 +57,7 @@ import kotlin.time.Instant
 fun ShowResponseScreen(
     response: ShowResponseDestination,
     documentTypeRepository: DocumentTypeRepository?,
+    zkSystemRepository: ZkSystemRepository?,
     goBack: () -> Unit
 ) {
     val vpToken = response.vpResponse?.let { vpResponse ->
@@ -85,6 +87,7 @@ fun ShowResponseScreen(
                 sessionTranscript = sessionTranscript,
                 nonce = response.nonce,
                 documentTypeRepository = documentTypeRepository,
+                zkSystemRepository = zkSystemRepository,
             )
         } catch (e: Throwable) {
             Logger.e(TAG, "Error parsing response", e)
@@ -248,7 +251,8 @@ private suspend fun parseResponse(
     vpToken: JsonObject?,
     sessionTranscript: DataItem,
     nonce: String?,
-    documentTypeRepository: DocumentTypeRepository?
+    documentTypeRepository: DocumentTypeRepository?,
+    zkSystemRepository: ZkSystemRepository?
 ): VerificationResult {
     val documentValues: MutableList<DocumentValue> = mutableListOf()
 
@@ -259,7 +263,7 @@ private suspend fun parseResponse(
             sessionTranscript = sessionTranscript,
             nonce = nonce!!,
             documentTypeRepository = documentTypeRepository,
-            zkSystemRepository = null,
+            zkSystemRepository = zkSystemRepository,
             queryData = emptyMap()
         )
     } else {

@@ -35,11 +35,6 @@ class DigitalCredentialsRegistrationManager(
 
             try {
                 // TODO: Register DC API with documents from document store
-                digitalCredentials.register(
-                    documentStore = documentStore,
-                    documentTypeRepository = documentTypeRepository,
-                    selectedProtocols = settingsModel.dcApiProtocols.value,
-                )
                 Logger.i(
                     TAG,
                     "Digital credentials registration refreshed ($reason)",

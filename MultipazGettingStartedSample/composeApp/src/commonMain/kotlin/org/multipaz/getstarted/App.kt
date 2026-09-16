@@ -187,6 +187,7 @@ class App {
                         ShowResponseScreen(
                             response = response,
                             documentTypeRepository = container.documentTypeRepository,
+                            zkSystemRepository = container.zkSystemRepository,
                             goBack = {
                                 navController.popBackStack()
                             }
