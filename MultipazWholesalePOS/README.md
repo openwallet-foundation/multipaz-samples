@@ -134,7 +134,7 @@ cd /path/to/multipaz-utopia
 ./gradlew run
 ```
 
-- SoR link in this case directly (matches the backend's committed default of `http://localhost:8004`)
+- Override the backend's committed Utopia Registry default when running a local direct Registry.
 
 **Docker Utopia stack:**
 
@@ -160,6 +160,10 @@ itself:
 
 No arguments needed for the direct-Registry path — everything (including `pp-leaf`) is in its baked
 `default_configuration.json`. It listens on **:8110**.
+
+The Android app defaults to its public terminal URL,
+`https://utopia.multipaz.org/pos-terminal/rpc`. For local `adb reverse`
+development, temporarily switch `DEFAULT_TERMINAL_URL` to `http://localhost:8110/rpc`.
 
 ### Step 3 — build, install, and bridge the port
 
@@ -196,7 +200,7 @@ Open the Registry front-end and drill into the merchant identity ("Utopia Wholes
   "server_port": 8110,
   "database_engine": "ephemeral",                       // no db file; re-registers clients each run
   "admin_password": "multipaz",
-  "records_server_url": "http://localhost:8004",        // the SoR; override via -param for Docker
+  "records_server_url": "https://utopia.multipaz.org/registry", // deployed Utopia SoR; override locally
   "client_requirements": {                              // GATE 1 — who may call this backend
     "android": {
       "gms_attestation": false,                         // no Play Integrity (dev)
@@ -218,9 +222,9 @@ keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep S
 
 ### App (`shared/…/Constants.kt`)
 
-- `DEFAULT_TERMINAL_URL = http://localhost:8110/rpc` — the terminal backend (via `adb reverse`).
-  A commented-out `trycloudflare.com` URL is kept alongside it for tunnelling to a non-local
-  backend.
+- `DEFAULT_TERMINAL_URL = https://utopia.multipaz.org/pos-terminal/rpc` — the deployed terminal
+  backend. For local development via `adb reverse`, temporarily change it to
+  `http://localhost:8110/rpc`.
 - `DEFAULT_PAYEE_ACCOUNT = 20000001` — the merchant account sent in `createTransaction`.
 - `TERMINAL_PAYEE_NAME` / `TERMINAL_PAYEE_ID` / `TERMINAL_CURRENCY` — what goes into the
   device-signed `transaction_data` payee and currency.

@@ -1,8 +1,9 @@
 package org.multipaz.transit
 
 object Constants {
-    //    const val DEFAULT_TERMINAL_URL = "https://<name>.trycloudflare.com/rpc"
-    const val DEFAULT_TERMINAL_URL = "http://localhost:8011/rpc"
+    // For local development with `adb reverse tcp:8011 tcp:8011`, use:
+    // const val DEFAULT_TERMINAL_URL = "http://localhost:8011/rpc"
+    const val DEFAULT_TERMINAL_URL = "https://utopia.multipaz.org/transit-terminal/rpc"
 
     const val DEFAULT_PAYEE_ACCOUNT = "30000001"
 
