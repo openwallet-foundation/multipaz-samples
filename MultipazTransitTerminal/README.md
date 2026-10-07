@@ -1,8 +1,8 @@
 # Multipaz Transit Terminal
 
 A sample transit faregate built with [Multipaz](https://github.com/openwallet-foundation/multipaz).
-It reads a rider's Digital Payment Credential (DPC) over ISO 18013-5 proximity (NFC tap),
-records a journey, and settles the selected fare through a device-attested terminal backend.
+It reads a rider's Digital Payment Credential (DPC) over ISO 18013-5 proximity (NFC tap), records a
+journey, and settles the selected fare through a device-attested terminal backend.
 
 This is a development sample. It uses a fictional `Utopia Transit` operator, USD fares, local HTTP,
 and development attestation settings.
@@ -61,12 +61,13 @@ The primary configuration points are:
 ## Prerequisites
 
 - JDK 17.
-- Android Studio with an Android SDK, plus a physical NFC-capable Android device running API 29 or newer.
+- Android Studio with an Android SDK, plus a physical NFC-capable Android device running API 29 or
+  newer.
 - `adb` when using a physical Android device.
 - A compatible Multipaz Utopia records server and a holder wallet containing a DPC
   (`org.multipaz.payment.sca.1`). The records server must trust the DPC issuer, trust this
-  terminal's payment-processor root, and contain both payer and payee accounts. The committed
-  payee account is `30000001`.
+  terminal's payment-processor root, and contain both payer and payee accounts. The committed payee
+  account is `30000001`.
 
 For iOS development, use macOS and Xcode. NFC reader mode requires a signed device build with the
 appropriate Core NFC entitlement.
@@ -85,8 +86,9 @@ Start a Multipaz Utopia server that is compatible with the snapshot dependency d
 ./gradlew run
 ```
 
-The backend's default is `http://localhost:8004`. If the records server is elsewhere, pass its base
-URL when starting the backend. The backend adds `/rpc` itself:
+The backend's default is the deployed Utopia Registry at
+`https://utopia.multipaz.org/registry`. For a local Docker Utopia bundle, override it as below. The
+backend adds `/rpc` itself:
 
 ```bash
 ./gradlew :transitBackend:run --args="-param records_server_url=http://localhost:8100/registry"
@@ -101,18 +103,57 @@ URL when starting the backend. The backend adds `/rpc` itself:
 The default backend listens on port `8011`. Confirm it is available at
 `http://localhost:8011/`; it responds with `MultipazTransitTerminal backend is running`.
 
-### 3. Install the Android app and expose the backend
+### 3. Configure the Android terminal for the local backend
 
-```bash
-./gradlew :androidApp:installDebug
-adb reverse tcp:8011 tcp:8011
+The Android terminal talks to a local HTTP backend through `adb reverse`, and the backend accepts
+only an attestation made by the terminal app's package and signing certificate.
+
+In `shared/src/commonMain/kotlin/org/multipaz/transit/Constants.kt`, use the local endpoint (the
+example is already present as a comment):
+
+```kotlin
+const val DEFAULT_TERMINAL_URL = "http://localhost:8011/rpc"
 ```
 
-`Constants.kt` intentionally uses `http://localhost:8011/rpc`. `adb reverse` makes that address
-on a physical device reach the development machine. For a remote terminal backend, set the
-URL in `Constants.kt` to its reachable HTTPS endpoint.
+Comment out the deployed `https://utopia.multipaz.org/transit-terminal/rpc`
+value while running locally. The debug manifest already permits cleartext HTTP; do not enable this
+for a release build.
 
-### 4. Issue DPC & age credential
+#### Debug signing certificate is required
+
+The backend verifies Android Keystore attestation in
+`transitBackend/src/main/resources/resources/default_configuration.json`:
+
+- package: `org.multipaz.transit`
+- SHA-256 signing-certificate digest
+
+Check the debug keystore Gradle will use before installing the app:
+
+```bash
+keytool -list -v \
+  -keystore "$HOME/.android/debug.keystore" \
+  -alias androiddebugkey \
+  -storepass android \
+  -keypass android | grep SHA256
+```
+
+A debug keystore is local to a development machine, so you should replace your keystore's SHA value
+into
+`client_requirements.android.app_signature_certificate_digests` in the backend configuration.
+
+### 4. Install the Android app and expose the backend
+
+```bash
+adb reverse tcp:8011 tcp:8011
+./gradlew :androidApp:installDebug
+```
+
+`adb reverse` makes `localhost:8011` on a physical device reach the development machine. Use an
+NFC-capable physical device for a real wallet tap; an emulator can be useful for installation and
+backend-attestation checks but cannot replace that flow. For a remote terminal backend, set the URL
+in `Constants.kt` to its reachable HTTPS endpoint.
+
+### 5. Issue DPC & age credential
 
 - issue a DPC from the utopia universe bank
 - either generate (or issue) an age credential in the holder you are using. if you are using
@@ -120,13 +161,13 @@ URL in `Constants.kt` to its reachable HTTPS endpoint.
   use [this branch](https://github.com/VishnuSanal/multipaz-identity-credential/tree/age) and
   generate child and senior citizen credentials locally
 
-### 4. Run a journey
+### 6. Run a journey
 
 1. Open the app and permissions as needed.
 2. At **check-in**, present the rider wallet with NFC - this requests a DPC and an age credential.
 3. Choose an exit station and fare (or this gets automatically selected with a timeout)
-4. At **checkout**, present the same wallet again. A successful settlement shows a receipt; a
-   failed attestation, credential, or payment shows the decline reason.
+4. At **checkout**, present the same wallet again. A successful settlement shows a receipt; a failed
+   attestation, credential, or payment shows the decline reason.
 
 ## Build and test
 
@@ -136,8 +177,8 @@ URL in `Constants.kt` to its reachable HTTPS endpoint.
 ./gradlew :shared:testAndroidHostTest
 ```
 
-Open `iosApp/` in Xcode to build and run the iOS host app. Kotlin/Native iOS targets require a
-macOS build host.
+Open `iosApp/` in Xcode to build and run the iOS host app. Kotlin/Native iOS targets require a macOS
+build host.
 
 ## Development configuration and security
 

@@ -1,8 +1,9 @@
 package org.multipaz.pos
 
 object Constants {
-    //    const val DEFAULT_TERMINAL_URL = "https://<name>.trycloudflare.com/rpc"
-    const val DEFAULT_TERMINAL_URL = "http://localhost:8110/rpc"
+    // For local development with `adb reverse tcp:8110 tcp:8110`, use:
+    // const val DEFAULT_TERMINAL_URL = "http://localhost:8110/rpc"
+    const val DEFAULT_TERMINAL_URL = "https://utopia.multipaz.org/pos-terminal/rpc"
 
     const val DEFAULT_PAYEE_ACCOUNT = "20000001"
 

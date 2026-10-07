@@ -2,7 +2,7 @@
   "server_port": 8110,
   "database_engine": "ephemeral",
   "admin_password": "multipaz",
-  "records_server_url": "http://localhost:8004",
+  "records_server_url": "https://utopia.multipaz.org/registry",
   "client_requirements": {
     "android": {
       "gms_attestation": false,

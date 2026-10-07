@@ -6,6 +6,25 @@ plugins {
     alias(libs.plugins.ktor)
 }
 
+val dockerImage = providers.gradleProperty("dockerImage")
+    .orElse("multipaz-transit-terminal")
+val dockerImageTag = providers.gradleProperty("imageTag")
+    .orElse("dev")
+
+tasks.register<Exec>("buildDockerImageAmd64") {
+    group = "distribution"
+    description = "Builds the Transit terminal backend fat JAR and loads a linux/amd64 Docker image locally."
+    dependsOn("buildFatJar")
+    workingDir = projectDir
+    commandLine(
+        "docker", "build",
+        "--platform", "linux/amd64",
+        "--tag", "${dockerImage.get()}:${dockerImageTag.get()}",
+        ".",
+    )
+    outputs.upToDateWhen { false }
+}
+
 application {
     mainClass.set("org.multipaz.transit.backend.Main")
 }
