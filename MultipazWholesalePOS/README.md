@@ -214,11 +214,40 @@ Open the Registry front-end and drill into the merchant identity ("Utopia Wholes
 }
 ```
 
-Get your APK's signing digest (debug builds use `~/.android/debug.keystore`):
+### Android app signing
 
+Both terminal apps use one shared Android signing key for **debug and release** builds. Gradle reads
+the key and its configuration from the repository-level `keys/` directory:
+
+```text
+keys/keystore.jks
+keys/keystore.properties
 ```
-keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep SHA256
+
+`keystore.properties` contains the signing configuration:
+
+```properties
+storePassword=...
+keyAlias=...
+keyPassword=...
 ```
+
+The key files are ignored by Git and must not be committed. The POS backend is pinned to this
+certificate's SHA-256 digest in `client_requirements`:
+
+```text
+E3:41:87:7A:41:BD:70:23:81:3E:F2:60:A2:1F:81:0D:C8:BF:53:13:98:CB:16:17:5E:75:5B:97:8C:A6:A1:EF
+```
+
+Verify the local certificate from the repository root:
+
+```bash
+keytool -list -v -keystore keys/keystore.jks -alias "$(sed -n 's/^keyAlias=//p' keys/keystore.properties)" | grep SHA256
+```
+
+If the keystore or package name changes, update
+`client_requirements.android.app_signature_certificate_digests` and `app_packages` in the terminal
+backend configuration, otherwise app attestation will fail.
 
 ### App (`shared/…/Constants.kt`)
 
@@ -253,6 +282,30 @@ This sample runs at a **dev tier**. What's real vs. what a production terminal w
 What is *already* production-shaped: the app holds no key and is verified by attestation; the
 payment key is server-side; settlement is card-bound and authoritative on the SoR; the mdoc issuer +
 device signatures are verified.
+
+## CI release APKs
+
+GitHub Actions runs [Build terminal apps](../.github/workflows/build-terminal-apps.yml) manually or
+when changes are pushed to `main`. It builds only the signed release APK:
+
+```bash
+./gradlew :androidApp:assembleRelease
+```
+
+The workflow restores the shared signing files from two repository secrets:
+
+- `ANDROID_KEYSTORE_B64` — Base64-encoded `keys/keystore.jks`.
+- `ANDROID_KEYSTORE_PROPERTIES_B64` — Base64-encoded `keys/keystore.properties`.
+
+Create both secret values as single lines from the repository root:
+
+```bash
+base64 -w 0 keys/keystore.jks
+base64 -w 0 keys/keystore.properties
+```
+
+On macOS, use `base64 -i <file> | tr -d '\n'` instead. The workflow uploads the result as the
+`multipaz-wholesale-pos` artifact.
 
 ---
 
