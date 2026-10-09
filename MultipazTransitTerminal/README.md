@@ -119,27 +119,40 @@ Comment out the deployed `https://utopia.multipaz.org/transit-terminal/rpc`
 value while running locally. The debug manifest already permits cleartext HTTP; do not enable this
 for a release build.
 
-#### Debug signing certificate is required
+#### Shared app-signing certificate is required
 
 The backend verifies Android Keystore attestation in
 `transitBackend/src/main/resources/resources/default_configuration.json`:
 
 - package: `org.multipaz.transit`
-- SHA-256 signing-certificate digest
+- SHA-256 signing-certificate digest: `E3:41:87:7A:41:BD:70:23:81:3E:F2:60:A2:1F:81:0D:C8:BF:53:13:98:CB:16:17:5E:75:5B:97:8C:A6:A1:EF`
 
-Check the debug keystore Gradle will use before installing the app:
+Both terminal apps use the same keystore for **debug and release** builds. Gradle reads it from the
+repository-level `keys/` directory:
 
-```bash
-keytool -list -v \
-  -keystore "$HOME/.android/debug.keystore" \
-  -alias androiddebugkey \
-  -storepass android \
-  -keypass android | grep SHA256
+```text
+keys/keystore.jks
+keys/keystore.properties
 ```
 
-A debug keystore is local to a development machine, so you should replace your keystore's SHA value
-into
-`client_requirements.android.app_signature_certificate_digests` in the backend configuration.
+`keystore.properties` contains the keystore password, alias, and key password:
+
+```properties
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
+
+These files are ignored by Git and must never be committed. To verify the certificate that Gradle
+will use, run this from the repository root:
+
+```bash
+keytool -list -v -keystore keys/keystore.jks -alias "$(sed -n 's/^keyAlias=//p' keys/keystore.properties)" | grep SHA256
+```
+
+If you replace the keystore or use a different application ID, update
+`client_requirements.android.app_signature_certificate_digests` and `app_packages` in the backend
+configuration. A mismatch prevents the app from registering with the backend.
 
 ### 4. Install the Android app and expose the backend
 
@@ -180,22 +193,42 @@ in `Constants.kt` to its reachable HTTPS endpoint.
 Open `iosApp/` in Xcode to build and run the iOS host app. Kotlin/Native iOS targets require a macOS
 build host.
 
+## CI release APKs
+
+GitHub Actions runs [Build terminal apps](../.github/workflows/build-terminal-apps.yml) manually or
+when changes are pushed to `main`. It builds only signed release APKs:
+
+```bash
+./gradlew :androidApp:assembleRelease
+```
+
+The workflow restores the shared `keys/` files from these repository secrets:
+
+- `ANDROID_KEYSTORE_B64` — Base64-encoded `keys/keystore.jks`.
+- `ANDROID_KEYSTORE_PROPERTIES_B64` — Base64-encoded `keys/keystore.properties`.
+
+Create each value as a single line from the repository root:
+
+```bash
+base64 -w 0 keys/keystore.jks
+base64 -w 0 keys/keystore.properties
+```
+
+On macOS, use `base64 -i <file> | tr -d '\n'` instead. The workflow uploads the release APK as
+the `multipaz-transit-terminal` artifact.
+
 ## Development configuration and security
 
 `default_configuration.json` is deliberately suitable only for local development:
 
 - it listens on HTTP and accepts software-level Android keystore attestation;
-- the app package and debug signing-certificate digest are pinned in `client_requirements`;
+- the app package and shared signing-certificate digest are pinned in `client_requirements`;
 - the payment-processor private key is in the sample configuration; and
 - the debug Android manifest enables cleartext traffic.
 
 Before using this pattern beyond a demo, use TLS, hardware-backed / Play Integrity attestation as
 appropriate, production issuer and processor trust roots, and store the payment key in a secure
 server-side key-management system or HSM. Never ship a payment-processor private key in an app.
-
-If you sign the Android app with a different certificate or use a different application ID, update
-`client_requirements.android.app_signature_certificate_digests` and `app_packages` in the backend
-configuration. A mismatch prevents the app from registering with the backend.
 
 ## Troubleshooting
 

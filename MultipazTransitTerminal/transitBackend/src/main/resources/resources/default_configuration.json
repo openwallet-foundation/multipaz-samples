@@ -9,7 +9,7 @@
       "verified_boot_green": false,
       "keystore_security_level": "software",
       "app_signature_certificate_digests": [
-        "66:BA:A1:9A:34:33:AD:09:08:7B:4B:87:67:15:C3:08:B0:E8:C7:3B:CD:08:22:28:9C:F2:4F:49:F8:A6:5B:EE"
+        "E3:41:87:7A:41:BD:70:23:81:3E:F2:60:A2:1F:81:0D:C8:BF:53:13:98:CB:16:17:5E:75:5B:97:8C:A6:A1:EF"
       ],
       "app_packages": [
         "org.multipaz.transit"
