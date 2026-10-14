@@ -1,0 +1,169 @@
+name: Deploy terminal backends to production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - MultipazTransitTerminal/**
+      - MultipazWholesalePOS/**
+      - .github/workflows/deploy-terminal-backends.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT_ID: utopia-multipaz
+  GCP_ZONE: us-central1-c
+  GCP_INSTANCE: utopia-multipaz-server
+  GCP_WORKLOAD_IDENTITY_PROVIDER: projects/873069027544/locations/global/workloadIdentityPools/github/providers/github-actions
+  GCP_DEPLOY_SERVICE_ACCOUNT: utopia-github-deployer@utopia-multipaz.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    name: Build and deploy Transit and POS backends
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - name: Check out the deployment revision
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      # Gradle configures the Android modules while selecting either backend
+      # task, so their signing properties must exist even though this workflow
+      # builds only the backend Docker images.
+      - name: Restore signing keystore for Gradle configuration
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PROPERTIES_B64: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_B64" || { echo "Missing ANDROID_KEYSTORE_B64 secret."; exit 1; }
+          test -n "$KEYSTORE_PROPERTIES_B64" || { echo "Missing ANDROID_KEYSTORE_PROPERTIES_B64 secret."; exit 1; }
+          mkdir -p keys
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > keys/keystore.jks
+          printf '%s' "$KEYSTORE_PROPERTIES_B64" | base64 --decode > keys/keystore.properties
+          chmod 600 keys/keystore.jks keys/keystore.properties
+
+      - name: Build Linux AMD64 terminal images
+        run: |
+          set -euo pipefail
+          (
+            cd MultipazTransitTerminal
+            ./gradlew :transitBackend:buildDockerImageAmd64 -PimageTag="$IMAGE_TAG"
+          )
+          (
+            cd MultipazWholesalePOS
+            ./gradlew :terminalBackend:buildDockerImageAmd64 -PimageTag="$IMAGE_TAG"
+          )
+          docker image inspect "multipaz-transit-terminal:$IMAGE_TAG" >/dev/null
+          docker image inspect "multipaz-pos-terminal:$IMAGE_TAG" >/dev/null
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Make VM space and preserve terminal rollback images
+        run: |
+          set -euo pipefail
+          gcloud compute ssh "$GCP_INSTANCE" \
+            --project="$GCP_PROJECT_ID" \
+            --zone="$GCP_ZONE" \
+            --tunnel-through-iap \
+            --quiet \
+            --command='sudo bash -s' <<'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          stack_dir=/opt/multipaz/stack
+          env_file="$stack_dir/.env"
+          rollback_env="$stack_dir/.env.terminal.rollback"
+          cd "$stack_dir"
+          test -f "$env_file"
+          cp -p "$env_file" "$rollback_env"
+
+          old_transit="$(sed -n 's/^TRANSIT_TERMINAL_IMAGE=//p' "$rollback_env" | tail -n 1)"
+          old_pos="$(sed -n 's/^POS_TERMINAL_IMAGE=//p' "$rollback_env" | tail -n 1)"
+          test -n "$old_transit"
+          test -n "$old_pos"
+
+          docker image ls --format '{{.Repository}}:{{.Tag}}' \
+            | grep -E '^multipaz-(transit-terminal|pos-terminal):' \
+            | while IFS= read -r candidate; do
+                if [ "$candidate" != "$old_transit" ] && [ "$candidate" != "$old_pos" ]; then
+                  docker image rm "$candidate" || true
+                fi
+              done
+          docker image prune --force
+
+          available_kib="$(df -Pk / | awk 'NR == 2 {print $4}')"
+          if [ "$available_kib" -lt 1258291 ]; then
+            echo "Need at least 1.2 GiB free on / before loading terminal images; have ${available_kib} KiB" >&2
+            exit 1
+          fi
+          cp -a "$stack_dir" "${stack_dir}.bak-terminal-$(date -u +%Y%m%dT%H%M%SZ)"
+          df -h /
+          REMOTE_SCRIPT
+
+      - name: Stream terminal images to Docker through IAP
+        run: |
+          set -euo pipefail
+          docker save "multipaz-transit-terminal:$IMAGE_TAG" "multipaz-pos-terminal:$IMAGE_TAG" | \
+            gcloud compute ssh "$GCP_INSTANCE" \
+              --project="$GCP_PROJECT_ID" \
+              --zone="$GCP_ZONE" \
+              --tunnel-through-iap \
+              --quiet \
+              --command='sudo docker load'
+
+      - name: Activate terminal images and verify rollback path
+        run: |
+          set -euo pipefail
+          gcloud compute ssh "$GCP_INSTANCE" \
+            --project="$GCP_PROJECT_ID" \
+            --zone="$GCP_ZONE" \
+            --tunnel-through-iap \
+            --quiet \
+            --command="sudo bash -s -- '$IMAGE_TAG'" <<'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          image_tag="$1"
+          stack_dir=/opt/multipaz/stack
+          env_file="$stack_dir/.env"
+          rollback_env="$stack_dir/.env.terminal.rollback"
+          cd "$stack_dir"
+
+          sed -i -E \
+            "s|^TRANSIT_TERMINAL_IMAGE=.*|TRANSIT_TERMINAL_IMAGE=multipaz-transit-terminal:$image_tag|; s|^POS_TERMINAL_IMAGE=.*|POS_TERMINAL_IMAGE=multipaz-pos-terminal:$image_tag|" \
+            "$env_file"
+          if ! docker compose --project-directory "$stack_dir" up -d --force-recreate transit-terminal pos-terminal; then
+            cp -p "$rollback_env" "$env_file"
+            docker compose --project-directory "$stack_dir" up -d --force-recreate transit-terminal pos-terminal || true
+            exit 1
+          fi
+
+          docker compose --project-directory "$stack_dir" ps transit-terminal pos-terminal
+          grep -E '^(TRANSIT_TERMINAL_IMAGE|POS_TERMINAL_IMAGE)=' "$env_file"
+          df -h /
+          REMOTE_SCRIPT
+
+      - name: Verify public terminal routes
+        run: |
+          set -euo pipefail
+          for path in /health /transit-terminal/ /pos-terminal/; do
+            curl --fail --retry 12 --retry-all-errors --retry-delay 5 "https://utopia.multipaz.org$path" >/dev/null
+          done
