@@ -39,7 +39,8 @@ enum class JourneyStates {
 }
 
 /**
- * Persistent journey mapping keyed by a one-way digest of the payment instrument id.
+ * Persistent journey mapping keyed by a one-way digest of the payment instrument and app
+ * installation identifiers. This permits one active journey per credential per device.
  *
  * Each method is guarded by device attestation. Expected domain failures use
  * [InvalidRequestException], which Multipaz serializes back to the app
@@ -53,23 +54,24 @@ class TerminalJourneyService : BackendJourneyService, RpcAuthInspector by RpcAut
         BackendEnvironment.getInterface(Storage::class)!!
             .getTable(JourneyTableSpec)
 
-    /** Derives the storage key without persisting the raw payment instrument identifier. */
-    private fun parseReaderKey(paymentInstrumentId: String): String =
+    /** Derives the storage key without persisting raw credential or device identifiers. */
+    private fun parseReaderKey(paymentInstrumentId: String, deviceInstanceId: String): String =
         MessageDigest.getInstance("SHA-256")
-            .digest(paymentInstrumentId.encodeToByteArray())
+            .digest("$paymentInstrumentId:$deviceInstanceId".encodeToByteArray())
             .toBase64Url()
 
     override suspend fun checkIn(
         paymentInstrumentId: String,
+        deviceInstanceId: String,
         entryStation: String,
         fareClass: String,
     ): StoredJourney {
-        if (paymentInstrumentId.isBlank()) {
-            throw InvalidRequestException("Payment instrument id is required")
+        if (paymentInstrumentId.isBlank() || deviceInstanceId.isBlank()) {
+            throw InvalidRequestException("Payment instrument id and device instance id are required")
         }
 
         val journeys = storageTable()
-        val key = parseReaderKey(paymentInstrumentId)
+        val key = parseReaderKey(paymentInstrumentId, deviceInstanceId)
         val existingJourney = journeys.get(key)?.let { StoredJourney.fromCbor(it.toByteArray()) }
 
         if (existingJourney != null) {
@@ -122,10 +124,12 @@ class TerminalJourneyService : BackendJourneyService, RpcAuthInspector by RpcAut
 
     override suspend fun selectExit(
         paymentInstrumentId: String,
+        deviceInstanceId: String,
         exitStation: String,
         fareCents: Long,
     ): StoredJourney = updateJourney(
         paymentInstrumentId,
+        deviceInstanceId,
         JourneyStates.OPEN.name,
     ) { journey ->
         if (fareCents < 0) {
@@ -138,9 +142,10 @@ class TerminalJourneyService : BackendJourneyService, RpcAuthInspector by RpcAut
         )
     }
 
-    override suspend fun beginCheckout(paymentInstrumentId: String): StoredJourney =
+    override suspend fun beginCheckout(paymentInstrumentId: String, deviceInstanceId: String): StoredJourney =
         updateJourney(
             paymentInstrumentId,
+            deviceInstanceId,
             JourneyStates.READY_FOR_CHECKOUT.name
         ) { journey ->
             journey.copy(
@@ -148,9 +153,10 @@ class TerminalJourneyService : BackendJourneyService, RpcAuthInspector by RpcAut
             )
         }
 
-    override suspend fun settle(paymentInstrumentId: String): StoredJourney =
+    override suspend fun settle(paymentInstrumentId: String, deviceInstanceId: String): StoredJourney =
         updateJourney(
             paymentInstrumentId,
+            deviceInstanceId,
             JourneyStates.PAYMENT_PENDING.name,
             SETTLED_JOURNEY_LIFETIME
         ) { journey ->
@@ -163,11 +169,15 @@ class TerminalJourneyService : BackendJourneyService, RpcAuthInspector by RpcAut
      */
     private suspend fun updateJourney(
         paymentInstrumentId: String,
+        deviceInstanceId: String,
         expectedState: String,
         expiration: kotlin.time.Duration = OPEN_JOURNEY_LIFETIME,
         transform: (StoredJourney) -> StoredJourney,
     ): StoredJourney {
-        val key = parseReaderKey(paymentInstrumentId)
+        if (paymentInstrumentId.isBlank() || deviceInstanceId.isBlank()) {
+            throw InvalidRequestException("Payment instrument id and device instance id are required")
+        }
+        val key = parseReaderKey(paymentInstrumentId, deviceInstanceId)
         val journeys = storageTable()
         val current = journeys.get(key)?.let { StoredJourney.fromCbor(it.toByteArray()) }
             ?: throw InvalidRequestException("No active journey for this payment instrument")

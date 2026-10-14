@@ -25,27 +25,29 @@ data class StoredJourney(
 /** Backend-local counterpart of the shared journey RPC contract. */
 @RpcInterface
 interface BackendJourneyService {
-    /** Creates an open journey or returns an existing resumable journey for the presentation. */
+    /** Creates an open journey or returns one for this app installation and presentation. */
     @RpcMethod(endpoint = "checkIn")
     suspend fun checkIn(
         paymentInstrumentId: String,
+        deviceInstanceId: String,
         entryStation: String,
-        fareClass: String
+        fareClass: String,
     ): StoredJourney
 
     /** Stores the selected destination and calculated fare. */
     @RpcMethod(endpoint = "selectExit")
     suspend fun selectExit(
         paymentInstrumentId: String,
+        deviceInstanceId: String,
         exitStation: String,
-        fareCents: Long
+        fareCents: Long,
     ): StoredJourney
 
     /** Records that exit payment processing has started. */
     @RpcMethod(endpoint = "beginCheckout")
-    suspend fun beginCheckout(paymentInstrumentId: String): StoredJourney
+    suspend fun beginCheckout(paymentInstrumentId: String, deviceInstanceId: String): StoredJourney
 
     /** Records that exit payment processing completed. */
     @RpcMethod(endpoint = "settle")
-    suspend fun settle(paymentInstrumentId: String): StoredJourney
+    suspend fun settle(paymentInstrumentId: String, deviceInstanceId: String): StoredJourney
 }

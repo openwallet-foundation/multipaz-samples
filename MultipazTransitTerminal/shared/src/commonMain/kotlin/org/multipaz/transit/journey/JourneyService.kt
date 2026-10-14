@@ -29,19 +29,29 @@ data class Journey(
 /** RPC contract used by the terminal application to persist and advance a journey. */
 @RpcInterface
 interface JourneyService {
-    /** Creates an `OPEN` journey or returns an existing resumable journey for the instrument. */
+    /** Creates an `OPEN` journey or returns one for this app installation and instrument. */
     @RpcMethod(endpoint = "checkIn")
-    suspend fun checkIn(paymentInstrumentId: String, entryStation: String, fareClass: String): Journey
+    suspend fun checkIn(
+        paymentInstrumentId: String,
+        deviceInstanceId: String,
+        entryStation: String,
+        fareClass: String,
+    ): Journey
 
     /** Stores the selected exit station and fare, then advances the journey to checkout-ready. */
     @RpcMethod(endpoint = "selectExit")
-    suspend fun selectExit(paymentInstrumentId: String, exitStation: String, fareCents: Long): Journey
+    suspend fun selectExit(
+        paymentInstrumentId: String,
+        deviceInstanceId: String,
+        exitStation: String,
+        fareCents: Long,
+    ): Journey
 
     /** Marks a checkout-ready journey as `PAYMENT_PENDING`. */
     @RpcMethod(endpoint = "beginCheckout")
-    suspend fun beginCheckout(paymentInstrumentId: String): Journey
+    suspend fun beginCheckout(paymentInstrumentId: String, deviceInstanceId: String): Journey
 
     /** Marks a payment-pending journey as `SETTLED`. */
     @RpcMethod(endpoint = "settle")
-    suspend fun settle(paymentInstrumentId: String): Journey
+    suspend fun settle(paymentInstrumentId: String, deviceInstanceId: String): Journey
 }
