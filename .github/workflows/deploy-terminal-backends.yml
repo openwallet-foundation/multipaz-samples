@@ -19,6 +19,7 @@ env:
   GCP_INSTANCE: utopia-multipaz-server
   GCP_WORKLOAD_IDENTITY_PROVIDER: projects/873069027544/locations/global/workloadIdentityPools/github/providers/github-actions
   GCP_DEPLOY_SERVICE_ACCOUNT: utopia-github-deployer@utopia-multipaz.iam.gserviceaccount.com
+  ARTIFACT_REGISTRY_REPOSITORY: us-central1-docker.pkg.dev/utopia-multipaz/multipaz-images
 
 jobs:
   deploy:
@@ -69,6 +70,17 @@ jobs:
           docker image inspect "multipaz-transit-terminal:$IMAGE_TAG" >/dev/null
           docker image inspect "multipaz-pos-terminal:$IMAGE_TAG" >/dev/null
 
+      - name: Tag images with immutable Artifact Registry names
+        id: images
+        run: |
+          set -euo pipefail
+          transit_image="${ARTIFACT_REGISTRY_REPOSITORY}/transit-terminal:${IMAGE_TAG}"
+          pos_image="${ARTIFACT_REGISTRY_REPOSITORY}/pos-terminal:${IMAGE_TAG}"
+          docker tag "multipaz-transit-terminal:$IMAGE_TAG" "$transit_image"
+          docker tag "multipaz-pos-terminal:$IMAGE_TAG" "$pos_image"
+          printf 'transit=%s\n' "$transit_image" >> "$GITHUB_OUTPUT"
+          printf 'pos=%s\n' "$pos_image" >> "$GITHUB_OUTPUT"
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -77,6 +89,16 @@ jobs:
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
+
+      - name: Push immutable images to Artifact Registry
+        env:
+          TRANSIT_IMAGE: ${{ steps.images.outputs.transit }}
+          POS_IMAGE: ${{ steps.images.outputs.pos }}
+        run: |
+          set -euo pipefail
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+          docker push "$TRANSIT_IMAGE"
+          docker push "$POS_IMAGE"
 
       - name: Make VM space and preserve terminal rollback images
         run: |
@@ -96,19 +118,11 @@ jobs:
           test -f "$env_file"
           cp -p "$env_file" "$rollback_env"
 
-          old_transit="$(sed -n 's/^TRANSIT_TERMINAL_IMAGE=//p' "$rollback_env" | tail -n 1)"
-          old_pos="$(sed -n 's/^POS_TERMINAL_IMAGE=//p' "$rollback_env" | tail -n 1)"
-          test -n "$old_transit"
-          test -n "$old_pos"
-
-          docker image ls --format '{{.Repository}}:{{.Tag}}' \
-            | grep -E '^multipaz-(transit-terminal|pos-terminal):' \
-            | while IFS= read -r candidate; do
-                if [ "$candidate" != "$old_transit" ] && [ "$candidate" != "$old_pos" ]; then
-                  docker image rm "$candidate" || true
-                fi
-              done
-          docker image prune --force
+          # Images used by the running terminal containers stay local for
+          # rollback. Other immutable versions remain in Artifact Registry.
+          docker image prune --all --force
+          docker builder prune --all --force
+          journalctl --vacuum-size=200M
 
           available_kib="$(df -Pk / | awk 'NR == 2 {print $4}')"
           if [ "$available_kib" -lt 1258291 ]; then
@@ -119,18 +133,10 @@ jobs:
           df -h /
           REMOTE_SCRIPT
 
-      - name: Stream terminal images to Docker through IAP
-        run: |
-          set -euo pipefail
-          docker save "multipaz-transit-terminal:$IMAGE_TAG" "multipaz-pos-terminal:$IMAGE_TAG" | \
-            gcloud compute ssh "$GCP_INSTANCE" \
-              --project="$GCP_PROJECT_ID" \
-              --zone="$GCP_ZONE" \
-              --tunnel-through-iap \
-              --quiet \
-              --command='sudo docker load'
-
-      - name: Activate terminal images and verify rollback path
+      - name: Pull terminal images from Artifact Registry on the VM
+        env:
+          TRANSIT_IMAGE: ${{ steps.images.outputs.transit }}
+          POS_IMAGE: ${{ steps.images.outputs.pos }}
         run: |
           set -euo pipefail
           gcloud compute ssh "$GCP_INSTANCE" \
@@ -138,17 +144,38 @@ jobs:
             --zone="$GCP_ZONE" \
             --tunnel-through-iap \
             --quiet \
-            --command="sudo bash -s -- '$IMAGE_TAG'" <<'REMOTE_SCRIPT'
+            --command="sudo bash -s -- '$TRANSIT_IMAGE' '$POS_IMAGE'" <<'REMOTE_SCRIPT'
+          set -euo pipefail
+          transit_image="$1"
+          pos_image="$2"
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+          docker pull "$transit_image"
+          docker pull "$pos_image"
+          REMOTE_SCRIPT
+
+      - name: Activate terminal images and verify rollback path
+        env:
+          TRANSIT_IMAGE: ${{ steps.images.outputs.transit }}
+          POS_IMAGE: ${{ steps.images.outputs.pos }}
+        run: |
+          set -euo pipefail
+          gcloud compute ssh "$GCP_INSTANCE" \
+            --project="$GCP_PROJECT_ID" \
+            --zone="$GCP_ZONE" \
+            --tunnel-through-iap \
+            --quiet \
+            --command="sudo bash -s -- '$TRANSIT_IMAGE' '$POS_IMAGE'" <<'REMOTE_SCRIPT'
           set -euo pipefail
 
-          image_tag="$1"
+          transit_image="$1"
+          pos_image="$2"
           stack_dir=/opt/multipaz/stack
           env_file="$stack_dir/.env"
           rollback_env="$stack_dir/.env.terminal.rollback"
           cd "$stack_dir"
 
           sed -i -E \
-            "s|^TRANSIT_TERMINAL_IMAGE=.*|TRANSIT_TERMINAL_IMAGE=multipaz-transit-terminal:$image_tag|; s|^POS_TERMINAL_IMAGE=.*|POS_TERMINAL_IMAGE=multipaz-pos-terminal:$image_tag|" \
+            "s|^TRANSIT_TERMINAL_IMAGE=.*|TRANSIT_TERMINAL_IMAGE=$transit_image|; s|^POS_TERMINAL_IMAGE=.*|POS_TERMINAL_IMAGE=$pos_image|" \
             "$env_file"
           if ! docker compose --project-directory "$stack_dir" up -d --force-recreate transit-terminal pos-terminal; then
             cp -p "$rollback_env" "$env_file"
@@ -158,6 +185,8 @@ jobs:
 
           docker compose --project-directory "$stack_dir" ps transit-terminal pos-terminal
           grep -E '^(TRANSIT_TERMINAL_IMAGE|POS_TERMINAL_IMAGE)=' "$env_file"
+          docker image prune --all --force
+          docker builder prune --all --force
           df -h /
           REMOTE_SCRIPT
 
