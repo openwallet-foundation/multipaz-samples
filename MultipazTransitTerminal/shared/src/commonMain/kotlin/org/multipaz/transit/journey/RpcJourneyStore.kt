@@ -44,17 +44,25 @@ class RpcJourneyStore(
 
     /** Persists a new open journey for the presented payment instrument. */
     suspend fun checkIn(paymentInstrumentId: String, entryStation: String, fareClass: String): Journey =
-        withContext(RpcAuthClientSession()) { service().checkIn(paymentInstrumentId, entryStation, fareClass) }
+        withContext(RpcAuthClientSession()) {
+            service().checkIn(paymentInstrumentId, DeviceInstanceId.get(), entryStation, fareClass)
+        }
 
     /** Persists the selected destination and its fare. */
     suspend fun selectExit(paymentInstrumentId: String, exitStation: String, fareCents: Long): Journey =
-        withContext(RpcAuthClientSession()) { service().selectExit(paymentInstrumentId, exitStation, fareCents) }
+        withContext(RpcAuthClientSession()) {
+            service().selectExit(paymentInstrumentId, DeviceInstanceId.get(), exitStation, fareCents)
+        }
 
     /** Advances a stored journey to the payment-pending state. */
     suspend fun beginCheckout(paymentInstrumentId: String): Journey =
-        withContext(RpcAuthClientSession()) { service().beginCheckout(paymentInstrumentId) }
+        withContext(RpcAuthClientSession()) {
+            service().beginCheckout(paymentInstrumentId, DeviceInstanceId.get())
+        }
 
     /** Records successful payment settlement for the journey. */
     suspend fun settle(paymentInstrumentId: String): Journey =
-        withContext(RpcAuthClientSession()) { service().settle(paymentInstrumentId) }
+        withContext(RpcAuthClientSession()) {
+            service().settle(paymentInstrumentId, DeviceInstanceId.get())
+        }
 }
