@@ -97,8 +97,13 @@ jobs:
         run: |
           set -euo pipefail
           gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-          docker push "$TRANSIT_IMAGE"
-          docker push "$POS_IMAGE"
+          for image in "$TRANSIT_IMAGE" "$POS_IMAGE"; do
+            if docker manifest inspect "$image" >/dev/null 2>&1; then
+              echo "Immutable image already exists; reusing $image"
+            else
+              docker push "$image"
+            fi
+          done
 
       - name: Make VM space and preserve terminal rollback images
         run: |
