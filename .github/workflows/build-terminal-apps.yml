@@ -5,6 +5,18 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT_ID: utopia-multipaz
+  GCP_ZONE: us-central1-c
+  GCP_INSTANCE: utopia-multipaz-server
+  GCP_WORKLOAD_IDENTITY_PROVIDER: projects/873069027544/locations/global/workloadIdentityPools/github/providers/github-actions
+  GCP_DEPLOY_SERVICE_ACCOUNT: utopia-github-deployer@utopia-multipaz.iam.gserviceaccount.com
+  UTOPIA_DOWNLOADS_DIR: /opt/utopia/downloads
+
 jobs:
   wholesale-pos:
     name: Wholesale POS
@@ -31,7 +43,10 @@ jobs:
           chmod 600 ../keys/keystore.jks ../keys/keystore.properties
 
       - name: Build signed release APK
-        run: ./gradlew :androidApp:assembleRelease
+        run: |
+          ./gradlew :androidApp:assembleRelease \
+            -PreleaseVersionCode="${GITHUB_RUN_NUMBER}" \
+            -PreleaseVersionName="${GITHUB_SHA::7}"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -63,9 +78,217 @@ jobs:
           chmod 600 ../keys/keystore.jks ../keys/keystore.properties
 
       - name: Build signed release APK
-        run: ./gradlew :androidApp:assembleRelease
+        run: |
+          ./gradlew :androidApp:assembleRelease \
+            -PreleaseVersionCode="${GITHUB_RUN_NUMBER}" \
+            -PreleaseVersionName="${GITHUB_SHA::7}"
 
       - uses: actions/upload-artifact@v4
         with:
           name: multipaz-transit-terminal
           path: MultipazTransitTerminal/androidApp/build/outputs/apk/release/*.apk
+
+  publish-utopia-catalog:
+    name: Publish terminal APKs to Utopia
+    needs: [wholesale-pos, transit-terminal]
+    # Pull requests may build APKs, but only the main branch publishes public
+    # artifacts. Manual dispatch is deliberately allowed for a recovery run.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Download Transit APK
+        uses: actions/download-artifact@v4
+        with:
+          name: multipaz-transit-terminal
+          path: artifacts/transit
+
+      - name: Download POS APK
+        uses: actions/download-artifact@v4
+        with:
+          name: multipaz-wholesale-pos
+          path: artifacts/pos
+
+      - name: Verify APKs and prepare release metadata
+        id: release
+        run: |
+          set -euo pipefail
+          release_version="${GITHUB_SHA::7}"
+
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$apksigner" && test -x "$apksigner"
+          test -n "$aapt" && test -x "$aapt"
+
+          transit_apk="$(find artifacts/transit -type f -name '*.apk' -print -quit)"
+          pos_apk="$(find artifacts/pos -type f -name '*.apk' -print -quit)"
+          test -n "$transit_apk" && test -n "$pos_apk"
+
+          verify_apk() {
+            apk="$1"
+            expected_package="$2"
+            "$apksigner" verify --verbose --print-certs "$apk"
+            badging="$($aapt dump badging "$apk")"
+            package_name="$(printf '%s\n' "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
+            version_code="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p")"
+            test "$package_name" = "$expected_package"
+            test "$version_code" = "$GITHUB_RUN_NUMBER"
+          }
+
+          verify_apk "$transit_apk" org.multipaz.transit
+          verify_apk "$pos_apk" org.multipaz.pos
+
+          apk_version() {
+            "$aapt" dump badging "$1" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p"
+          }
+          transit_version="$(apk_version "$transit_apk")"
+          pos_version="$(apk_version "$pos_apk")"
+          test "$transit_version" = "$release_version" || {
+            echo "Transit versionName does not match commit $release_version." >&2
+            exit 1
+          }
+          test "$pos_version" = "$release_version" || {
+            echo "POS versionName does not match commit $release_version." >&2
+            exit 1
+          }
+
+          transit_sha="$(sha256sum "$transit_apk" | awk '{print $1}')"
+          pos_sha="$(sha256sum "$pos_apk" | awk '{print $1}')"
+          transit_cert="$($apksigner verify --print-certs "$transit_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          pos_cert="$($apksigner verify --print-certs "$pos_apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          test -n "$transit_cert" && test -n "$pos_cert"
+
+          cp "$transit_apk" "$RUNNER_TEMP/utopia-transit.apk"
+          cp "$pos_apk" "$RUNNER_TEMP/utopia-pos.apk"
+          printf '%s  utopia-transit.apk\n' "$transit_sha" > "$RUNNER_TEMP/utopia-transit.apk.sha256"
+          printf '%s  utopia-pos.apk\n' "$pos_sha" > "$RUNNER_TEMP/utopia-pos.apk.sha256"
+
+          {
+            echo "version=$release_version"
+            echo "transit_sha=$transit_sha"
+            echo "pos_sha=$pos_sha"
+            echo "transit_cert=$transit_cert"
+            echo "pos_cert=$pos_cert"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Fetch the current Utopia catalog
+        run: |
+          set -euo pipefail
+          gcloud compute scp \
+            "${GCP_INSTANCE}:${UTOPIA_DOWNLOADS_DIR}/releases.json" \
+            "${RUNNER_TEMP}/releases.json" \
+            --project="$GCP_PROJECT_ID" \
+            --zone="$GCP_ZONE" \
+            --tunnel-through-iap \
+            --quiet
+
+      - name: Update the catalog manifest
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          TRANSIT_SHA: ${{ steps.release.outputs.transit_sha }}
+          POS_SHA: ${{ steps.release.outputs.pos_sha }}
+          TRANSIT_CERT: ${{ steps.release.outputs.transit_cert }}
+          POS_CERT: ${{ steps.release.outputs.pos_cert }}
+        run: |
+          set -euo pipefail
+          command -v jq >/dev/null
+          release_date="$(date -u +%F)"
+          transit_size="$(stat --printf='%s' "$RUNNER_TEMP/utopia-transit.apk") bytes"
+          pos_size="$(stat --printf='%s' "$RUNNER_TEMP/utopia-pos.apk") bytes"
+
+          jq \
+            --arg version "$RELEASE_VERSION" \
+            --arg released_at "$release_date" \
+            --arg transit_sha "$TRANSIT_SHA" \
+            --arg pos_sha "$POS_SHA" \
+            --arg transit_cert "$TRANSIT_CERT" \
+            --arg pos_cert "$POS_CERT" \
+            --arg transit_size "$transit_size" \
+            --arg pos_size "$pos_size" \
+            '
+              def update_app($id; $sha; $cert; $size):
+                if any(.apps[]; .id == $id) then
+                  .apps |= map(
+                    if .id == $id then
+                      . + {
+                        version: $version,
+                        releasedAt: $released_at,
+                        minAndroid: 29,
+                        size: $size,
+                        apkUrl: ("/downloads/" + $id + "/" + $version + "/" + $id + ".apk"),
+                        sha256: $sha,
+                        signingCertificate: $cert
+                      } | del(.status)
+                    else . end
+                  )
+                else error("Catalog is missing " + $id)
+                end;
+              if (.apps | type) != "array" then error("Catalog manifest is missing apps") else . end
+              | update_app("utopia-transit"; $transit_sha; $transit_cert; $transit_size)
+              | update_app("utopia-pos"; $pos_sha; $pos_cert; $pos_size)
+            ' "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/releases.next.json"
+
+      - name: Upload immutable APKs and atomically publish the catalog
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          TRANSIT_SHA: ${{ steps.release.outputs.transit_sha }}
+          POS_SHA: ${{ steps.release.outputs.pos_sha }}
+        run: |
+          set -euo pipefail
+          remote_staging="/tmp/utopia-app-release-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          gcloud compute ssh "$GCP_INSTANCE" \
+            --project="$GCP_PROJECT_ID" --zone="$GCP_ZONE" --tunnel-through-iap --quiet \
+            --command="mkdir -p '$remote_staging'"
+          gcloud compute scp \
+            "$RUNNER_TEMP/utopia-transit.apk" \
+            "$RUNNER_TEMP/utopia-transit.apk.sha256" \
+            "$RUNNER_TEMP/utopia-pos.apk" \
+            "$RUNNER_TEMP/utopia-pos.apk.sha256" \
+            "$RUNNER_TEMP/releases.next.json" \
+            "${GCP_INSTANCE}:${remote_staging}/" \
+            --project="$GCP_PROJECT_ID" --zone="$GCP_ZONE" --tunnel-through-iap --quiet
+          gcloud compute ssh "$GCP_INSTANCE" \
+            --project="$GCP_PROJECT_ID" --zone="$GCP_ZONE" --tunnel-through-iap --quiet \
+            --command="sudo bash -s -- '$remote_staging' '$UTOPIA_DOWNLOADS_DIR' '$RELEASE_VERSION' '$TRANSIT_SHA' '$POS_SHA'" <<'REMOTE_SCRIPT'
+          set -euo pipefail
+          staging_dir="$1"
+          downloads_dir="$2"
+          version="$3"
+          transit_sha="$4"
+          pos_sha="$5"
+
+          install -d -m 0755 "$downloads_dir"
+          publish() {
+            app_id="$1"
+            filename="$2"
+            expected_sha="$3"
+            target_dir="$downloads_dir/$app_id/$version"
+            target="$target_dir/$filename"
+            install -d -m 0755 "$target_dir"
+            if [ -e "$target" ]; then
+              actual_sha="$(sha256sum "$target" | awk '{print $1}')"
+              test "$actual_sha" = "$expected_sha" || { echo "Refusing to overwrite $target" >&2; exit 1; }
+            else
+              install -m 0644 "$staging_dir/$filename" "$target"
+              actual_sha="$(sha256sum "$target" | awk '{print $1}')"
+              test "$actual_sha" = "$expected_sha"
+            fi
+            install -m 0644 "$staging_dir/$filename.sha256" "$target.sha256"
+          }
+
+          publish utopia-transit utopia-transit.apk "$transit_sha"
+          publish utopia-pos utopia-pos.apk "$pos_sha"
+          install -m 0644 "$staging_dir/releases.next.json" "$downloads_dir/releases.json.next"
+          mv -f "$downloads_dir/releases.json.next" "$downloads_dir/releases.json"
+          rm -rf "$staging_dir"
+          REMOTE_SCRIPT

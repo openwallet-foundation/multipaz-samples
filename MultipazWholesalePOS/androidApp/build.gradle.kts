@@ -28,6 +28,14 @@ dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
 
+val releaseVersionCode = providers.gradleProperty("releaseVersionCode").orNull?.toIntOrNull() ?: 1
+val sourceRevision = providers.exec {
+    commandLine("git", "rev-parse", "--short=7", "HEAD")
+}.standardOutput.asText.map { it.trim() }
+val releaseVersionName = providers.gradleProperty("releaseVersionName")
+    .orElse(sourceRevision)
+    .getOrElse("dev")
+
 android {
     namespace = "org.multipaz.pos"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -36,8 +44,8 @@ android {
         applicationId = "org.multipaz.pos"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = releaseVersionCode
+        versionName = releaseVersionName
     }
     packaging {
         resources {
