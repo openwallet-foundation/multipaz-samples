@@ -27,6 +27,7 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.ktor.client.android)
+            implementation(libs.multipaz.dcapi.credman)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -34,7 +35,6 @@ kotlin {
             implementation(libs.multipaz)
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
-            implementation(libs.multipaz.dcapi)
             implementation(libs.multipaz.longfellow)
             implementation(libs.multipaz.vision)
             implementation(libs.ktor.client.core)
@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.ktor.client.darwin)
             implementation(libs.androidx.sqlite)
             implementation(libs.androidx.sqlite.framework)
+            implementation(libs.multipaz.dcapi.ios)
         }
     }
 }
