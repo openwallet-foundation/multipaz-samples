@@ -3,19 +3,14 @@ package org.multipaz.samples.wallet.cmp
 import android.content.Context
 import org.koin.android.ext.android.inject
 import org.koin.java.KoinJavaComponent.inject
-import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.prompt.PresentmentActivity
+import org.multipaz.context.applicationContext
+import org.multipaz.mdoc.nfc.MdocNdefService
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 
-class NdefService(
-    applicationContext: Context,
-    sendResponse: (ByteArray) -> Unit,
-) : MdocNdefService(
-    applicationContext,
-    sendResponse,
-) {
+class NdefService : MdocNdefService() {
     private val presentmentSource: PresentmentSource by inject(PresentmentSource::class.java)
     private val settingsModel: AppSettingsModel by inject(AppSettingsModel::class.java)
 
@@ -30,7 +25,6 @@ class NdefService(
             source = presentmentSource,
             promptModel = PresentmentActivity.promptModel,
             presentmentModel = PresentmentActivity.presentmentModel,
-            activityClass = PresentmentActivity::class.java,
             sessionEncryptionCurve = settingsModel.presentmentSessionEncryptionCurve.value,
             useNegotiatedHandover = settingsModel.presentmentUseNegotiatedHandover.value,
             negotiatedHandoverPreferredOrder = settingsModel.presentmentNegotiatedHandoverPreferredOrder.value,

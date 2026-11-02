@@ -59,6 +59,7 @@ dependencies {
 
     implementation(libs.multipaz)
     implementation(libs.multipaz.compose)
+    implementation(libs.multipaz.dcapi.credman)
 
     implementation(libs.ktor.client.android)
 
