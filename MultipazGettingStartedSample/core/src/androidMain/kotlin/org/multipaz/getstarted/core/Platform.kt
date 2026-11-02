@@ -4,6 +4,8 @@ import android.content.pm.PackageManager
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.android.Android
 import org.multipaz.context.applicationContext
+import org.multipaz.digitalcredentials.DigitalCredentials
+import org.multipaz.digitalcredentials.DigitalCredentialsCredman
 import org.multipaz.digitalcredentials.getAppOrigin
 
 @Suppress("DEPRECATION")
@@ -19,6 +21,10 @@ actual suspend fun getAppToAppOrigin(): String {
 }
 
 actual fun isAndroid(): Boolean = true
+
+actual suspend fun getDigitalCredentials(): DigitalCredentials {
+    return DigitalCredentialsCredman.create()
+}
 
 actual val httpClientEngineFactory: HttpClientEngineFactory<*> by lazy {
     Android

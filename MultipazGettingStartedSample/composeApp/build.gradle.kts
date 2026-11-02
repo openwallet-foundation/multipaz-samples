@@ -40,6 +40,8 @@ kotlin {
             implementation(libs.androidx.activity.compose)
 
             implementation(libs.androidx.fragment)
+
+            implementation(libs.multipaz.dcapi.credman)
         }
         commonMain.dependencies {
             implementation(project(":core"))
@@ -70,6 +72,8 @@ kotlin {
             implementation(libs.ktor.client.darwin)
             implementation(libs.androidx.sqlite)
             implementation(libs.androidx.sqlite.framework)
+
+            implementation(libs.multipaz.dcapi.ios)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

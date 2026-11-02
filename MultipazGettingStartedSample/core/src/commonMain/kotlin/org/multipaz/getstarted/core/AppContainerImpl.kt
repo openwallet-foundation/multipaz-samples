@@ -17,7 +17,6 @@ import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.digitalcredentials.DigitalCredentials
-import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
@@ -260,7 +259,7 @@ class AppContainerImpl : AppContainer {
             ),
         )
 
-        val digitalCredentials = DigitalCredentials.getDefault()
+        val digitalCredentials = getDigitalCredentials()
         if (digitalCredentials.registerAvailable) {
             try {
                 digitalCredentials.register(

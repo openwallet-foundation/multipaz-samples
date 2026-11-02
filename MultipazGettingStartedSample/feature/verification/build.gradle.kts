@@ -35,10 +35,15 @@ kotlin {
             implementation(libs.multipaz)
             implementation(libs.multipaz.compose)
             implementation(libs.multipaz.doctypes)
-            implementation(libs.multipaz.dcapi)
             implementation(libs.multipaz.longfellow)
             implementation(libs.coil.compose)
             implementation(libs.kotlinx.serialization.json)
+        }
+        androidMain.dependencies {
+            implementation(libs.multipaz.dcapi.credman)
+        }
+        iosMain.dependencies {
+            implementation(libs.multipaz.dcapi.ios)
         }
     }
 }
