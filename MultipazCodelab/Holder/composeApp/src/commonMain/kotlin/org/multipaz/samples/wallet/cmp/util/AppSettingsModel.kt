@@ -12,7 +12,6 @@ import org.multipaz.cbor.buildCborArray
 import org.multipaz.cbor.toDataItem
 import org.multipaz.crypto.EcCurve
 import org.multipaz.digitalcredentials.DigitalCredentials
-import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
 import org.multipaz.storage.StorageTableSpec
@@ -45,7 +44,7 @@ class AppSettingsModel private constructor(
         ): AppSettingsModel {
             val instance = AppSettingsModel(readOnly)
             instance.settingsTable = storage.getTable(tableSpec)
-            instance.digitalCredentials = DigitalCredentials.getDefault()
+            instance.digitalCredentials = getDigitalCredentials()
             instance.init()
             return instance
         }
