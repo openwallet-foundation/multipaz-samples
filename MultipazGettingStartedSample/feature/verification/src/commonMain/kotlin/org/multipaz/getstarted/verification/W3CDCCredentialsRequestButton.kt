@@ -37,6 +37,7 @@ import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.documenttype.SingleDocumentCannedRequest
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.getstarted.core.getAppToAppOrigin
+import org.multipaz.getstarted.core.getDigitalCredentials
 import org.multipaz.getstarted.verification.W3CDCConstants.Companion.CERT_CRL_URL
 import org.multipaz.getstarted.verification.W3CDCConstants.Companion.CERT_SERIAL_NUMBER_BITS
 import org.multipaz.getstarted.verification.W3CDCConstants.Companion.CERT_SUBJECT_COMMON_NAME
@@ -322,7 +323,7 @@ private suspend fun doDcRequestFlow(
     Logger.iJson(TAG, "Request", dcRequestObject)
 
     val t0 = Clock.System.now()
-    val dcResponseObject = DigitalCredentials.getDefault().request(dcRequestObject)
+    val dcResponseObject = getDigitalCredentials().request(dcRequestObject)
     Logger.iJson(TAG, "Response", dcResponseObject)
 
     val dcResponse = VerificationUtil.decryptDcResponse(

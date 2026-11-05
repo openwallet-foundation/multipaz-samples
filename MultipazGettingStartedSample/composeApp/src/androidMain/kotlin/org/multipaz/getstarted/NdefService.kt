@@ -1,10 +1,10 @@
 package org.multipaz.getstarted
 
 import android.content.Context
-import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.crypto.EcCurve
 import org.multipaz.getstarted.core.AppContainer
+import org.multipaz.mdoc.nfc.MdocNdefService
 import org.multipaz.mdoc.transport.MdocTransportOptions
 
 class NdefService(
@@ -27,7 +27,6 @@ class NdefService(
             source = container.presentmentSource,
             promptModel = PresentmentActivity.promptModel,
             presentmentModel = PresentmentActivity.presentmentModel,
-            activityClass = PresentmentActivity::class.java,
             transportOptions = MdocTransportOptions(bleUseL2CAP = true),
             sessionEncryptionCurve = EcCurve.P256,
             useNegotiatedHandover = true,

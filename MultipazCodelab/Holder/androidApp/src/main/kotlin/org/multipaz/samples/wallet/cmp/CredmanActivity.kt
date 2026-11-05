@@ -1,6 +1,7 @@
 package org.multipaz.samples.wallet.cmp
 
 import org.koin.android.ext.android.inject
+import org.koin.java.KoinJavaComponent.inject
 import org.multipaz.compose.digitalcredentials.CredentialManagerPresentmentActivity
 import org.multipaz.presentment.PresentmentSource
 import utopiasample.composeapp.generated.resources.Res
