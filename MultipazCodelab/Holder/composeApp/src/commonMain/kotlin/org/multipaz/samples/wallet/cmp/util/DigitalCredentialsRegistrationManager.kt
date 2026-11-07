@@ -3,7 +3,6 @@ package org.multipaz.samples.wallet.cmp.util
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.multipaz.digitalcredentials.DigitalCredentials
-import org.multipaz.digitalcredentials.getDefault
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.util.Logger
@@ -27,7 +26,7 @@ class DigitalCredentialsRegistrationManager(
         }
 
         registerMutex.withLock {
-            val digitalCredentials: DigitalCredentials = DigitalCredentials.getDefault()
+            val digitalCredentials: DigitalCredentials = getDigitalCredentials()
             if (!digitalCredentials.registerAvailable) {
                 Logger.i(TAG, "Skipping register: API not available ($reason)")
                 return

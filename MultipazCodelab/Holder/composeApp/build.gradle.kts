@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.androidx.appcompat)
             implementation(libs.ktor.client.android)
             implementation(libs.koin.android)
+            implementation(libs.multipaz.dcapi.credman)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -60,7 +61,6 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.multipaz)
             implementation(libs.multipaz.doctypes)
-            implementation(libs.multipaz.dcapi)
             implementation(libs.multipaz.compose)
             implementation(libs.ktor.client.core)
             // CIO for JVM/Android; Darwin engine for iOS in iosMain
@@ -76,6 +76,7 @@ kotlin {
                 implementation(libs.ktor.client.darwin)
                 implementation(libs.androidx.sqlite)
                 implementation(libs.androidx.sqlite.framework)
+                implementation(libs.multipaz.dcapi.ios)
             }
         }
         commonTest.dependencies {

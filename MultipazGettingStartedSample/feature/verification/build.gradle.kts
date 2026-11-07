@@ -40,6 +40,12 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.kotlinx.serialization.json)
         }
+        androidMain.dependencies {
+            implementation(libs.multipaz.dcapi.credman)
+        }
+        iosMain.dependencies {
+            implementation(libs.multipaz.dcapi.ios)
+        }
     }
 }
 

@@ -7,7 +7,10 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
 
+<<<<<<<< HEAD:MultipazWholesalePOS/build.gradle.kts
     // terminalBackend (JVM server) plugins.
+========
+>>>>>>>> main:MultipazTransitTerminal/build.gradle.kts
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ksp) apply false

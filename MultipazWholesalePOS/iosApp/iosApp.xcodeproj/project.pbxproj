@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 <<<<<<<< HEAD:MultipazCodelab/Reader/iosApp/iosApp.xcodeproj/project.pbxproj
 		B9DA97B12DC1472C00A4DA20 /* Multipaz Identity Reader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Multipaz Identity Reader.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 ========
@@ -16,24 +17,46 @@
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		61BA76442560A7D724374B64 /* Exceptions for "iosApp" folder in "iosApp" target */ = {
+========
+		E02ABEB2EB1D43D85D18569E /* Multipaz Transit Terminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Multipaz Transit Terminal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1456089DC26795EA2EDDEE8 /* Exceptions for "iosApp" folder in "iosApp" target */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 			target = A659AE47B7CBAB1EA44376BB /* iosApp */;
+========
+			target = 6A0C7FEEBE34757D80590999 /* iosApp */;
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		AC30AD6F4ED4A2A655BFD5D9 /* iosApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				61BA76442560A7D724374B64 /* Exceptions for "iosApp" folder in "iosApp" target */,
+========
+		626910E1A809B3B9770C8A42 /* iosApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1456089DC26795EA2EDDEE8 /* Exceptions for "iosApp" folder in "iosApp" target */,
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			);
 			path = iosApp;
 			sourceTree = "<group>";
 		};
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		6E679B557F95C4456C556C2F /* Configuration */ = {
+========
+		A1067D736BAA233A6EB22998 /* Configuration */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Configuration;
 			sourceTree = "<group>";
@@ -41,7 +64,11 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		8FF964F6CCBCC7654B8D9CA0 /* Frameworks */ = {
+========
+		F77152032CD1DF5F8E6C519B /* Frameworks */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -51,6 +78,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		F4AEB2ED202CBF751CC41BF0 = {
 			isa = PBXGroup;
 			children = (
@@ -68,6 +96,21 @@
 ========
 				1EABEF9A9246903062356E7D /* Multipaz Wholesale POS.app */,
 >>>>>>>> main:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
+========
+		9D49B9DFB2308EF2100B6F0F = {
+			isa = PBXGroup;
+			children = (
+				A1067D736BAA233A6EB22998 /* Configuration */,
+				626910E1A809B3B9770C8A42 /* iosApp */,
+				CB3D144116969B3D9FE66C3A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CB3D144116969B3D9FE66C3A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E02ABEB2EB1D43D85D18569E /* Multipaz Transit Terminal.app */,
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -75,6 +118,7 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		A659AE47B7CBAB1EA44376BB /* iosApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6E45293E9CA330C2404FF1B8 /* Build configuration list for PBXNativeTarget "iosApp" */;
@@ -83,47 +127,78 @@
 				7C3E4237C500F151231370F7 /* Sources */,
 				8FF964F6CCBCC7654B8D9CA0 /* Frameworks */,
 				EA778AA15FEBCFC2515D0D1C /* Resources */,
+========
+		6A0C7FEEBE34757D80590999 /* iosApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 834B8654D68AA7372E40F353 /* Build configuration list for PBXNativeTarget "iosApp" */;
+			buildPhases = (
+				7E3C602DBCE9FC54F8430ABE /* Compile Kotlin Framework */,
+				2C35F9EEF274172B85E54645 /* Sources */,
+				F77152032CD1DF5F8E6C519B /* Frameworks */,
+				B78BF0B8F5C2F5B75C539044 /* Resources */,
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 				AC30AD6F4ED4A2A655BFD5D9 /* iosApp */,
+========
+				626910E1A809B3B9770C8A42 /* iosApp */,
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			);
 			name = iosApp;
 			packageProductDependencies = (
 			);
 			productName = iosApp;
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 <<<<<<<< HEAD:MultipazCodelab/Reader/iosApp/iosApp.xcodeproj/project.pbxproj
 			productReference = B9DA97B12DC1472C00A4DA20 /* Multipaz Identity Reader.app */;
 ========
 			productReference = 1EABEF9A9246903062356E7D /* Multipaz Wholesale POS.app */;
 >>>>>>>> main:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
+========
+			productReference = E02ABEB2EB1D43D85D18569E /* Multipaz Transit Terminal.app */;
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		DF47D23CEB7620B66141C8A1 /* Project object */ = {
+========
+		F62FA47A1291B8ECB6442708 /* Project object */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 					A659AE47B7CBAB1EA44376BB = {
+========
+					6A0C7FEEBE34757D80590999 = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
 			};
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 			buildConfigurationList = 19930D1838582E1CC52B78B8 /* Build configuration list for PBXProject "iosApp" */;
+========
+			buildConfigurationList = 0C96231287C7EDCF79317504 /* Build configuration list for PBXProject "iosApp" */;
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 			mainGroup = F4AEB2ED202CBF751CC41BF0;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
@@ -132,12 +207,26 @@
 			projectRoot = "";
 			targets = (
 				A659AE47B7CBAB1EA44376BB /* iosApp */,
+========
+			mainGroup = 9D49B9DFB2308EF2100B6F0F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CB3D144116969B3D9FE66C3A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6A0C7FEEBE34757D80590999 /* iosApp */,
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		EA778AA15FEBCFC2515D0D1C /* Resources */ = {
+========
+		B78BF0B8F5C2F5B75C539044 /* Resources */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -147,7 +236,11 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		71FB1B3D8DF518D37A93B199 /* Compile Kotlin Framework */ = {
+========
+		7E3C602DBCE9FC54F8430ABE /* Compile Kotlin Framework */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -169,7 +262,11 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		7C3E4237C500F151231370F7 /* Sources */ = {
+========
+		2C35F9EEF274172B85E54645 /* Sources */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -179,9 +276,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		0CACD237CD61E8A9F6D941AB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = 6E679B557F95C4456C556C2F /* Configuration */;
+========
+		5A055CBF7DAB6A553F990950 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = A1067D736BAA233A6EB22998 /* Configuration */;
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			baseConfigurationReferenceRelativePath = Config.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -244,9 +347,15 @@
 			};
 			name = Debug;
 		};
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		D0AA476B8BBE1EF8024FBB39 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = 6E679B557F95C4456C556C2F /* Configuration */;
+========
+		926A335DF62FA70D5CB69B7D /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = A1067D736BAA233A6EB22998 /* Configuration */;
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			baseConfigurationReferenceRelativePath = Config.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -302,7 +411,11 @@
 			};
 			name = Release;
 		};
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		FF072A27C3A22FCA14EAA6D7 /* Debug */ = {
+========
+		CC551F08204624AF725670D5 /* Debug */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = arm64;
@@ -310,13 +423,18 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 <<<<<<<< HEAD:MultipazCodelab/Reader/iosApp/iosApp.xcodeproj/project.pbxproj
 				DEVELOPMENT_TEAM = VKE2G3K56V;
 ========
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
 >>>>>>>> main:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
+========
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -335,7 +453,11 @@
 			};
 			name = Debug;
 		};
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		6EA61D96B07BCA837E8EE799 /* Release */ = {
+========
+		3466C66A956604C45705C0A1 /* Release */ = {
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = arm64;
@@ -343,13 +465,18 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 <<<<<<<< HEAD:MultipazCodelab/Reader/iosApp/iosApp.xcodeproj/project.pbxproj
 				DEVELOPMENT_TEAM = VKE2G3K56V;
 ========
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
 >>>>>>>> main:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
+========
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -371,25 +498,46 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		19930D1838582E1CC52B78B8 /* Build configuration list for PBXProject "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0CACD237CD61E8A9F6D941AB /* Debug */,
 				D0AA476B8BBE1EF8024FBB39 /* Release */,
+========
+		0C96231287C7EDCF79317504 /* Build configuration list for PBXProject "iosApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A055CBF7DAB6A553F990950 /* Debug */,
+				926A335DF62FA70D5CB69B7D /* Release */,
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 		6E45293E9CA330C2404FF1B8 /* Build configuration list for PBXNativeTarget "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FF072A27C3A22FCA14EAA6D7 /* Debug */,
 				6EA61D96B07BCA837E8EE799 /* Release */,
+========
+		834B8654D68AA7372E40F353 /* Build configuration list for PBXNativeTarget "iosApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC551F08204624AF725670D5 /* Debug */,
+				3466C66A956604C45705C0A1 /* Release */,
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
+<<<<<<<< HEAD:MultipazWholesalePOS/iosApp/iosApp.xcodeproj/project.pbxproj
 	rootObject = DF47D23CEB7620B66141C8A1 /* Project object */;
 }
+========
+	rootObject = F62FA47A1291B8ECB6442708 /* Project object */;
+}
+>>>>>>>> main:MultipazTransitTerminal/iosApp/iosApp.xcodeproj/project.pbxproj

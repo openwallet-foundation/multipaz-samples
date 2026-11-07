@@ -17,7 +17,7 @@ kotlinx-coroutines = "1.8.1"
 kotlinx-io = "0.4.0"
 kotlinx-datetime = "0.6.0"
 kotlinx-serialization = "1.7.3"
-multipaz = "0.101.0"
+multipaz = "0.102.0"
 ktor = "3.1.0"
 androidx-sqlite = "2.5.2"
 coil = "3.3.0"
@@ -48,7 +48,8 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
 multipaz-compose = { group = "org.multipaz", name = "multipaz-compose", version.ref = "multipaz" }
-multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
+multipaz-dcapi-credman = { group = "org.multipaz", name = "multipaz-dcapi-credman", version.ref = "multipaz" }
+multipaz-dcapi-ios = { group = "org.multipaz", name = "multipaz-dcapi-ios", version.ref = "multipaz" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
