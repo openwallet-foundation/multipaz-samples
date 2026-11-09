@@ -1,12 +1,10 @@
 package org.multipaz.samples.wallet.cmp.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,7 +26,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,15 +39,10 @@ import org.multipaz.compose.presentment.MdocProximityQrPresentment
 import org.multipaz.compose.presentment.MdocProximityQrSettings
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.compose.qrcode.generateQrCode
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodNfc
-import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.prompt.PromptModel
 import org.multipaz.samples.wallet.cmp.util.AppSettingsModel
 import org.multipaz.util.Logger
-import org.multipaz.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "AccountScreen"
@@ -243,58 +235,7 @@ private fun ShowQrButton(
     ) {
         when (hasCredentials) {
             true -> {
-                Button(onClick = {
-                    val connectionMethods = mutableListOf<MdocConnectionMethod>()
-                    val bleUuid = UUID.randomUUID()
-                    if (bleCentralClientEnabled) {
-                        connectionMethods.add(
-                            MdocConnectionMethodBle(
-                                supportsPeripheralServerMode = false,
-                                supportsCentralClientMode = true,
-                                peripheralServerModeUuid = null,
-                                centralClientModeUuid = bleUuid,
-                            ),
-                        )
-                    }
-                    if (blePeripheralServerEnabled) {
-                        connectionMethods.add(
-                            MdocConnectionMethodBle(
-                                supportsPeripheralServerMode = true,
-                                supportsCentralClientMode = false,
-                                peripheralServerModeUuid = bleUuid,
-                                centralClientModeUuid = null,
-                            ),
-                        )
-                    }
-                    if (nfcDataTransferEnabled) {
-                        connectionMethods.add(
-                            MdocConnectionMethodNfc(
-                                commandDataFieldMaxLength = 0xffff,
-                                responseDataFieldMaxLength = 0x10000,
-                            ),
-                        )
-                    }
-                    onGenerateQrCode(
-                        MdocProximityQrSettings(
-                            availableConnectionMethods = connectionMethods,
-                            createTransportOptions =
-                                MdocTransportOptions(
-                                    bleUseL2CAP = bleL2CapEnabled,
-                                    bleUseL2CAPInEngagement = bleL2CapInEngagementEnabled,
-                                ),
-                        ),
-                    )
-                }) {
-                    Text("Present mDL via QR")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text =
-                        "The mDL is also available\n" +
-                            "via NFC engagement and W3C DC API\n" +
-                            "(Android-only right now)",
-                    textAlign = TextAlign.Center,
-                )
+                // TODO: show qr button when credentials are available
             }
 
             false -> {
@@ -332,12 +273,7 @@ private fun ShowQrCode(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(text = "Present QR code to mdoc reader")
-        Image(
-            modifier = Modifier.fillMaxWidth(),
-            bitmap = qrCodeBitmap,
-            contentDescription = null,
-            contentScale = ContentScale.FillWidth,
-        )
+        // TODO: show QR code
         Button(onClick = { onReset() }) {
             Text("Cancel")
         }

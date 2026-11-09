@@ -94,26 +94,7 @@ fun MainViewController() =
  */
 @Suppress("FunctionName") // Swift interop: follows Swift naming convention for exported functions
 fun HandleUrl(url: String) {
-    val credentialOffers = globalCredentialOffers
-    if (credentialOffers == null) {
-        Logger.w(TAG, "HandleUrl: credentialOffers channel not yet initialized, URL will be ignored: $url")
-        return
-    }
-
-    try {
-        val koinHelper = object : KoinComponent { }
-        val provisioningModel = koinHelper.get<ProvisioningModel>()
-        val provisioningSupport = koinHelper.get<ProvisioningSupport>()
-
-        org.multipaz.samples.wallet.cmp.util.handleUrl(
-            url = url,
-            credentialOffers = credentialOffers,
-            provisioningModel = provisioningModel,
-            provisioningSupport = provisioningSupport,
-        )
-    } catch (e: Exception) {
-        Logger.e(TAG, "Error in HandleUrl: ${e.message}", e)
-    }
+    // TODO: implement HandleUrl for iOS
 }
 
 @Suppress("FunctionName") // Swift interop naming
