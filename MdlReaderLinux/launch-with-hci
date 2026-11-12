@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+#
+# Builds (as the current user) and launches the MdlReaderLinux JVM desktop app with
+# ambient CAP_NET_ADMIN capability so that LinuxHciSocketPacketIo (multipaz-bthci)
+# can take exclusive user-channel control of a Bluetooth HCI controller, and grants
+# read/write ACL permission on the USB NFC reader device node for NfcTagReaderUsb.
+#
+# Usage:
+#   ./launch-with-hci [--hci <hci-controller>] [--usb <vid:pid>]
+#
+# Examples:
+#   ./launch-with-hci --hci hci1 --usb 072f:2200
+#   ./launch-with-hci --usb 072f:2200
+#   ./launch-with-hci
+
+set -euo pipefail
+
+usage() {
+    cat <<EOF >&2
+Usage: $0 [--hci <hci-controller>] [--usb <vid:pid>]
+
+Options:
+  --hci <controller>  Bluetooth HCI controller name or index (default: hci0)
+  --usb <vid:pid>     USB NFC reader Vendor:Product ID in hex, e.g. 072f:2200
+                      (default: auto-detect connected USB CCID reader)
+  -h, --help          Show this help message
+EOF
+}
+
+list_hci_controllers() {
+    if [[ -d /sys/class/bluetooth ]]; then
+        ls -1 /sys/class/bluetooth 2>/dev/null | sed 's/^/  /' >&2 || true
+    fi
+}
+
+list_ccid_usb_readers() {
+    local found=0
+    for intf in /sys/bus/usb/devices/*:*; do
+        [[ -f "$intf/bInterfaceClass" ]] || continue
+        local iclass
+        iclass="$(cat "$intf/bInterfaceClass" 2>/dev/null || true)"
+        if [[ "${iclass,,}" == "0b" ]]; then
+            local dev_dir="${intf%:*}"
+            if [[ -f "$dev_dir/idVendor" && -f "$dev_dir/idProduct" ]]; then
+                local vid pid product
+                vid="$(cat "$dev_dir/idVendor" 2>/dev/null || true)"
+                pid="$(cat "$dev_dir/idProduct" 2>/dev/null || true)"
+                product="$(cat "$dev_dir/product" 2>/dev/null || echo "USB CCID Reader")"
+                echo "  ${vid}:${pid} (${product})" >&2
+                found=1
+            fi
+        fi
+    done
+    if [[ "$found" -eq 0 ]]; then
+        echo "  (none detected)" >&2
+    fi
+}
+
+autodetect_ccid_vid_pid() {
+    for intf in /sys/bus/usb/devices/*:*; do
+        [[ -f "$intf/bInterfaceClass" ]] || continue
+        local iclass
+        iclass="$(cat "$intf/bInterfaceClass" 2>/dev/null || true)"
+        if [[ "${iclass,,}" == "0b" ]]; then
+            local dev_dir="${intf%:*}"
+            if [[ -f "$dev_dir/idVendor" && -f "$dev_dir/idProduct" ]]; then
+                local vid pid
+                vid="$(cat "$dev_dir/idVendor" 2>/dev/null || true)"
+                pid="$(cat "$dev_dir/idProduct" 2>/dev/null || true)"
+                if [[ -n "$vid" && -n "$pid" ]]; then
+                    echo "${vid}:${pid}"
+                    return 0
+                fi
+            fi
+        fi
+    done
+    return 1
+}
+
+find_usb_dev_node() {
+    local target_vid="${1%%:*}"
+    local target_pid="${1##*:}"
+    target_vid="${target_vid,,}"
+    target_pid="${target_pid,,}"
+
+    for dev_dir in /sys/bus/usb/devices/*; do
+        [[ -f "$dev_dir/idVendor" && -f "$dev_dir/idProduct" ]] || continue
+        local vid pid
+        vid="$(cat "$dev_dir/idVendor" 2>/dev/null || true)"
+        pid="$(cat "$dev_dir/idProduct" 2>/dev/null || true)"
+        if [[ "${vid,,}" == "$target_vid" && "${pid,,}" == "$target_pid" ]]; then
+            local busnum devnum
+            busnum="$(cat "$dev_dir/busnum" 2>/dev/null || true)"
+            devnum="$(cat "$dev_dir/devnum" 2>/dev/null || true)"
+            if [[ -n "$busnum" && -n "$devnum" ]]; then
+                printf "/dev/bus/usb/%03d/%03d\n" "$busnum" "$devnum"
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+HCI_ARG=""
+USB_ARG=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --hci)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --hci requires an argument." >&2
+                usage
+                exit 2
+            fi
+            HCI_ARG="$2"
+            shift 2
+            ;;
+        --hci=*)
+            HCI_ARG="${1#*=}"
+            shift
+            ;;
+        --usb)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --usb requires a <vid:pid> argument." >&2
+                usage
+                exit 2
+            fi
+            USB_ARG="$2"
+            shift 2
+            ;;
+        --usb=*)
+            USB_ARG="${1#*=}"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown argument '$1'" >&2
+            usage
+            exit 2
+            ;;
+    esac
+done
+
+if [[ -z "$HCI_ARG" ]]; then
+    HCI_ARG="${MULTIPAZ_BLE_HCI_DEV:-hci0}"
+fi
+
+if [[ "$HCI_ARG" =~ ^hci([0-9]+)$ ]]; then
+    HCI_NAME="$HCI_ARG"
+elif [[ "$HCI_ARG" =~ ^[0-9]+$ ]]; then
+    HCI_NAME="hci${HCI_ARG}"
+else
+    echo "Error: invalid HCI controller '$HCI_ARG' (expected e.g. 'hci0', 'hci1', or '0')." >&2
+    exit 2
+fi
+
+if [[ ! -e "/sys/class/bluetooth/${HCI_NAME}" ]]; then
+    echo "Error: Bluetooth controller '${HCI_NAME}' does not exist." >&2
+    echo "Available controllers:" >&2
+    list_hci_controllers
+    exit 1
+fi
+
+if [[ -z "$USB_ARG" ]]; then
+    USB_ARG="${MULTIPAZ_USB_VID_PID:-}"
+fi
+
+if [[ -z "$USB_ARG" ]]; then
+    if USB_ARG="$(autodetect_ccid_vid_pid)"; then
+        echo "Auto-detected USB CCID NFC reader: ${USB_ARG}"
+    else
+        echo "Error: No USB CCID NFC reader specified and none auto-detected." >&2
+        echo "Pass --usb <vid:pid> (e.g. --usb 072f:2200)." >&2
+        exit 1
+    fi
+fi
+
+if [[ ! "$USB_ARG" =~ ^[0-9a-fA-F]{4}:[0-9a-fA-F]{4}$ ]]; then
+    echo "Error: invalid USB VID:PID '$USB_ARG' (expected 4-digit hex VID:PID, e.g. 072f:2200)." >&2
+    exit 2
+fi
+
+USB_DEV_NODE="$(find_usb_dev_node "$USB_ARG" || true)"
+if [[ -z "$USB_DEV_NODE" || ! -e "$USB_DEV_NODE" ]]; then
+    echo "Error: USB device '${USB_ARG}' not found on the system." >&2
+    echo "Detected USB CCID readers:" >&2
+    list_ccid_usb_readers
+    exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CMD_FILE="${SCRIPT_DIR}/build/jvmRunCommand.txt"
+
+export MULTIPAZ_BLE_HCI_DEV="$HCI_NAME"
+export MULTIPAZ_USB_VID_PID="$USB_ARG"
+
+# Step 1: If we are not root yet, run the Gradle build as the regular user so
+# that build/ and ~/.gradle stay owned by the user, then sudo back into this
+# script for the privileged capsh + USB ACL step.
+if [[ "${EUID}" -ne 0 ]]; then
+    echo "Building MdlReaderLinux (prepareJvmRun) as $(id -un)..."
+    (cd "$SCRIPT_DIR" && ./gradlew --console=plain -q prepareJvmRun)
+    if [[ ! -f "$CMD_FILE" ]]; then
+        echo "Error: ${CMD_FILE} was not produced by prepareJvmRun" >&2
+        exit 1
+    fi
+    echo "Elevating via sudo to grant CAP_NET_ADMIN (${HCI_NAME}) and USB access (${USB_ARG} at ${USB_DEV_NODE})..."
+    exec sudo --preserve-env=MULTIPAZ_BLE_HCI_DEV,MULTIPAZ_USB_VID_PID,DISPLAY,WAYLAND_DISPLAY,XAUTHORITY,XDG_RUNTIME_DIR,DBUS_SESSION_BUS_ADDRESS \
+        "$0" --hci "$HCI_NAME" --usb "$USB_ARG"
+fi
+
+# Step 2: Running as root (via sudo). Drop back to SUDO_USER with only
+# CAP_NET_ADMIN in the ambient/inheritable/effective/permitted sets and grant
+# ACL read/write access on the USB device node.
+TARGET_USER="${SUDO_USER:-}"
+if [[ -z "$TARGET_USER" || "$TARGET_USER" == "root" ]]; then
+    echo "Error: do not run this script directly as root; run it as your normal user (it will invoke sudo after building)." >&2
+    exit 1
+fi
+
+if ! command -v capsh >/dev/null 2>&1; then
+    echo "Error: 'capsh' not found (install libcap2-bin / libcap)." >&2
+    exit 1
+fi
+
+if [[ ! -f "$CMD_FILE" ]]; then
+    echo "Error: ${CMD_FILE} not found." >&2
+    exit 1
+fi
+
+if command -v setfacl >/dev/null 2>&1; then
+    setfacl -m "u:${TARGET_USER}:rw" "$USB_DEV_NODE"
+else
+    chmod a+rw "$USB_DEV_NODE"
+fi
+
+JAVA_CMD="$(cat "$CMD_FILE")"
+
+echo "Launching MdlReaderLinux as user '${TARGET_USER}' with CAP_NET_ADMIN on ${MULTIPAZ_BLE_HCI_DEV} and USB NFC reader ${MULTIPAZ_USB_VID_PID} (${USB_DEV_NODE})..."
+cd "$SCRIPT_DIR"
+exec capsh \
+    --keep=1 \
+    --user="${TARGET_USER}" \
+    --caps="cap_net_admin+eip" \
+    --addamb="cap_net_admin" \
+    -- -c "$JAVA_CMD"
