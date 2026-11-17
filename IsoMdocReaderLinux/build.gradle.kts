@@ -60,7 +60,7 @@ java {
 
 compose.desktop {
     application {
-        mainClass = "org.multipaz.samples.mdlreaderlinux.MainKt"
+        mainClass = "org.multipaz.samples.isomdocreaderlinux.MainKt"
         jvmArgs("--enable-native-access=ALL-UNNAMED")
     }
 }
@@ -84,7 +84,7 @@ tasks.register("prepareJvmRun") {
                 "--enable-native-access=ALL-UNNAMED",
                 "-cp",
                 classpath,
-                "org.multipaz.samples.mdlreaderlinux.MainKt"
+                "org.multipaz.samples.isomdocreaderlinux.MainKt"
             ).joinToString(" ") { arg ->
                 "'" + arg.replace("'", "'\\''") + "'"
             } + "\n"
