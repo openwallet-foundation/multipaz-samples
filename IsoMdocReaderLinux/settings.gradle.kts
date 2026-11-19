@@ -1,4 +1,4 @@
-rootProject.name = "MdlReaderLinux"
+rootProject.name = "IsoMdocReaderLinux"
 
 pluginManagement {
     repositories {

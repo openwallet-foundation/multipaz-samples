@@ -1,4 +1,4 @@
-package org.multipaz.samples.mdlreaderlinux
+package org.multipaz.samples.isomdocreaderlinux
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Contactless
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,37 +47,63 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import org.multipaz.compose.qrcode.generateQrCode
 
 private sealed interface ReaderUiState {
-    data class Scanning(val statusMessage: String) : ReaderUiState
-    data class Result(val verificationResult: MdlVerificationResult) : ReaderUiState
+    data class Scanning(
+        val statusMessage: String,
+        val qrCodeUri: String? = null,
+    ) : ReaderUiState
+    data class Result(val verificationResult: IsoMdocVerificationResult) : ReaderUiState
     data class Error(val message: String) : ReaderUiState
 }
 
 private const val AUTO_RESET_SECONDS = 10
+private const val INITIAL_SCANNING_MESSAGE = "Preparing Reader QR..."
 
 @Composable
-fun MdlReaderScreen(
-    usbVendorId: Int,
-    usbProductId: Int,
+fun IsoMdocReaderScreen(
+    usbVendorId: Int?,
+    usbProductId: Int?,
     hciDevice: String
 ) {
     val session = remember(usbVendorId, usbProductId) {
-        MdlReaderSession(usbVendorId = usbVendorId, usbProductId = usbProductId)
+        IsoMdocReaderSession(usbVendorId = usbVendorId, usbProductId = usbProductId)
     }
     var uiState by remember {
         mutableStateOf<ReaderUiState>(
-            ReaderUiState.Scanning("Waiting for phone tap on USB NFC reader...")
+            ReaderUiState.Scanning(INITIAL_SCANNING_MESSAGE)
         )
+    }
+    var connectedUsbReader by remember {
+        mutableStateOf<ConnectedUsbNfcReader?>(null)
     }
     var scanCycle by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(session, scanCycle) {
         if (uiState is ReaderUiState.Scanning) {
             try {
-                val result = session.readAndVerifyMdl { status ->
-                    uiState = ReaderUiState.Scanning(status)
-                }
+                var currentStatus = INITIAL_SCANNING_MESSAGE
+                var currentQrUri: String? = null
+                val result = session.readAndVerifyIsoMdoc(
+                    onStatusChanged = { status ->
+                        currentStatus = status
+                        uiState = ReaderUiState.Scanning(
+                            statusMessage = currentStatus,
+                            qrCodeUri = currentQrUri,
+                        )
+                    },
+                    onQrCodeChanged = { qrUri ->
+                        currentQrUri = qrUri
+                        uiState = ReaderUiState.Scanning(
+                            statusMessage = currentStatus,
+                            qrCodeUri = currentQrUri,
+                        )
+                    },
+                    onUsbReaderChanged = { reader ->
+                        connectedUsbReader = reader
+                    }
+                )
                 uiState = ReaderUiState.Result(result)
             } catch (e: CancellationException) {
                 throw e
@@ -84,6 +112,15 @@ fun MdlReaderScreen(
                 uiState = ReaderUiState.Error(e.message ?: e::class.simpleName ?: "Unknown error")
             }
         }
+    }
+
+    val usbStatusLabel = when (val reader = connectedUsbReader) {
+        null -> if (usbVendorId != null && usbProductId != null) {
+            "%04x:%04x (not connected)".format(usbVendorId, usbProductId)
+        } else {
+            "Not connected"
+        }
+        else -> reader.displayLabel
     }
 
     Surface(
@@ -102,16 +139,13 @@ fun MdlReaderScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Multipaz mDL Age Verifier",
+                    text = "Multipaz mDL / PhotoID Verifier",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "BLE HCI: $hciDevice  •  USB NFC Reader: %04x:%04x".format(
-                        usbVendorId,
-                        usbProductId
-                    ),
+                    text = "BLE HCI: $hciDevice  •  USB NFC Reader: $usbStatusLabel",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -127,13 +161,21 @@ fun MdlReaderScreen(
             ) {
                 when (val state = uiState) {
                     is ReaderUiState.Scanning -> {
-                        ScanningCard(statusMessage = state.statusMessage)
+                        ScanningCard(
+                            statusMessage = state.statusMessage,
+                            qrCodeUri = state.qrCodeUri,
+                            hasUsbNfcReader = connectedUsbReader != null,
+                            onCancel = {
+                                uiState = ReaderUiState.Scanning(INITIAL_SCANNING_MESSAGE)
+                                scanCycle++
+                            }
+                        )
                     }
                     is ReaderUiState.Result -> {
                         ResultCard(
                             result = state.verificationResult,
                             onDone = {
-                                uiState = ReaderUiState.Scanning("Waiting for phone tap on USB NFC reader...")
+                                uiState = ReaderUiState.Scanning(INITIAL_SCANNING_MESSAGE)
                                 scanCycle++
                             }
                         )
@@ -142,7 +184,7 @@ fun MdlReaderScreen(
                         ErrorCard(
                             errorMessage = state.message,
                             onRetry = {
-                                uiState = ReaderUiState.Scanning("Waiting for phone tap on USB NFC reader...")
+                                uiState = ReaderUiState.Scanning(INITIAL_SCANNING_MESSAGE)
                                 scanCycle++
                             }
                         )
@@ -168,51 +210,110 @@ fun MdlReaderScreen(
 }
 
 @Composable
-private fun ScanningCard(statusMessage: String) {
-    val isConnecting = !statusMessage.startsWith("Waiting for phone tap")
+private fun ScanningCard(
+    statusMessage: String,
+    qrCodeUri: String?,
+    hasUsbNfcReader: Boolean,
+    onCancel: () -> Unit,
+) {
+    val qrCodeBitmap = remember(qrCodeUri) {
+        qrCodeUri?.let { generateQrCode(it) }
+    }
+    val isConnecting = qrCodeBitmap == null || !statusMessage.startsWith("Waiting for")
+    val showCancelButton = isConnecting && statusMessage != INITIAL_SCANNING_MESSAGE
+
     Card(
         modifier = Modifier
-            .fillMaxWidth(0.85f)
-            .padding(16.dp),
+            .fillMaxWidth(0.88f)
+            .padding(12.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(36.dp),
+                .padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Contactless,
-                contentDescription = "NFC Tap",
-                modifier = Modifier.size(96.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
+            if (qrCodeBitmap != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        bitmap = qrCodeBitmap,
+                        contentDescription = "Reader QR Code",
+                        modifier = Modifier.size(210.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = if (hasUsbNfcReader) {
+                        "Scan Reader QR or NFC tap to check Age over 21"
+                    } else {
+                        "Scan Reader QR to check Age over 21"
+                    },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (hasUsbNfcReader) {
+                        "Scan the QR code from your wallet app, or hold your device against the USB NFC reader"
+                    } else {
+                        "Scan the QR code from your wallet app (plug in a USB NFC reader at any time to also enable NFC tap)"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Contactless,
+                    contentDescription = "NFC Tap",
+                    modifier = Modifier.size(88.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = "Verifying ISO mdoc",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
-            Text(
-                text = "Tap your phone with an mDL for verification",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Hold your device against the USB NFC reader",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (isConnecting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (hasUsbNfcReader) {
+                            Icons.Default.Contactless
+                        } else {
+                            Icons.Default.QrCode2
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 Text(
@@ -222,13 +323,19 @@ private fun ScanningCard(statusMessage: String) {
                     textAlign = TextAlign.Center
                 )
             }
+            if (showCancelButton) {
+                Spacer(modifier = Modifier.height(24.dp))
+                OutlinedButton(onClick = onCancel) {
+                    Text("Cancel")
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun ResultCard(
-    result: MdlVerificationResult,
+    result: IsoMdocVerificationResult,
     onDone: () -> Unit
 ) {
     var secondsRemaining by remember(result) { mutableIntStateOf(AUTO_RESET_SECONDS) }
