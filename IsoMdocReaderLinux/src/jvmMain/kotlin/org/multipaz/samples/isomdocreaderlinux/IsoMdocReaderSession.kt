@@ -356,7 +356,7 @@ class IsoMdocReaderSession(
     ): IsoMdocVerificationResult {
         sessionMutex.withLock {
             val options = MdocTransportOptions(
-                bleUseL2CAP = true,
+                bleUseL2CAP = false,
                 bleExportPeripheralAddress = usePeripheralMacAddressInEngagement,
                 bleUsePeripheralAddress = usePeripheralMacAddressInEngagement,
             )
