@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -21,11 +22,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.io.bytestring.ByteString
+import org.multipaz.asn1.ASN1Integer
 import org.multipaz.bthci.BtHciMdocTransportFactory
 import org.multipaz.cbor.Bstr
 import org.multipaz.cbor.Cbor
@@ -38,6 +41,10 @@ import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.EcPrivateKey
+import org.multipaz.crypto.EcPublicKey
+import org.multipaz.crypto.X500Name
+import org.multipaz.crypto.X509Cert
+import org.multipaz.crypto.X509CertChain
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.PhotoID
 import org.multipaz.mdoc.connectionmethod.BleAddressType
@@ -65,8 +72,10 @@ import org.multipaz.mdoc.transport.MdocTransport
 import org.multipaz.mdoc.transport.MdocTransportFactory
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.transport.MdocTransportStats
+import org.multipaz.mdoc.transport.NfcCceTransportMdocReader
 import org.multipaz.mdoc.transport.advertise
 import org.multipaz.mdoc.transport.waitForConnection
+import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.nfc.NfcScanOptions
 import org.multipaz.nfc.NfcTagReaderUsb
 import org.multipaz.nfc.create
@@ -80,12 +89,17 @@ import java.io.IOException
 import java.nio.file.Files
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 data class IsoMdocVerificationResult(
     val portrait: ImageBitmap?,
     val isOlderThan21: Boolean,
-    val ageSourceAttribute: String
+    val ageSourceAttribute: String,
+    val transportStats: MdocTransportStats,
+    val totalDuration: Duration,
 )
 
 data class ConnectedUsbNfcReader(
@@ -109,6 +123,52 @@ data class ConnectedUsbNfcReader(
 
 private const val TAG = "IsoMdocReaderSession"
 private const val DEFAULT_HCI_L2CAP_PSM = 0x0080
+private const val READER_CA_COMMON_NAME = "Multipaz IsoMdocReaderLinux Reader CA (TEST)"
+private const val READER_CERT_COMMON_NAME = "Multipaz IsoMdocReaderLinux (TEST)"
+
+private val READER_ROOT_PUBLIC_KEY_PEM = """
+    -----BEGIN PUBLIC KEY-----
+    MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEJTwvAFf6kSXERSy7ovtEpZ0YxxSd6tZaoAucpa48X39a
+    EIFO5V/vUO1npq466R0luHPq7qtkENIcTSFStdGcf2xolHDu2HZcrDxPDXBrMgEfrWqevXDfGT38
+    a6s90viw
+    -----END PUBLIC KEY-----
+""".trimIndent().trim()
+
+private val READER_ROOT_PRIVATE_KEY_PEM = """
+    -----BEGIN PRIVATE KEY-----
+    MFcCAQAwEAYHKoZIzj0CAQYFK4EEACIEQDA+AgEBBDAFBusGCsPnP5ZXrAzQJqAa0iMm6fUI8RCV
+    uZ+7diRJYpdG5k/k9bFASNrgbeYPwOqgBwYFK4EEACI=
+    -----END PRIVATE KEY-----
+""".trimIndent().trim()
+
+/**
+ * Self-signed P-384 Reader CA root certificate (`CN=Multipaz IsoMdocReaderLinux Reader CA (TEST)`),
+ * valid for 10 years (`2026-01-01T00:00:00Z` to `2036-01-01T00:00:00Z`).
+ */
+val READER_ROOT_CERT_PEM = """
+    -----BEGIN CERTIFICATE-----
+    MIICDjCCAZWgAwIBAgIQNKTYMBT14S4t6rtQ05O0KDAKBggqhkjOPQQDAzA3MTUwMwYDVQQDDCxN
+    dWx0aXBheiBJc29NZG9jUmVhZGVyTGludXggUmVhZGVyIENBIChURVNUKTAeFw0yNjAxMDEwMDAw
+    MDBaFw0zNjAxMDEwMDAwMDBaMDcxNTAzBgNVBAMMLE11bHRpcGF6IElzb01kb2NSZWFkZXJMaW51
+    eCBSZWFkZXIgQ0EgKFRFU1QpMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEJTwvAFf6kSXERSy7ovtE
+    pZ0YxxSd6tZaoAucpa48X39aEIFO5V/vUO1npq466R0luHPq7qtkENIcTSFStdGcf2xolHDu2HZc
+    rDxPDXBrMgEfrWqevXDfGT38a6s90viwo2YwZDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgw
+    BgEB/wIBADAdBgNVHQ4EFgQU/kh1tsOyUHjGQKRgw26KnX9h6WAwHwYDVR0jBBgwFoAU/kh1tsOy
+    UHjGQKRgw26KnX9h6WAwCgYIKoZIzj0EAwMDZwAwZAIwDQEyTrRUCmbMdHpUoVtFOUKyv3Aar1zr
+    MU64WhMQFUAOPjvtGK7ujInJ8U2hVZBCAjAXyGTe5crpECf2qh8UEaclLB/iftKjoTSQ4X5r8xfm
+    xSV8f25XmZCYwKblzqFNgoE=
+    -----END CERTIFICATE-----
+""".trimIndent().trim()
+
+private val bundledReaderRootKey: AsymmetricKey.X509CertifiedExplicit by lazy {
+    val publicKey = EcPublicKey.fromPem(READER_ROOT_PUBLIC_KEY_PEM)
+    val privateKey = EcPrivateKey.fromPem(READER_ROOT_PRIVATE_KEY_PEM, publicKey)
+    val cert = X509Cert.fromPem(READER_ROOT_CERT_PEM)
+    AsymmetricKey.X509CertifiedExplicit(
+        certChain = X509CertChain(listOf(cert)),
+        privateKey = privateKey,
+    )
+}
 
 private sealed interface CycleOutcome {
     data class Success(val result: IsoMdocVerificationResult) : CycleOutcome
@@ -285,16 +345,58 @@ class IsoMdocReaderSession(
      * response MSO & device auth, and return the [IsoMdocVerificationResult].
      */
     suspend fun readAndVerifyIsoMdoc(
+        useBle: Boolean = true,
+        useL2capInEngagement: Boolean = true,
+        usePeripheralMacAddressInEngagement: Boolean = true,
+        useReaderAuthentication: Boolean = true,
+        responseTimeout: Duration = 30.seconds,
         onStatusChanged: (String) -> Unit,
         onQrCodeChanged: (String?) -> Unit = {},
         onUsbReaderChanged: (ConnectedUsbNfcReader?) -> Unit = {},
     ): IsoMdocVerificationResult {
         sessionMutex.withLock {
-            val options = MdocTransportOptions(bleUseL2CAP = true)
+            val options = MdocTransportOptions(
+                bleUseL2CAP = true,
+                bleExportPeripheralAddress = usePeripheralMacAddressInEngagement,
+                bleUsePeripheralAddress = usePeripheralMacAddressInEngagement,
+            )
+            val singleUseReaderPrivateKey = if (useReaderAuthentication) {
+                Crypto.createEcPrivateKey(EcCurve.P256)
+            } else {
+                null
+            }
+            try {
+                val certifiedReaderKey = if (singleUseReaderPrivateKey != null) {
+                    val now = Clock.System.now()
+                    val rootCert = bundledReaderRootKey.certChain.certificates.first()
+                    val validFrom = minOf(now - 1.days, rootCert.validityNotBefore)
+                    val validUntil = minOf(now + 30.days, rootCert.validityNotAfter)
+                    val readerCert = MdocUtil.generateReaderCertificate(
+                        readerRootKey = bundledReaderRootKey,
+                        readerKey = singleUseReaderPrivateKey.publicKey,
+                        subject = X500Name.fromName("CN=$READER_CERT_COMMON_NAME"),
+                        dnsName = null,
+                        serial = ASN1Integer.fromRandom(numBits = 128),
+                        validFrom = validFrom,
+                        validUntil = validUntil,
+                    )
+                    AsymmetricKey.X509CertifiedExplicit(
+                        certChain = X509CertChain(
+                            listOf(readerCert) + bundledReaderRootKey.certChain.certificates
+                        ),
+                        privateKey = singleUseReaderPrivateKey,
+                    )
+                } else {
+                    null
+                }
 
         while (true) {
             onQrCodeChanged(null)
-            onStatusChanged("Preparing Reader QR...")
+            if (useBle) {
+                onStatusChanged("Preparing Reader QR...")
+            } else {
+                onStatusChanged("Waiting for USB NFC reader (BLE disabled)...")
+            }
 
             val (qrRandomAddrBytes, _) = generateStaticRandomAddress()
             val (nfcRandomAddrBytes, nfcPeripheralAddress) = generateStaticRandomAddress()
@@ -303,37 +405,48 @@ class IsoMdocReaderSession(
             val baseNfcBleTransportFactory = BtHciMdocTransportFactory(randomAddress = nfcRandomAddrBytes)
 
             val qrBleUuid = UUID.randomUUID()
-            val qrConnectionMethods = listOf<MdocConnectionMethod>(
-                MdocConnectionMethod.Ble.DirectL2capCentral(uuid = qrBleUuid),
-                MdocConnectionMethod.Ble.GattCentral(uuid = qrBleUuid),
-            )
+            val qrConnectionMethods = buildList<MdocConnectionMethod> {
+                if (useBle) {
+                    if (useL2capInEngagement) {
+                        add(MdocConnectionMethod.Ble.DirectL2capCentral(uuid = qrBleUuid))
+                    }
+                    add(MdocConnectionMethod.Ble.GattCentral(uuid = qrBleUuid))
+                }
+            }
 
             val qrEReaderKey = Crypto.createEcPrivateKey(EcCurve.P256)
             var qrAdvertisedTransports: List<MdocTransport> = emptyList()
 
             try {
-                qrAdvertisedTransports = qrConnectionMethods.advertise(
-                    role = MdocRole.MDOC_READER,
-                    transportFactory = qrBleTransportFactory,
-                    options = options,
-                )
-                val readerEngagement = buildReaderEngagement(
-                    eReaderKey = qrEReaderKey.publicKey,
-                    version = "1.1",
-                ) {
-                    qrAdvertisedTransports.forEach { advertised ->
-                        advertised.connectionMethods.forEach { method ->
-                            addConnectionMethod(method)
+                val readerEngagement: ReaderEngagement?
+                val qrHandover: DataItem?
+                if (useBle) {
+                    qrAdvertisedTransports = qrConnectionMethods.advertise(
+                        role = MdocRole.MDOC_READER,
+                        transportFactory = qrBleTransportFactory,
+                        options = options,
+                    )
+                    val engagement = buildReaderEngagement(
+                        eReaderKey = qrEReaderKey.publicKey,
+                        version = "1.1",
+                    ) {
+                        qrAdvertisedTransports.forEach { advertised ->
+                            advertised.connectionMethods.forEach { method ->
+                                addConnectionMethod(method)
+                            }
                         }
                     }
+                    val encodedReaderEngagement = Cbor.encode(
+                        engagement.toDataItem(MdocEngagementType.READER_QR)
+                    )
+                    readerEngagement = engagement
+                    qrHandover = ReaderEngagement.computeHandover(encodedReaderEngagement)
+                    val qrCodeUri = "mdoc:" + encodedReaderEngagement.toBase64Url()
+                    onQrCodeChanged(qrCodeUri)
+                } else {
+                    readerEngagement = null
+                    qrHandover = null
                 }
-                val encodedReaderEngagement = Cbor.encode(
-                    readerEngagement.toDataItem(MdocEngagementType.READER_QR)
-                )
-                val qrHandover = ReaderEngagement.computeHandover(encodedReaderEngagement)
-                val qrCodeUri = "mdoc:" + encodedReaderEngagement.toBase64Url()
-
-                onQrCodeChanged(qrCodeUri)
 
                 val outcome = coroutineScope {
                     val mutex = Mutex()
@@ -342,44 +455,58 @@ class IsoMdocReaderSession(
                     lateinit var nfcJob: Job
 
                     val qrJob = launch(start = CoroutineStart.LAZY) {
+                        if (!useBle || readerEngagement == null || qrHandover == null) {
+                            return@launch
+                        }
                         var connectedQrTransport: MdocTransport? = null
                         try {
                             val transport = qrAdvertisedTransports.waitForConnection(
                                 eSenderKeyBytes = readerEngagement.eReaderKeyBytes!!
                             )
+                            val connectionDetectedAt = Clock.System.now()
                             connectedQrTransport = transport
                             onQrCodeChanged(null)
 
                             val connectionLabel = transport.connectionMethod?.toString() ?: "BLE (Reader QR)"
                             onStatusChanged("QR code scanned! Connecting over $connectionLabel...")
 
-                            val initialSessionMessage = transport.waitForMessage()
-                            if (initialSessionMessage.isEmpty()) {
-                                throw IllegalStateException(
-                                    "Holder terminated Reader QR session without sending DeviceEngagement"
+                            val res = withTimeout(responseTimeout) {
+                                val initialSessionMessage = transport.waitForMessage()
+                                if (initialSessionMessage.isEmpty()) {
+                                    throw IllegalStateException(
+                                        "Holder terminated Reader QR session without sending DeviceEngagement"
+                                    )
+                                }
+                                val encodedDeBytes = SessionEncryption.getDeviceEngagementBytes(initialSessionMessage)
+                                val deviceEngagement = DeviceEngagement.fromDataItem(
+                                    dataItem = Cbor.decode(encodedDeBytes),
+                                    engagementType = MdocEngagementType.READER_QR,
+                                )
+                                val eDeviceKey = deviceEngagement.eDeviceKey
+                                val matchingQrKey = qrEReaderKey.takeIf { it.curve == eDeviceKey.curve }
+                                val effectiveEReaderKey = matchingQrKey ?: Crypto.createEcPrivateKey(eDeviceKey.curve)
+
+                                exchangeAndVerifyIsoMdoc(
+                                    transport = transport,
+                                    encodedDeviceEngagement = encodedDeBytes,
+                                    deviceEngagement = deviceEngagement,
+                                    eReaderKey = effectiveEReaderKey,
+                                    handover = qrHandover,
+                                    insertSequenceNumbers = false,
+                                    alreadyOpened = true,
+                                    sendSessionEstablishment = (matchingQrKey == null),
+                                    certifiedReaderKey = certifiedReaderKey,
+                                    initialDuration = Duration.ZERO,
+                                    transferStartedAt = connectionDetectedAt,
+                                    onStatusChanged = onStatusChanged,
                                 )
                             }
-                            val encodedDeBytes = SessionEncryption.getDeviceEngagementBytes(initialSessionMessage)
-                            val deviceEngagement = DeviceEngagement.fromDataItem(
-                                dataItem = Cbor.decode(encodedDeBytes),
-                                engagementType = MdocEngagementType.READER_QR,
-                            )
-                            val eDeviceKey = deviceEngagement.eDeviceKey
-                            val matchingQrKey = qrEReaderKey.takeIf { it.curve == eDeviceKey.curve }
-                            val effectiveEReaderKey = matchingQrKey ?: Crypto.createEcPrivateKey(eDeviceKey.curve)
-
-                            val res = exchangeAndVerifyIsoMdoc(
-                                transport = transport,
-                                encodedDeviceEngagement = encodedDeBytes,
-                                deviceEngagement = deviceEngagement,
-                                eReaderKey = effectiveEReaderKey,
-                                handover = qrHandover,
-                                insertSequenceNumbers = false,
-                                alreadyOpened = true,
-                                sendSessionEstablishment = (matchingQrKey == null),
-                                onStatusChanged = onStatusChanged,
-                            )
                             if (outcomeDeferred.complete(CycleOutcome.Success(res))) {
+                                nfcJob.cancel()
+                            }
+                        } catch (e: TimeoutCancellationException) {
+                            Logger.i(TAG, "Timed out waiting for response over Reader QR; restarting transaction", e)
+                            if (outcomeDeferred.complete(CycleOutcome.Restart)) {
                                 nfcJob.cancel()
                             }
                         } catch (e: CancellationException) {
@@ -416,16 +543,18 @@ class IsoMdocReaderSession(
                     }
 
                     val nfcBleUuid = UUID.randomUUID()
-                    val nfcNegotiatedHandoverConnectionMethods = listOf<MdocConnectionMethod>(
-                        MdocConnectionMethod.Ble.DirectL2capCentral(uuid = nfcBleUuid),
-                        MdocConnectionMethod.Ble.GattCentral(uuid = nfcBleUuid),
-                        MdocConnectionMethod.Ble.DirectL2capPeripheral(),
-                        MdocConnectionMethod.Ble.GattPeripheral(),
-                        MdocConnectionMethod.Nfc(
-                            commandDataFieldMaxLength = 0xffff,
-                            responseDataFieldMaxLength = 0x10000
-                        )
-                    )
+                    val nfcNegotiatedHandoverConnectionMethods = buildList<MdocConnectionMethod> {
+                        if (useBle) {
+                            if (useL2capInEngagement) {
+                                add(MdocConnectionMethod.Ble.DirectL2capCentral(uuid = nfcBleUuid))
+                            }
+                            add(MdocConnectionMethod.Ble.GattCentral(uuid = nfcBleUuid))
+                            if (useL2capInEngagement) {
+                                add(MdocConnectionMethod.Ble.DirectL2capPeripheral())
+                            }
+                            add(MdocConnectionMethod.Ble.GattPeripheral())
+                        }
+                    }
 
                     val nfcTransportFactory = object : MdocTransportFactory {
                         override fun createTransport(
@@ -455,12 +584,17 @@ class IsoMdocReaderSession(
                                 it is MdocConnectionMethod.Ble && it.isMdocCentral
                             }
                             if (centralBleMethods.isNotEmpty()) {
+                                val exportedAddress = if (options.bleExportPeripheralAddress) {
+                                    nfcPeripheralAddress
+                                } else {
+                                    null
+                                }
                                 val methodsWithAddr = centralBleMethods.map { cm ->
                                     when (cm) {
                                         is MdocConnectionMethod.Ble.DirectL2capCentral ->
-                                            cm.copy(peripheralAddress = nfcPeripheralAddress)
+                                            cm.copy(peripheralAddress = exportedAddress)
                                         is MdocConnectionMethod.Ble.GattCentral ->
-                                            cm.copy(peripheralAddress = nfcPeripheralAddress)
+                                            cm.copy(peripheralAddress = exportedAddress)
                                         else -> cm
                                     }
                                 }
@@ -474,10 +608,10 @@ class IsoMdocReaderSession(
                                         is MdocConnectionMethod.Ble.DirectL2capCentral ->
                                             cm.copy(
                                                 psm = DEFAULT_HCI_L2CAP_PSM,
-                                                peripheralAddress = nfcPeripheralAddress,
+                                                peripheralAddress = exportedAddress,
                                             )
                                         is MdocConnectionMethod.Ble.GattCentral ->
-                                            cm.copy(peripheralAddress = nfcPeripheralAddress)
+                                            cm.copy(peripheralAddress = exportedAddress)
                                         else -> cm
                                     }
                                 }
@@ -508,34 +642,61 @@ class IsoMdocReaderSession(
                                     if (outcomeDeferred.complete(CycleOutcome.Restart)) {
                                         qrJob.cancel()
                                     }
-                                } else {
+                                } else if (useBle) {
                                     onStatusChanged("Waiting for QR scan (no USB NFC reader connected)...")
+                                } else {
+                                    onStatusChanged("Waiting for USB NFC reader (BLE disabled)...")
                                 }
                                 return@collectLatest
                             }
 
                             val wasTransactingNfc = mutex.withLock { qrStoppedForNfc }
                             if (!wasTransactingNfc) {
-                                onStatusChanged("Waiting for QR scan or phone tap on USB NFC reader...")
+                                if (useBle) {
+                                    onStatusChanged("Waiting for QR scan or phone tap on USB NFC reader...")
+                                } else {
+                                    onStatusChanged("Waiting for phone tap on USB NFC reader...")
+                                }
                             }
 
                             val nfcReader = NfcTagReaderUsb.create(devicePath = readerInfo.deviceNodePath)
                             try {
+                                // When BLE is disabled, no alternative data transfer connection methods are
+                                // offered (MdocConnectionMethod.Nfc is intentionally omitted because 2021-edition
+                                // NFC data transfer requires keeping the phone in the field continuously, which
+                                // doesn't work when the user must remove the phone to perform biometric unlock).
+                                // Consequently, NDEF Connection Handover cannot succeed without BLE, so we must
+                                // restrict NFC engagement to Second Edition NFC CCE (NFC_CCE_ONLY), which
+                                // supports re-tapping after biometric authentication.
+                                val nfcEngagementType = if (useBle) {
+                                    MdocReaderNfcEngagementType.NFC_CCE_AND_NFC_CONNECTION_HANDOVER
+                                } else {
+                                    MdocReaderNfcEngagementType.NFC_CCE_ONLY
+                                }
                                 val res = nfcReader.scanMdocReader(
                                     message = null,
                                     options = options,
                                     handoverOptions = MdocReaderNfcHandoverOptions(
-                                        engagementType = MdocReaderNfcEngagementType.NFC_CCE_AND_NFC_CONNECTION_HANDOVER
+                                        engagementType = nfcEngagementType
                                     ),
                                     transportFactory = nfcTransportFactory,
-                                    selectConnectionMethod = { connectionMethods -> connectionMethods.firstOrNull() },
+                                    selectConnectionMethod = { connectionMethods ->
+                                        if (useBle) {
+                                            connectionMethods.firstOrNull { it is MdocConnectionMethod.Ble }
+                                        } else {
+                                            null
+                                        }
+                                    },
                                     negotiatedHandoverConnectionMethods = nfcNegotiatedHandoverConnectionMethods,
                                     nfcScanOptions = NfcScanOptions(
                                         pollingFrameData = ByteString("6a0281030000".fromHex())
                                     ),
                                     onHandover = { scanResult ->
+                                        val handoverCompletedAt = Clock.System.now()
                                         stopQrForNfc()
                                         val transport = scanResult.transport
+                                        val isNfcOnly =
+                                            (transport as? NfcCceTransportMdocReader)?.isNfcOnly == true
                                         try {
                                             val connectionLabel = transport.connectionMethod?.toString() ?: "NFC (CCE)"
                                             onStatusChanged("Phone detected via NFC! Connecting over $connectionLabel...")
@@ -549,17 +710,54 @@ class IsoMdocReaderSession(
                                                 ?.takeIf { it.curve == eDeviceKey.curve }
                                                 ?: Crypto.createEcPrivateKey(eDeviceKey.curve)
 
-                                            exchangeAndVerifyIsoMdoc(
-                                                transport = transport,
-                                                encodedDeviceEngagement = encodedDeBytes,
-                                                deviceEngagement = deviceEngagement,
-                                                eReaderKey = eReaderKey,
-                                                handover = scanResult.handover,
-                                                insertSequenceNumbers = scanResult.type == MdocHandoverType.CCE_HANDOVER,
-                                                alreadyOpened = false,
-                                                sendSessionEstablishment = true,
-                                                onStatusChanged = onStatusChanged,
+                                            withTimeout(responseTimeout) {
+                                                exchangeAndVerifyIsoMdoc(
+                                                    transport = transport,
+                                                    encodedDeviceEngagement = encodedDeBytes,
+                                                    deviceEngagement = deviceEngagement,
+                                                    eReaderKey = eReaderKey,
+                                                    handover = scanResult.handover,
+                                                    insertSequenceNumbers = scanResult.type == MdocHandoverType.CCE_HANDOVER,
+                                                    alreadyOpened = false,
+                                                    sendSessionEstablishment = true,
+                                                    certifiedReaderKey = certifiedReaderKey,
+                                                    initialDuration = scanResult.processingDuration,
+                                                    transferStartedAt = handoverCompletedAt,
+                                                    onStatusChanged = onStatusChanged,
+                                                )
+                                            }
+                                        } catch (e: TimeoutCancellationException) {
+                                            Logger.i(
+                                                TAG,
+                                                "Timed out waiting for connection or response after NFC tap; restarting transaction",
+                                                e
                                             )
+                                            if (outcomeDeferred.complete(CycleOutcome.Restart)) {
+                                                qrJob.cancel()
+                                            }
+                                            null
+                                        } catch (e: CancellationException) {
+                                            throw e
+                                        } catch (e: Throwable) {
+                                            if (isNfcOnly) {
+                                                // In NFC-only mode, removing the mdoc from the reader field
+                                                // (e.g. so the holder can perform biometric unlock in the
+                                                // NFC-only double-tap scenario) terminates the active NFC tag
+                                                // link. Abort and set up a new transaction immediately so the
+                                                // UI leaves the "Waiting for response" screen and is ready for
+                                                // the second tap.
+                                                Logger.i(
+                                                    TAG,
+                                                    "mdoc removed during NFC-only transaction; aborting and starting new transaction",
+                                                    e
+                                                )
+                                                if (outcomeDeferred.complete(CycleOutcome.Restart)) {
+                                                    qrJob.cancel()
+                                                }
+                                                null
+                                            } else {
+                                                throw e
+                                            }
                                         } finally {
                                             withContext(NonCancellable) {
                                                 try {
@@ -589,7 +787,11 @@ class IsoMdocReaderSession(
                                 if (!hadStartedNfcHandover && (!stillConnected || e is IOException)) {
                                     // Reader was hot-removed before any NFC handover started; keep QR running.
                                     onUsbReaderChanged(null)
-                                    onStatusChanged("Waiting for QR scan (no USB NFC reader connected)...")
+                                    if (useBle) {
+                                        onStatusChanged("Waiting for QR scan (no USB NFC reader connected)...")
+                                    } else {
+                                        onStatusChanged("Waiting for USB NFC reader (BLE disabled)...")
+                                    }
                                 } else {
                                     if (outcomeDeferred.completeExceptionally(e)) {
                                         qrJob.cancel()
@@ -606,7 +808,9 @@ class IsoMdocReaderSession(
                         }
                     }
 
-                    qrJob.start()
+                    if (useBle) {
+                        qrJob.start()
+                    }
                     nfcJob.start()
 
                     try {
@@ -634,6 +838,9 @@ class IsoMdocReaderSession(
                 }
             }
         }
+            } finally {
+                singleUseReaderPrivateKey?.close()
+            }
         }
     }
 
@@ -646,6 +853,9 @@ class IsoMdocReaderSession(
         insertSequenceNumbers: Boolean,
         alreadyOpened: Boolean,
         sendSessionEstablishment: Boolean,
+        certifiedReaderKey: AsymmetricKey.X509CertifiedExplicit?,
+        initialDuration: Duration,
+        transferStartedAt: Instant,
         onStatusChanged: (String) -> Unit,
     ): IsoMdocVerificationResult {
         Logger.dCbor(TAG, "DeviceEngagement", encodedDeviceEngagement)
@@ -747,6 +957,9 @@ class IsoMdocReaderSession(
                     )
                 )
             )
+            if (certifiedReaderKey != null) {
+                addReaderAuthAll(readerKey = certifiedReaderKey)
+            }
         }
 
         if (!alreadyOpened) {
@@ -763,6 +976,9 @@ class IsoMdocReaderSession(
         transport.sendMessage(encryptedDeviceRequest)
 
         val sessionData = transport.waitForMessage()
+        val responseReceivedAt = Clock.System.now()
+        val totalDuration = initialDuration + (responseReceivedAt - transferStartedAt)
+        val transportStats = transport.stats
         if (sessionData.isEmpty()) {
             throw IllegalStateException("Holder terminated session without sending a response")
         }
@@ -837,7 +1053,9 @@ class IsoMdocReaderSession(
         return IsoMdocVerificationResult(
             portrait = portraitBitmap,
             isOlderThan21 = isOlderThan21,
-            ageSourceAttribute = ageSource
+            ageSourceAttribute = ageSource,
+            transportStats = transportStats,
+            totalDuration = totalDuration,
         )
     }
 }
